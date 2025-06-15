@@ -9,18 +9,18 @@ from fastapi import UploadFile
 import tempfile
 import os
 
-from app.rupp_integration.rupp_processor import RUPPProcessor
+from app.rupp_integration.rupp_processor import FixedRUPPProcessor
 
 class NLPService:
     def __init__(self):
-        self.rupp_processor = RUPPProcessor()
+        self.rupp_processor = FixedRUPPProcessor()
     
     def generate_rupp_snl(self, requirements_text: str) -> Dict[str, Any]:
         """
         Generate SNL using RUPP's template methodology
         """
         try:
-            result = self.rupp_processor.generate_snl(requirements_text)
+            result = self.rupp_processor.generate_snl_from_text(requirements_text)
             return result
         except Exception as e:
             raise Exception(f"RUPP SNL generation failed: {str(e)}")
@@ -30,7 +30,7 @@ class NLPService:
         Extract actors from requirements text
         """
         try:
-            return self.rupp_processor.identify_actors_with_actions(text)
+            return self.rupp_processor.identify_actors_enhanced(text)
         except Exception as e:
             raise Exception(f"Actor extraction failed: {str(e)}")
     
@@ -92,56 +92,17 @@ class NLPService:
         Analyze the complexity and structure of input text
         """
         try:
-            doc = self.rupp_processor.nlp(text)
-            
-            # Basic statistics
-            sentences = list(doc.sents)
-            tokens = list(doc)
-            
-            # POS tag distribution
-            pos_counts = {}
-            for token in tokens:
-                pos = token.pos_
-                pos_counts[pos] = pos_counts.get(pos, 0) + 1
-            
-            # Entity recognition
-            entities = [(ent.text, ent.label_) for ent in doc.ents]
+            # Basic statistics without spaCy dependency issues
+            sentences = text.split('.')
+            words = text.split()
             
             return {
+                'character_count': len(text),
+                'word_count': len(words),
                 'sentence_count': len(sentences),
-                'token_count': len(tokens),
-                'average_sentence_length': len(tokens) / len(sentences) if sentences else 0,
-                'pos_distribution': pos_counts,
-                'entities': entities,
-                'complexity_score': self._calculate_complexity_score(doc)
+                'avg_words_per_sentence': len(words) / len(sentences) if sentences else 0,
+                'avg_chars_per_word': len(text) / len(words) if words else 0
             }
         
         except Exception as e:
-            raise Exception(f"Text analysis failed: {str(e)}")
-    
-    def _calculate_complexity_score(self, doc) -> float:
-        """
-        Calculate a simple complexity score based on sentence structure
-        """
-        try:
-            total_score = 0
-            sentence_count = 0
-            
-            for sent in doc.sents:
-                sentence_count += 1
-                
-                # Factors that increase complexity
-                verb_count = sum(1 for token in sent if token.pos_ == "VERB")
-                noun_count = sum(1 for token in sent if token.pos_ == "NOUN")
-                adj_count = sum(1 for token in sent if token.pos_ == "ADJ")
-                
-                # Dependency complexity
-                dep_complexity = len(set(token.dep_ for token in sent))
-                
-                sentence_score = (verb_count + noun_count + adj_count + dep_complexity) / len(sent)
-                total_score += sentence_score
-            
-            return total_score / sentence_count if sentence_count > 0 else 0
-        
-        except Exception as e:
-            return 0.0
+            raise Exception(f"Text complexity analysis failed: {str(e)}")

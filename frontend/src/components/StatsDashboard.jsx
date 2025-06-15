@@ -32,33 +32,65 @@ const StatsDashboard = ({ comparisonResults }) => {
   const {
     rupp_metrics = {},
     ai_metrics = {},
-    comparison = {}
+    comparison = {},
+    metrics = {}
   } = comparisonResults;
+
+  // Fallback values with proper handling
+  const ruppProcessingTime = rupp_metrics.processing_time || 0;
+  const aiProcessingTime = ai_metrics.processing_time || 0;
+  const ruppAccuracy = rupp_metrics.accuracy_score || (metrics.accuracy ? metrics.accuracy * 100 : 0);
+  const actorsDetected = rupp_metrics.actors_detected || ai_metrics.actors_detected || 0;
+  const ruppRequirements = rupp_metrics.requirements_count || 0;
+  const aiRequirements = ai_metrics.requirements_count || 0;
 
   const statsData = [
     {
       title: 'RUPP Processing Time',
-      value: `${rupp_metrics.processing_time || 0}ms`,
+      value: `${ruppProcessingTime.toFixed(1)}ms`,
       icon: <SpeedIcon color="primary" />,
-      progress: Math.min((rupp_metrics.processing_time || 0) / 1000 * 100, 100)
+      progress: Math.min((ruppProcessingTime / 1000) * 100, 100)
     },
     {
       title: 'AI Processing Time',
-      value: `${ai_metrics.processing_time || 0}ms`,
+      value: `${aiProcessingTime.toFixed(1)}ms`,
       icon: <TimelineIcon color="secondary" />,
-      progress: Math.min((ai_metrics.processing_time || 0) / 1000 * 100, 100)
+      progress: Math.min((aiProcessingTime / 1000) * 100, 100)
     },
     {
       title: 'RUPP Accuracy',
-      value: `${rupp_metrics.accuracy_score || 0}%`,
+      value: `${ruppAccuracy.toFixed(1)}%`,
       icon: <AccuracyIcon color="success" />,
-      progress: rupp_metrics.accuracy_score || 0
+      progress: ruppAccuracy
     },
     {
       title: 'Actors Detected',
-      value: `${rupp_metrics.actors_detected || 0}`,
+      value: `${actorsDetected}`,
       icon: <PeopleIcon color="info" />,
-      progress: Math.min((rupp_metrics.actors_detected || 0) * 25, 100)
+      progress: Math.min(actorsDetected * 25, 100)
+    }
+  ];
+
+  const additionalStats = [
+    {
+      title: 'RUPP Requirements',
+      value: ruppRequirements,
+      color: 'primary'
+    },
+    {
+      title: 'AI Requirements', 
+      value: aiRequirements,
+      color: 'secondary'
+    },
+    {
+      title: 'Precision Score',
+      value: `${((metrics.precision || 0) * 100).toFixed(1)}%`,
+      color: 'success'
+    },
+    {
+      title: 'Recall Score',
+      value: `${((metrics.recall || 0) * 100).toFixed(1)}%`,
+      color: 'warning'
     }
   ];
 
@@ -67,8 +99,7 @@ const StatsDashboard = ({ comparisonResults }) => {
       <Typography variant="h6" gutterBottom>
         Performance Dashboard
       </Typography>
-      
-      <Grid container spacing={2}>
+        <Grid container spacing={2}>
         {statsData.map((stat, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <Card elevation={2}>
@@ -92,6 +123,29 @@ const StatsDashboard = ({ comparisonResults }) => {
           </Grid>
         ))}
       </Grid>
+
+      {/* Additional Statistics */}
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Detailed Metrics
+        </Typography>
+        <Grid container spacing={2}>
+          {additionalStats.map((stat, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card elevation={1} sx={{ backgroundColor: '#f8f9fa' }}>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" color={stat.color}>
+                    {stat.value}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {stat.title}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
 
       {comparison.winner && (
         <Box sx={{ mt: 3 }}>

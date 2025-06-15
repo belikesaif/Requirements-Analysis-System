@@ -1,19 +1,23 @@
 """
-RUPP Template-based SNL Generator
-Extracted and adapted from the existing notebook implementation
+Fixed Enhanced RUPP Template-based SNL Generator
+Clean version with proper actor identification
 """
 
 import spacy
 import re
-# import contractions  # Removed to avoid dependency issues
 import textacy
 from typing import List, Dict, Any
 
-class RUPPProcessor:
+class FixedRUPPProcessor:
     def __init__(self):
-        self.nlp = spacy.load('en_core_web_sm')
+        try:
+            self.nlp = spacy.load('en_core_web_sm')
+        except OSError:
+            # Fallback to basic processing if spaCy model not available
+            self.nlp = None
+        
         self.corrections = {
-            'librarian': 'NOUN',  # Correct Librarian to be a noun
+            'librarian': 'NOUN',
         }
         self.abbreviation_mapping = {
             'guest user': 'guest_user',
@@ -22,541 +26,476 @@ class RUPPProcessor:
         
     def split_into_sentences(self, paragraph: str) -> str:
         """Split the paragraph into sentences using regular expressions"""
-        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', paragraph)
+        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s+', paragraph)
         formatted_sentences = []
         
         for i, sentence in enumerate(sentences, start=1):
-            formatted_sentences.append(f"{i}. {sentence}")
+            sentence = sentence.strip()
+            if sentence and len(sentence) > 3:
+                formatted_sentences.append(f"{i}. {sentence}")
         
         return '\n'.join(formatted_sentences)
     
-    def split_and_add_full_stop(self, sentence: str) -> tuple:
-        """Split sentence on 'and' and add full stop"""
-        if " and " in sentence:
-            before_and, after_and = sentence.split("and", 1)
-            before_and = before_and.strip() + '. '
-            after_and = after_and.strip()
-            return before_and, after_and
-        else:
-            return sentence + '. '
-    
-    def replace_and(self, input_string: str) -> str:
-        """Replace & with 'and'"""
-        words = input_string.split()
-        replaced_words = [word.replace("&", "and") for word in words]
-        return ' '.join(replaced_words)
-    
-    def add_space_after_period(self, sentence: str) -> str:
-        """Add space after periods"""
-        result = ''
-        for char in sentence:
-            result += char
-            if char == '.':
-                result += ' '
-        return result
-    
-    def join_abbreviation(self, text: str, abbreviation_mapping: Dict[str, str]) -> str:
-        """Replace abbreviations with mapped values"""
-        for word, replacement in abbreviation_mapping.items():
-            if word in text:
-                text = text.replace(word, replacement)
-        return text
-    
     def apply_preprocessing(self, text: str) -> str:
         """Apply complete preprocessing pipeline"""
-        # Apply text lowercasing
-        lowercased_paragraph = text.lower()
-        and_replace = self.replace_and(lowercased_paragraph)
+        # Basic text cleaning
+        text = text.lower()
+        text = text.replace("&", "and")
         
-        # Expand contractions can't to cannot
-        # Basic contraction expansion (simplified without contractions library)
-        and_replace = and_replace.replace("'t", " not")
-        and_replace = and_replace.replace("'re", " are")
-        and_replace = and_replace.replace("'ll", " will")
-        and_replace = and_replace.replace("'ve", " have")
-        and_replace = and_replace.replace("'m", " am")
-        and_replace = and_replace.replace("'d", " would")
-        expanded_paragraph = and_replace
-          # Remove punctuation and special characters (except full stop)
-        remove_punctuation = re.sub(r'[^a-zA-Z0-9\s\.,]', '', expanded_paragraph)
-        
-        # Remove extra whitespace
-        remove_extra_whitespace = re.sub(r'\s+', ' ', remove_punctuation).strip()
-        
-        normalized_text = self.join_abbreviation(remove_extra_whitespace, self.abbreviation_mapping)
-        
-        split_and_sentences = self.split_and_add_full_stop(normalized_text)
-        
-        full_stop_space = self.add_space_after_period(split_and_sentences)
-        
-        return full_stop_space
-    
-    def identify_actors_with_actions(self, description: str) -> List[str]:
-        """Identify actors from text using spaCy and textacy - filtered for meaningful actors"""
-        doc = self.nlp(description)
-        actors_with_actions = set()
-        
-        # Define common system-related entities that should be included
-        valid_actors = {'system', 'user', 'admin', 'administrator', 'librarian', 'manager', 'guest', 'member', 'customer', 'client', 'operator'}
-        
-        # Words to exclude (common nouns that are not actors)
-        exclude_words = {
-            'information', 'book', 'category', 'details', 'data', 'page', 'button', 'form', 'field', 
-            'database', 'table', 'record', 'file', 'document', 'report', 'view', 'display', 'screen',
-            'id', 'number', 'date', 'time', 'message', 'error', 'warning', 'notification', 'alert',
-            'option', 'choice', 'selection', 'item', 'element', 'component', 'feature', 'function',
-            'process', 'procedure', 'method', 'step', 'action', 'operation', 'task', 'activity'
+        # Expand common contractions
+        contractions = {
+            "can't": "cannot", "won't": "will not", "don't": "do not",
+            "isn't": "is not", "aren't": "are not", "wasn't": "was not",
+            "weren't": "were not", "haven't": "have not", "hasn't": "has not",
+            "wouldn't": "would not", "shouldn't": "should not", "couldn't": "could not"
         }
         
-        # Extract from subject-verb-object triples with strict filtering
-        for sent in doc.sents:
-            try:
-                SBOV_ext = textacy.extract.subject_verb_object_triples(sent)
-                SBOV = list(SBOV_ext)
-                
-                for triple in SBOV:
-                    subject, verb, _ = triple
-                    for token in subject:
-                        actor_text = token.text.lower().strip()
-                        
-                        # Include only if it's in valid_actors or is a proper noun person/organization
-                        if (actor_text in valid_actors or
-                            (token.pos_ == "PROPN" and token.ent_type_ in ["PERSON", "ORG"]) or
-                            (token.pos_ == "NOUN" and actor_text in valid_actors)) and \
-                           actor_text not in exclude_words and \
-                           len(actor_text) > 2 and \
-                           not actor_text.endswith('.'):  # Exclude things like "id."
-                            actors_with_actions.add(actor_text)
-            except Exception:
-                continue
+        for contraction, expansion in contractions.items():
+            text = text.replace(contraction, expansion)
         
-        # Always include core actors if they appear in text
+        # Remove excessive punctuation but keep periods
+        text = re.sub(r'[^\w\s\.,\-]', '', text)
+        
+        # Clean up whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        return text
+
+    def identify_actors_enhanced(self, description: str) -> List[str]:
+        """Enhanced actor identification - ONLY valid human actors"""
+        actors = set()
+        
+        # STRICT list of valid actors only
+        valid_actors = {'system', 'user', 'administrator', 'librarian', 'member', 'guest'}
+        
+        # Extract words and check against valid actors only
+        words = description.lower().split()
+        for word in words:
+            clean_word = re.sub(r'[^a-z]', '', word)
+            if clean_word in valid_actors:
+                actors.add(clean_word)
+        
+        # Direct keyword mapping
         text_lower = description.lower()
-        for actor in ['system', 'user', 'administrator', 'librarian', 'member', 'guest']:
-            if actor in text_lower:
-                actors_with_actions.add(actor)
+        if 'system' in text_lower:
+            actors.add('system')
+        if 'user' in text_lower:
+            actors.add('user')
+        if 'member' in text_lower:
+            actors.add('member')
+        if 'librarian' in text_lower:
+            actors.add('librarian')
+        if 'administrator' in text_lower or 'admin' in text_lower:
+            actors.add('administrator')
+        if 'guest' in text_lower:
+            actors.add('guest')
+            
+        return sorted(list(actors))
+
+    def extract_sentences_comprehensive(self, text: str) -> List[str]:
+        """Extract all meaningful sentences from text with maximum coverage"""
+        sentences = []
         
-        # Filter out any remaining problematic entries
-        final_actors = []
-        for actor in actors_with_actions:
-            if (len(actor) > 2 and 
-                not actor.isdigit() and 
-                actor not in exclude_words and
-                not any(char.isdigit() for char in actor) and  # No numbers in actor names
-                actor.isalpha()):  # Only alphabetic characters
-                final_actors.append(actor)
+        # Primary split by periods, exclamation marks, and question marks
+        period_splits = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s+', text)
+        
+        for sentence in period_splits:
+            sentence = sentence.strip()
+            if len(sentence) > 3:  # Very low threshold for maximum coverage
+                sentences.append(sentence)
+        
+        # Enhanced processing for additional sentence extraction
+        enhanced_sentences = []
+        for sentence in sentences:
+            enhanced_sentences.append(sentence)
+            
+            # Split by semicolons
+            if ';' in sentence:
+                semi_splits = [s.strip() for s in sentence.split(';') if s.strip() and len(s.strip()) > 3]
+                enhanced_sentences.extend(semi_splits)
+            
+            # Aggressive compound sentence splitting with 'and'
+            if ' and ' in sentence.lower():
+                # Look for action verbs that indicate separate requirements
+                action_verbs = ['clicks', 'enters', 'displays', 'shows', 'checks', 'validates', 
+                               'asks', 'opens', 'closes', 'selects', 'returns', 'issues', 'reserves',
+                               'adds', 'removes', 'updates', 'stores', 'retrieves', 'prompts']
                 
-        return sorted(list(set(final_actors)))  # Remove duplicates and sort
-    
-    def identify_nsubj(self, sent) -> str:
-        """Identify nominal subject in sentence"""
-        for token in sent:
-            if token.dep_ == "nsubj":
-                return token.text.lower()
-        return ""
-    
-    def rupp_template_1(self, sent, rupp_template_2: List[str], actor: List[str]) -> str:
-        """If-then template processing"""
-        if "if" in sent.text.lower() and "then" in sent.text.lower():
-            temp = list(rupp_template_2)
+                if any(verb in sentence.lower() for verb in action_verbs):
+                    and_parts = sentence.split(' and ')
+                    current_subject = None
+                    
+                    # Extract subject from first part
+                    first_part = and_parts[0].lower()
+                    if 'system' in first_part:
+                        current_subject = 'The system'
+                    elif 'member' in first_part:
+                        current_subject = 'The member'
+                    elif 'user' in first_part:
+                        current_subject = 'The user'
+                    elif 'librarian' in first_part:
+                        current_subject = 'The librarian'
+                    elif 'administrator' in first_part:
+                        current_subject = 'The administrator'
+                    elif 'guest' in first_part:
+                        current_subject = 'The guest'
+                    
+                    for i, part in enumerate(and_parts):
+                        part = part.strip()
+                        if len(part) > 3:
+                            if i == 0:
+                                enhanced_sentences.append(part)
+                            elif current_subject and not part.lower().startswith(('the ', 'a ', 'an ')):
+                                enhanced_sentences.append(f"{current_subject} {part}")
+                            else:
+                                enhanced_sentences.append(part)
             
-            then_idx = sent.text.find("then")
-            then_next = then_idx + 5
-            
-            if then_idx == -1:
-                then_idx = sent.text.find(",")
-                then_next = then_idx + 1
-            
-            if sent.text.startswith("If"):
-                temp[1] = sent.text[3:then_idx]
-            else:
-                temp[1] = sent.text[:then_idx]
-            
-            if temp[1].lower().startswith("if "):
-                temp[1] = " " + temp[1][3:]
-            
-            verb_string = ""
-            temp[3] = ""
-            flg = False
-            first_flg = False
-            
-            for i in range(len(sent)):
-                if sent[i].text == "then" and sent[i].dep_ == "advmod":
-                    temp[3] += str(sent[i].head.lemma_)
-                    verb_string = sent[i].head.text
-                    flg = True
-                elif flg:
-                    if sent[i].pos_.lower() == "aux" and not first_flg:
-                        first_flg = True
-                    elif sent[i].text == "system":
-                        continue
-                    else:
-                        if sent[i].text != verb_string:
-                            if sent[i].tag_ == "ADJ":
-                                continue
-                            elif sent[i].text not in ["the"]:
-                                temp[3] += " " + str(sent[i].text)
-            
-            if temp[1] == "" or temp[3] == "":
-                return ""
-            else:
-                return "".join(temp)
+            # Split complex sentences with multiple clauses
+            if ' then ' in sentence.lower():
+                then_parts = sentence.split(' then ')
+                for part in then_parts:
+                    part = part.strip()
+                    if len(part) > 3:
+                        enhanced_sentences.append(part)
+        
+        # Remove duplicates while preserving order
+        unique_sentences = list(dict.fromkeys(enhanced_sentences))
+        
+        # Final filtering with very permissive criteria
+        final_sentences = []
+        for sentence in unique_sentences:
+            sentence = sentence.strip()
+            if (len(sentence) > 3 and  # Minimum viable length
+                not sentence.isdigit() and 
+                any(char.isalpha() for char in sentence) and
+                # More comprehensive filtering
+                not any(skip_phrase in sentence.lower() for skip_phrase in [
+                    'the details include', 'details include', 'include the total',
+                    'total number of', 'date of issue', 'return date', 'fine to be paid'
+                ])):
+                final_sentences.append(sentence)
+        
+        return final_sentences
+
+    def apply_rupp_templates_enhanced(self, sentence: str, actors: List[str]) -> List[str]:
+        """Apply enhanced RUPP templates to generate multiple requirements"""
+        requirements = []
+        sentence = sentence.strip()
+        sentence_lower = sentence.lower()
+        
+        # Template 1: Conditional statements (If-then)
+        if 'if' in sentence_lower and ('then' in sentence_lower or ',' in sentence):
+            req = self.process_conditional_template(sentence)
+            if req:
+                requirements.append(req)
+        
+        # Template 2: When statements
+        elif sentence_lower.startswith('when '):
+            req = self.process_when_template(sentence)
+            if req:
+                requirements.append(req)
+        
+        # Template 3: System capabilities (more aggressive detection)
+        elif any(verb in sentence_lower for verb in ['display', 'show', 'validate', 'process', 'store', 'retrieve', 
+                                                    'calculate', 'generate', 'check', 'ask', 'prompt', 'open', 
+                                                    'close', 'update', 'enter', 'select']):
+            req = self.process_system_capability_template(sentence)
+            if req:
+                requirements.append(req)
+        
+        # Template 4: User actions (more comprehensive)
+        elif (any(actor in sentence_lower for actor in actors if actor != 'system') or
+              any(action in sentence_lower for action in ['click', 'enter', 'select', 'view', 'browse', 'search'])):
+            req = self.process_user_action_template(sentence, actors)
+            if req:
+                requirements.append(req)
+        
+        # Template 5: Modal statements
+        elif any(modal in sentence_lower for modal in ['should', 'must', 'can', 'will', 'shall', 'may']):
+            req = self.process_modal_template(sentence)
+            if req:
+                requirements.append(req)
+        
+        # Template 6: Feature statements
+        elif any(feature in sentence_lower for feature in ['feature', 'function', 'capability', 'service']):
+            req = self.process_feature_template(sentence)
+            if req:
+                requirements.append(req)
+        
+        # Template 7: State/condition statements
+        elif any(state in sentence_lower for state in ['available', 'ready', 'logged in', 'valid', 'correct']):
+            req = self.process_state_template(sentence)
+            if req:
+                requirements.append(req)
+        
+        # Template 8: Data validation statements
+        elif any(validation in sentence_lower for validation in ['validate', 'check', 'verify', 'confirm']):
+            req = self.process_validation_template(sentence)
+            if req:
+                requirements.append(req)
+        
+        # Default template if no specific template matches
         else:
-            return ""
-    
-    def rupp_template_2(self, sent, rupp_template_2: List[str]) -> str:
-        """WHEN template processing"""
-        temp = list(rupp_template_2)
+            req = self.process_default_template(sentence, actors)
+            if req:
+                requirements.append(req)
         
-        comma_idx = sent.text.find(",")
-        temp[1] = sent.text[5:comma_idx]
-        
-        comma_flg = False
-        rem_text = ""
-        verb_flg = False
-        
-        for token in sent:
-            if token.tag_ == ",":
-                comma_flg = True
-            elif comma_flg:
-                if token.pos_ == "VERB":
-                    temp[3] += token.lemma_
-                    temp[3] += " "
-                    verb_flg = True
-                elif verb_flg:
-                    if token.text.lower() == "system":
-                        continue
-                    else:
-                        rem_text += token.text
-                        rem_text += " "
-        
-        temp[3] += rem_text
-        
-        if temp[1] != "" and temp[3] != "":
-            return "".join(temp)
-        else:
-            return ""
-    
-    def rupp_template_3(self, sent, rupp_template_3: List[str]) -> str:
-        """WHILE template processing"""
-        temp = list(rupp_template_3)
-        
-        comma_idx = sent.text.find(",")
-        temp[1] = sent.text[6:comma_idx]
-        
-        comma_flg = False
-        rem_str = ""
-        verb_flg = False
-        
-        for token in sent:
-            if token.tag_ == ",":
-                comma_flg = True
-            elif comma_flg:
-                if token.pos_ == "VERB":
-                    temp[3] += token.lemma_
-                    temp[3] += " "
-                    verb_flg = True
-                elif verb_flg:
-                    if token.text.lower() == "system":
-                        continue
-                    else:
-                        rem_str += token.text
-                        rem_str += " "
-        
-        temp[3] += rem_str
-        
-        if temp[1] != "" and temp[3] != "":
-            return "".join(temp)
-        else:
-            return ""
-    
-    def rupp_template_4(self, sent, rupp_template_4: List[str]) -> str:
-        """WHERE template processing"""
-        temp = list(rupp_template_4)
-        
-        comma_idx = sent.text.find(",")
-        temp[1] = sent.text[6:comma_idx]
-        
-        comma_flg = False
-        rem_str = ""
-        verb_flg = False
-        
-        for token in sent:
-            if token.tag_ == ",":
-                comma_flg = True
-            elif comma_flg:
-                if token.pos_ == "VERB":
-                    temp[3] += token.lemma_
-                    temp[3] += " "
-                    verb_flg = True
-                elif verb_flg:
-                    if token.text.lower() == "system":
-                        continue
-                    else:
-                        rem_str += token.text
-                        rem_str += " "
-        
-        temp[3] += rem_str
-        
-        if temp[1] != "" and temp[3] != "":
-            return "".join(temp)
-        else:
-            return ""
-    
-    def rupp_template_5(self, sent, rupp_template_5: List[str], actor: List[str]) -> str:
-        """System Action template"""
-        if sent[0].text.lower() == "if":
-            return ""
-        
-        temp = list(rupp_template_5)
-        subj_flg = False
-        verb_flg = False
-        
-        for token in sent:
-            if token.dep_ == "nsubj" and token.text.lower() in actor:
-                subj_flg = True
-            elif subj_flg:
-                if token.pos_ == "AUX":
-                    continue
-                if verb_flg == False and token.pos_.lower() == "verb":
-                    verb_flg = True
-                    temp[1] += token.lemma_ + " "
+        return requirements
+
+    def process_conditional_template(self, sentence: str) -> str:
+        """Process conditional if-then statements"""
+        try:
+            sentence_lower = sentence.lower()
+            if 'if' in sentence_lower and 'then' in sentence_lower:
+                parts = sentence_lower.split(' then ')
+                if_part = parts[0].replace('if', '').strip()
+                then_part = parts[1].strip()
+                
+                # Clean up the then part
+                then_part = re.sub(r'^(the )?system (shall|should|will|can)', '', then_part).strip()
+                then_part = re.sub(r'(the )?system', '', then_part).strip()
+                then_part = re.sub(r'^(asks?|shows?|displays?|checks?)', r'\1', then_part)
+                
+                if then_part:
+                    return f"If {if_part}, then the system shall {then_part}."
                 else:
-                    temp[1] += token.text
-                    temp[1] += " "
-        
-        if temp[1] != "":
-            return "".join(temp)
-        else:
-            return ""
-    
-    def rupp_template_6(self, sent, rupp_template_6: List[str], actor: List[str]) -> str:
-        """Actor Action template"""
-        if "nsubj" == "system":
-            return ""
-        
-        temp = list(rupp_template_6)
-        subj_flg = False
-        verb_flg = False
-        
-        for token in sent:
-            if token.dep_ == "nsubj" and token.text.lower() in actor and token.text.lower() != "system":
-                subj_flg = True
-                temp[1] = token.text
-            elif subj_flg:
-                if token.pos_ == "AUX":
-                    continue
-                if not verb_flg and token.pos_.lower() == "verb":
-                    verb_flg = True
-                    temp[3] += token.lemma_ + " "
+                    return f"If {if_part}, then the system shall respond appropriately."
+                    
+            elif 'if' in sentence_lower and ',' in sentence:
+                parts = sentence.split(',')
+                if_part = parts[0].lower().replace('if', '').strip()
+                then_part = ','.join(parts[1:]).strip()
+                
+                # Clean up similar to above
+                then_part = re.sub(r'^(the )?system (shall|should|will|can)', '', then_part).strip()
+                then_part = re.sub(r'(the )?system', '', then_part).strip()
+                
+                if then_part:
+                    return f"If {if_part}, then the system shall {then_part}."
                 else:
-                    if token.tag_ == "PRP" and token.text in ["he", "she"]:
-                        chosen_actor = actor[0] if actor[0] != "system" else actor[1]
-                        temp[3] += str(chosen_actor) + " "
-                    else:
-                        if token.pos_ not in ["AUX"]:
-                            temp[3] += token.text + " "
-        
-        if temp[1] and temp[3]:
-            return "".join(temp)
-        else:
-            return ""
+                    return f"If {if_part}, then the system shall respond appropriately."
+        except:
+            pass
+        return f"The system shall handle the condition: {sentence}."
     
-    def rupp_template_7(self, sent, rupp_template_7: List[str], actor: List[str]) -> str:
-        """Actor action future tense template"""
-        if "nsubj" == "system":
-            return ""
-        
-        temp = list(rupp_template_7)
-        subj_flg = False
-        verb_found = False
-        verb_text = ""
-        
-        for token in sent:
-            if (token.pos_ == "NOUN" or token.pos_ == "PROPN") and (token.tag_ in ["NN", "NNS"]) and token.text.lower() in actor and token.text.lower() != "system" and not subj_flg:
-                subj_flg = True
-                temp[1] = "The system shall provide " + token.text.lower() + " with the ability to " + ""
-            if subj_flg:
-                if token.pos_ == "VERB":
-                    verb_found = True
-                    verb_text += token.text + " "
-                elif verb_found and token.text.lower() in ["in"]:
-                    verb_text += token.text.lower() + ". "
-        
-        temp[3] = verb_text
-        
-        if temp[1] != "" and temp[3] != "":
-            return temp[1] + temp[3]
-        else:
-            return ""
+    def process_when_template(self, sentence: str) -> str:
+        """Process when statements"""
+        try:
+            when_part = sentence[5:].strip()  # Remove 'when '
+            return f"When {when_part}, the system shall be able to respond appropriately."
+        except:
+            return f"The system shall handle the scenario: {sentence}."
     
-    def rupp_template_8(self, sent, rupp_template_8: List[str], actor: List[str]) -> str:
-        """Additional template processing"""
-        temp = list(rupp_template_8)
-        
-        subj_found = False
-        verb_text = ""
-        adj_text = ""
-        noun_text = ""
-        end_text = ""
-        
-        for token in sent:
-            if token.pos_ in ["NOUN", "PROPN"] and token.tag_ in ["NN","NNS"] and token.text.lower() not in actor and not subj_found:
-                subj_found = True
-                noun_text = token.text.lower() + " "
-            elif token.pos_ == "VERB" and not verb_text:
-                verb_text = token.text.lower() + " "
-            elif token.pos_ == "ADJ":
-                adj_text += token.text + " "
-            else:
-                if subj_found and token.pos_ not in ["AUX"] and token.pos_ not in ["PART"] and token.text.lower() not in ["system"] and token.pos_ not in ["ADP", "in"] and token.pos_ not in ["DET"] and token.text.lower() not in ["to"]:
-                    end_text += token.text_with_ws+" "
-        
-        temp[1] = verb_text + adj_text + noun_text + end_text+" "
-        
-        if temp[0] and temp[1]:
-            return temp[0] + temp[1]
-        else:
-            return ""
-    
-    def generate_snl(self, requirements_text: str) -> Dict[str, Any]:
-        """Generate SNL using RUPP's template methodology"""
-        # Apply preprocessing
-        preprocessed_text = self.apply_preprocessing(requirements_text)
-        
-        # Identify actors
-        actors = self.identify_actors_with_actions(requirements_text)
-        
-        # Process with spaCy
-        doc = self.nlp(preprocessed_text)
-        
-        # Apply corrections
-        for token in doc:
-            if token.text.lower() in self.corrections:
-                token.pos_ = self.corrections[token.text.lower()]
-        
-        # Identify conditional sentences
-        condition = []
-        for sent in doc.sents:
-            md_flag = False
-            admod = False
-            mark = False
-            cond = False
-            
-            for token in sent:
-                if token.dep_ == "advmod":
-                    admod = True
-                if token.dep_ == "mark":
-                    mark = True
-                if cond == False:
-                    if admod == True and mark == True:
-                        condition.append(sent)
-                        cond = True
-        
-        # RUPP Templates
-        rupp_template_1 = ["If", "", "then the system shall be able to ", ""]
-        rupp_template_2 = ["When ", "", " the system shall be able to ", ""]
-        rupp_template_3 = ["While ", "", " the system shall be able to ", ""]
-        rupp_template_4 = ["Where ", "", " the system shall be able to ", ""]
-        rupp_template_5 = ["The System shall be able to ", ""]
-        rupp_template_6 = ["The System shall provide ", "", " with the ability to ", ""]
-        
-        results = []
-        
-        for sent in doc.sents:
-            # Conditional processing
-            if sent in condition:
-                res = self.rupp_template_1(sent, rupp_template_1, actors)
-                if res != "":
-                    results.append(res)
-            
-            # When/While/Where processing
-            if doc[0].text.lower() == "when":
-                res = self.rupp_template_2(sent, rupp_template_2)
-                if res != "":
-                    results.append(res)
-            if doc[0].text.lower() == "while":
-                res = self.rupp_template_3(sent, rupp_template_3)
-                if res != "":
-                    results.append(res)
-            if doc[0].text.lower() == "where":
-                res = self.rupp_template_4(sent, rupp_template_4)
-                if res != "":
-                    results.append(res)
-            
-            # Skip certain starting patterns
-            if sent.text.strip().lower().startswith(("when ", "while", "where ", "if ")):
-                continue
-            
-            # System action processing
-            if self.identify_nsubj(sent) == "system":
-                res = self.rupp_template_5(sent, rupp_template_5, actors)
-                if res != "":
-                    results.append(res)
-            
-            # Actor action processing
-            elif self.identify_nsubj(sent) != "system" and sent not in condition:
-                res = self.rupp_template_6(sent, rupp_template_6, actors)
-                if res != "":
-                    results.append(res)
-                else:
-                    res = self.rupp_template_7(sent, rupp_template_6, actors)
-                    if res != "":
-                        results.append(res)
-                    else:
-                        res = self.rupp_template_8(sent, rupp_template_5, actors)
-                        if res != "":
-                            results.append(res)
-            else:
-                results.append(sent.text)
-          # Format and clean results
-        cleaned_results = []
-        for result in results:
-            if result and len(result.strip()) > 10:  # Filter out very short/empty results
-                # Remove space before full stop and ensure space after
-                result = result.replace(' .', '.').replace('.', '. ')
-                # Capitalize first letter after each period
-                result = '. '.join(map(lambda s: s.strip().capitalize(), result.split('. ')))
-                # Additional cleanup
-                result = self._clean_requirement(result)
-                if result:  # Only add if not empty after cleaning
-                    cleaned_results.append(result)
-        
-        final_snl = ''.join(cleaned_results)
-        
-        return {
-            'snl_text': final_snl,
-            'actors': actors,
-            'preprocessed_text': preprocessed_text,
-            'sentences_count': len(cleaned_results),
-            'formatted_sentences': self.split_into_sentences(final_snl),
-            'requirements': cleaned_results  # Add individual requirements
+    def process_system_capability_template(self, sentence: str) -> str:
+        """Process system capability statements with better text handling"""
+        action_verbs = {
+            'displays': 'display', 'display': 'display', 'shows': 'display', 'show': 'display',
+            'validates': 'validate', 'validate': 'validate', 'checks': 'validate', 'check': 'validate',
+            'processes': 'process', 'process': 'process', 'handles': 'process', 'handle': 'process',
+            'stores': 'store', 'store': 'store', 'saves': 'store', 'save': 'store',
+            'retrieves': 'retrieve', 'retrieve': 'retrieve', 'fetches': 'retrieve', 'fetch': 'retrieve',
+            'asks': 'ask', 'ask': 'ask', 'prompts': 'prompt', 'prompt': 'prompt',
+            'opens': 'open', 'open': 'open', 'closes': 'close', 'close': 'close',
+            'updates': 'update', 'update': 'update', 'enters': 'accept', 'enter': 'accept'
         }
+        
+        sentence_lower = sentence.lower().strip()
+        
+        # Clean up the sentence first
+        sentence_clean = re.sub(r'^the (system|member|user|librarian|administrator|guest)', '', sentence_lower).strip()
+        
+        for verb_variant, base_verb in action_verbs.items():
+            if verb_variant in sentence_clean:
+                try:
+                    # Find the verb and extract the object/complement
+                    verb_index = sentence_clean.find(verb_variant)
+                    after_verb = sentence_clean[verb_index + len(verb_variant):].strip()
+                    
+                    # Clean up common artifacts
+                    after_verb = re.sub(r'^(s\s|ing\s)', '', after_verb).strip()
+                    after_verb = re.sub(r'^\s*the\s+', 'the ', after_verb)
+                    
+                    # Handle specific cases
+                    if after_verb:
+                        if base_verb == 'ask' or base_verb == 'prompt':
+                            if 'to' not in after_verb:
+                                after_verb = f"the user to {after_verb}"
+                        elif base_verb == 'display':
+                            if not after_verb.startswith('the '):
+                                after_verb = f"the {after_verb}"
+                        elif base_verb == 'validate':
+                            if not after_verb.startswith('the ') and not after_verb.startswith('that '):
+                                after_verb = f"the {after_verb}"
+                        
+                        return f"The system shall be able to {base_verb} {after_verb}."
+                    else:
+                        return f"The system shall be able to {base_verb} the required information."
+                except:
+                    return f"The system shall be able to {base_verb} appropriately."
+        
+        # If no specific verb found, generate a general capability requirement
+        return f"The system shall be able to {sentence_clean}."
     
-    def _clean_requirement(self, requirement: str) -> str:
-        """Clean up a single requirement text"""
-        if not requirement or len(requirement.strip()) < 10:
-            return ""
+    def process_user_action_template(self, sentence: str, actors: List[str]) -> str:
+        """Process user action statements with improved text handling"""
+        sentence_lower = sentence.lower().strip()
         
-        # Remove extra spaces
-        requirement = ' '.join(requirement.split())
+        # Clean up the sentence
+        sentence_clean = re.sub(r'^the\s+', '', sentence_lower)
         
-        # Fix common issues
-        requirement = requirement.replace('The system shall be able to The system', 'The system')
-        requirement = requirement.replace('The system shall provide The system', 'The system')
-        requirement = requirement.replace('  ', ' ')
+        for actor in actors:
+            if actor != 'system' and actor in sentence_clean:
+                try:
+                    # Find the actor and extract the action
+                    actor_index = sentence_clean.find(actor)
+                    after_actor = sentence_clean[actor_index + len(actor):].strip()
+                    
+                    # Clean up common connecting words and artifacts
+                    after_actor = re.sub(r'^(can|will|should|must|may)\s+', '', after_actor)
+                    after_actor = re.sub(r'^(clicks?|click)\s+', 'click ', after_actor)
+                    after_actor = re.sub(r'^(enters?|enter)\s+', 'enter ', after_actor)
+                    after_actor = re.sub(r'^(selects?|select)\s+', 'select ', after_actor)
+                    after_actor = re.sub(r'^(types?|type)\s+', 'type ', after_actor)
+                    after_actor = re.sub(r'^(views?|view)\s+', 'view ', after_actor)
+                    after_actor = re.sub(r'^(browses?|browse)\s+', 'browse ', after_actor)
+                    
+                    # Handle specific action patterns
+                    if after_actor:
+                        # Fix common patterns
+                        if after_actor.startswith('on '):
+                            after_actor = after_actor[3:].strip()
+                        
+                        # Ensure proper article usage
+                        if not after_actor.startswith(('the ', 'a ', 'an ', 'their ', 'his ', 'her ')):
+                            if any(word in after_actor for word in ['button', 'page', 'details', 'information', 'books']):
+                                after_actor = f"the {after_actor}"
+                        
+                        return f"The system shall provide {actor} with the ability to {after_actor}."
+                    else:
+                        return f"The system shall provide {actor} with the required functionality."
+                except:
+                    return f"The system shall provide {actor} with the ability to perform the action."
         
-        # Ensure proper sentence ending
-        if not requirement.endswith('.'):
-            requirement += '.'
+        # If no specific actor found, use generic user
+        action = re.sub(r'^(the\s+)?(system\s+)?', '', sentence_clean).strip()
+        if action:
+            return f"The system shall provide users with the ability to {action}."
+        else:
+            return f"The system shall provide users with the required functionality."
+    
+    def process_modal_template(self, sentence: str) -> str:
+        """Process modal verb statements"""
+        modals = ['should', 'must', 'can', 'will', 'shall', 'may', 'could', 'would']
+        sentence_lower = sentence.lower()
         
-        # Ensure it starts with capital letter
-        if requirement and requirement[0].islower():
-            requirement = requirement[0].upper() + requirement[1:]
+        for modal in modals:
+            if modal in sentence_lower:
+                try:
+                    modal_index = sentence_lower.find(modal)
+                    after_modal = sentence[modal_index + len(modal):].strip()
+                    return f"The system shall {after_modal}."
+                except:
+                    pass
         
-        # Filter out requirements that are too incomplete
-        required_phrases = ['shall be able to', 'shall provide', 'shall']
-        if not any(phrase in requirement.lower() for phrase in required_phrases):
-            return ""
+        return f"The system shall be able to {sentence.lower()}."
+    
+    def process_feature_template(self, sentence: str) -> str:
+        """Process feature/function statements"""
+        feature_words = ['feature', 'function', 'capability', 'service', 'interface', 'component']
+        sentence_lower = sentence.lower()
         
-        return requirement
+        for feature_word in feature_words:
+            if feature_word in sentence_lower:
+                return f"The system shall provide the {feature_word} described as: {sentence}."
+        
+        return f"The system shall implement: {sentence}."
+    
+    def process_state_template(self, sentence: str) -> str:
+        """Process state/condition statements"""
+        state_words = ['available', 'ready', 'logged in', 'valid', 'correct', 'stored', 'retrieved']
+        sentence_lower = sentence.lower()
+        
+        for state_word in state_words:
+            if state_word in sentence_lower:
+                return f"The system shall ensure that {sentence.lower()}."
+        
+        return f"The system shall maintain the state: {sentence}."
+    
+    def process_validation_template(self, sentence: str) -> str:
+        """Process data validation statements"""
+        validation_words = ['validate', 'check', 'verify', 'confirm', 'authenticate']
+        sentence_lower = sentence.lower()
+        
+        for validation_word in validation_words:
+            if validation_word in sentence_lower:
+                return f"The system shall {validation_word} {sentence_lower.replace(validation_word, '').strip()}."
+        
+        return f"The system shall validate: {sentence}."
+    
+    def process_default_template(self, sentence: str, actors: List[str]) -> str:
+        """Default template for unmatched sentences"""
+        if any(actor in sentence.lower() for actor in actors if actor != 'system'):
+            return f"The system shall support the requirement: {sentence}."
+        else:
+            return f"The system shall be able to {sentence.lower()}."
+
+    def generate_snl_from_text(self, description: str) -> Dict[str, Any]:
+        """
+        Generate SNL from natural language description using enhanced RUPP methodology
+        """
+        try:
+            # Step 1: Preprocess the text
+            preprocessed_text = self.apply_preprocessing(description)
+            
+            # Step 2: Extract sentences with enhanced coverage
+            sentences = self.extract_sentences_comprehensive(preprocessed_text)
+            
+            # Step 3: Identify actors
+            actors = self.identify_actors_enhanced(description)
+            
+            # Step 4: Generate requirements using enhanced templates
+            all_requirements = []
+            
+            for sentence in sentences:
+                if len(sentence.strip()) > 3:  # Process meaningful sentences
+                    sentence_requirements = self.apply_rupp_templates_enhanced(sentence, actors)
+                    all_requirements.extend(sentence_requirements)
+            
+            # Step 5: Clean up and deduplicate requirements
+            cleaned_requirements = []
+            seen_requirements = set()
+            
+            for req in all_requirements:
+                if req and req not in seen_requirements and len(req) > 20:
+                    cleaned_requirements.append(req)
+                    seen_requirements.add(req)
+            
+            # Step 6: Create final SNL text
+            final_snl = '\n'.join(cleaned_requirements)
+            
+            return {
+                'snl_text': final_snl,
+                'actors': actors,
+                'preprocessed_text': preprocessed_text,
+                'sentences_count': len(cleaned_requirements),
+                'formatted_sentences': self.split_into_sentences(final_snl),
+                'requirements': cleaned_requirements,
+                'original_sentences_processed': len(sentences),
+                'processing_stats': {
+                    'total_input_sentences': len(sentences),
+                    'requirements_generated': len(all_requirements),
+                    'unique_requirements': len(cleaned_requirements),
+                    'actors_identified': len(actors)
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'snl_text': f"Error processing requirements: {str(e)}",
+                'actors': [],
+                'preprocessed_text': description,
+                'sentences_count': 0,
+                'formatted_sentences': "",
+                'requirements': [],
+                'error': str(e)
+            }

@@ -72,11 +72,23 @@ async def process_requirements(request: CaseStudyRequest):
     Process case study text and generate both RUPP and AI-based SNL
     """
     try:
-        # Generate RUPP SNL
-        rupp_result = nlp_service.generate_rupp_snl(request.text)
+        import time
         
-        # Generate AI SNL
+        # Generate RUPP SNL with timing
+        rupp_start = time.time()
+        rupp_result = nlp_service.generate_rupp_snl(request.text)
+        rupp_time = (time.time() - rupp_start) * 1000  # Convert to milliseconds
+        
+        # Add timing information to RUPP result
+        rupp_result['processing_time'] = round(rupp_time, 2)
+        
+        # Generate AI SNL with timing
+        ai_start = time.time()
         ai_result = await ai_service.generate_ai_snl(request.text)
+        ai_time = (time.time() - ai_start) * 1000  # Convert to milliseconds
+        
+        # Add timing information to AI result
+        ai_result['processing_time'] = round(ai_time, 2)
         
         # Compare results
         comparison_result = comparison_service.compare_snl(
@@ -84,8 +96,7 @@ async def process_requirements(request: CaseStudyRequest):
             ai_result['snl_text'], 
             request.text
         )
-        
-        # Store results
+          # Store results
         result_id = storage.store_case_study({
             'title': request.title,
             'original_text': request.text,
