@@ -1,0 +1,12 @@
+Sample Requirements Document - Library Management System
+
+1. The system shall allow users to register for library membership.
+2. Users must be able to search for books by title, author, or ISBN.
+3. The librarian can add new books to the library catalog.
+4. Users should be able to borrow books if they are available.
+5. The system must send email notifications for overdue books.
+6. Users can reserve books that are currently checked out.
+7. The librarian shall be able to generate reports on book circulation.
+8. The system must maintain a history of all book transactions.
+9. Users can renew borrowed books if no other user has reserved them.
+10. The system should provide a web interface for all user interactions.
