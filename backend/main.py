@@ -56,6 +56,8 @@ class SNLResponse(BaseModel):
     ai_snl: Dict[str, Any]
     comparison: Dict[str, Any]
     id: str
+    timestamp: str
+    title: str
 
 class DiagramRequest(BaseModel):
     snl_data: Dict[str, Any]
@@ -95,8 +97,7 @@ async def process_requirements(request: CaseStudyRequest):
             rupp_result['snl_text'], 
             ai_result['snl_text'], 
             request.text
-        )
-          # Store results
+        )        # Store results
         result_id = storage.store_case_study({
             'title': request.title,
             'original_text': request.text,
@@ -105,11 +106,16 @@ async def process_requirements(request: CaseStudyRequest):
             'comparison': comparison_result
         })
         
+        # Get the stored case study to retrieve the timestamp
+        stored_case_study = storage.get_case_study(result_id)
+        
         return SNLResponse(
             rupp_snl=rupp_result,
             ai_snl=ai_result,
             comparison=comparison_result,
-            id=result_id
+            id=result_id,
+            timestamp=stored_case_study['timestamp'],
+            title=request.title
         )
         
     except Exception as e:

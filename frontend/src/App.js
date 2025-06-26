@@ -153,12 +153,11 @@ function App() {
               aria-controls="tabpanel-3"
             />
           </Tabs>
-        </Paper>
-
-        <TabPanel value={currentTab} index={0}>
+        </Paper>        <TabPanel value={currentTab} index={0}>
           <RequirementsInput 
             onProcessingComplete={handleProcessingComplete}
             onError={(error) => showNotification(error, 'error')}
+            onSuccess={(message) => showNotification(message, 'success')}
           />
         </TabPanel>
 
