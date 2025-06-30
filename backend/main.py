@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 
 from app.services.nlp_service import NLPService
@@ -58,10 +59,36 @@ class SNLResponse(BaseModel):
     id: str
     timestamp: str
     title: str
+    original_text: str
 
-class DiagramRequest(BaseModel):
+class DiagramGenerationRequest(BaseModel):
     snl_data: Dict[str, Any]
-    diagram_type: str  # "class" or "sequence"
+    rupp_snl_text: str
+
+class ActorIdentificationRequest(BaseModel):
+    original_requirements: str
+    class_diagram: str
+    sequence_diagram: str
+
+class FinalOptimizationRequest(BaseModel):
+    original_requirements: str
+    class_diagram: str
+    sequence_diagram: str
+    identified_actors: List[str]
+    verification_issues: Dict[str, Any]
+
+class RequirementRequest(BaseModel):
+    requirement: str
+
+class DiagramVerificationRequest(BaseModel):
+    diagram_code: str
+    snl_data: Dict[str, Any]
+    diagram_type: str
+
+class DiagramOptimizationRequest(BaseModel):
+    diagram_code: str
+    verification_results: Dict[str, Any]
+    diagram_type: str
 
 @app.get("/")
 async def root():
@@ -115,51 +142,145 @@ async def process_requirements(request: CaseStudyRequest):
             comparison=comparison_result,
             id=result_id,
             timestamp=stored_case_study['timestamp'],
-            title=request.title
+            title=request.title,
+            original_text=request.text
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 @app.post("/api/generate-diagrams")
-async def generate_diagrams(request: DiagramRequest):
+async def generate_diagrams(request: DiagramGenerationRequest):
     """
-    Generate UML diagrams from SNL data using OpenAI
+    Generate PlantUML diagrams from SNL data (Legacy endpoint - kept for compatibility)
     """
     try:
-        if request.diagram_type == "class":
-            diagram_code = await diagram_service.generate_class_diagram(request.snl_data)
-        elif request.diagram_type == "sequence":
-            diagram_code = await diagram_service.generate_sequence_diagram(request.snl_data)
+        if hasattr(request, 'diagram_type'):
+            # Legacy support
+            if request.diagram_type == "class":
+                diagram_code = await diagram_service.generate_class_diagram(request.snl_data)
+            elif request.diagram_type == "sequence":
+                diagram_code = await diagram_service.generate_sequence_diagram(request.snl_data)
+            else:
+                raise HTTPException(status_code=400, detail="Invalid diagram type. Use 'class' or 'sequence'")
+            
+            return {
+                "diagram_code": diagram_code,
+                "diagram_type": request.diagram_type,
+                "generated_at": storage.get_current_timestamp(),
+                "success": True
+            }
         else:
-            raise HTTPException(status_code=400, detail="Invalid diagram type")
+            # New flow - generate both diagrams
+            class_diagram = await diagram_service.generate_class_diagram_from_rupp(request.rupp_snl_text)
+            sequence_diagram = await diagram_service.generate_sequence_diagram_from_rupp(request.rupp_snl_text)
+            
+            return {
+                "class_diagram": class_diagram,
+                "sequence_diagram": sequence_diagram,
+                "generated_at": storage.get_current_timestamp(),
+                "success": True
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Diagram generation failed: {str(e)}")
+
+@app.post("/api/generate-both-diagrams")
+async def generate_both_diagrams(request: DiagramGenerationRequest):
+    """
+    Generate BOTH class and sequence diagrams simultaneously using RUPP SNL and GPT-3.5
+    """
+    try:
+        print(f"Generating both diagrams with RUPP SNL: {request.rupp_snl_text[:100]}...")
         
-        # Store diagram data
-        diagram_id = storage.store_diagram({
-            'type': request.diagram_type,
-            'plantuml_code': diagram_code,
-            'snl_data': request.snl_data
-        })
+        # Generate both diagrams simultaneously using GPT-3.5
+        class_diagram = await diagram_service.generate_class_diagram_from_rupp(request.rupp_snl_text)
+        sequence_diagram = await diagram_service.generate_sequence_diagram_from_rupp(request.rupp_snl_text)
         
         return {
-            'diagram_code': diagram_code,
-            'diagram_id': diagram_id,
-            'type': request.diagram_type
+            "class_diagram": class_diagram,
+            "sequence_diagram": sequence_diagram,
+            "generation_method": "gpt-3.5-turbo",
+            "timestamp": datetime.now().isoformat(),
+            "status": "success"
         }
         
     except Exception as e:
+        print(f"Error generating diagrams: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Diagram generation failed: {str(e)}")
+
+@app.post("/api/identify-actors")
+async def identify_actors(request: ActorIdentificationRequest):
+    """
+    Identify actors from original requirements and verify against generated diagrams (Screen 5)
+    """
+    try:
+        print("Identifying actors from requirements and diagrams...")
+        
+        # Extract actors using POS tagging and NER
+        identified_actors = await diagram_service.extract_actors_from_requirements(
+            request.original_requirements,
+            request.class_diagram,
+            request.sequence_diagram
+        )
+        
+        # Verify diagrams against identified actors
+        verification_results = await diagram_service.verify_diagrams_with_actors(
+            request.class_diagram,
+            request.sequence_diagram,
+            identified_actors
+        )
+        
+        return {
+            "identified_actors": identified_actors,
+            "verification_results": verification_results,
+            "timestamp": datetime.now().isoformat(),
+            "status": "success"
+        }
+        
+    except Exception as e:
+        print(f"Error identifying actors: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Actor identification failed: {str(e)}")
+
+@app.post("/api/final-optimization")
+async def final_optimization(request: FinalOptimizationRequest):
+    """
+    Final LLM optimization using GPT-3.5 with identified actors and verification feedback (Screen 6)
+    """
+    try:
+        print("Performing final LLM optimization with actors...")
+        
+        # Send everything to GPT-3.5 for final optimization
+        optimized_diagrams = await diagram_service.optimize_diagrams_with_llm_and_actors(
+            original_requirements=request.original_requirements,
+            class_diagram=request.class_diagram,
+            sequence_diagram=request.sequence_diagram,
+            identified_actors=request.identified_actors,
+            verification_issues=request.verification_issues
+        )
+        
+        return {
+            "optimized_class_diagram": optimized_diagrams["class_diagram"],
+            "optimized_sequence_diagram": optimized_diagrams["sequence_diagram"],
+            "optimization_summary": optimized_diagrams["improvements"],
+            "final_actors": optimized_diagrams["final_actors"],
+            "timestamp": datetime.now().isoformat(),
+            "status": "success"
+        }
+        
+    except Exception as e:
+        print(f"Error in final optimization: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Final optimization failed: {str(e)}")
 
 @app.get("/api/comparison-stats")
 async def get_comparison_stats():
     """
-    Get verification statistics from stored comparisons
+    Get comparison statistics for research analysis
     """
     try:
         stats = storage.get_comparison_statistics()
         return stats
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get comparison stats: {str(e)}")
 
 @app.get("/api/case-studies")
 async def get_case_studies():
@@ -219,6 +340,48 @@ async def clear_all_data():
         return {"message": "All data cleared successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Clear operation failed: {str(e)}")
+
+@app.post("/api/validate-requirement")
+async def validate_requirement(request: RequirementRequest):
+    """
+    Validate a single requirement using AI service
+    """
+    try:
+        validation_result = await ai_service.validate_requirement(request.requirement)
+        return validation_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+
+@app.post("/api/verify-diagram")
+async def verify_diagram(request: DiagramVerificationRequest):
+    """
+    Verify a generated diagram against SNL requirements
+    """
+    try:
+        # Verify diagram without access to actors
+        verification_result = await diagram_service.verify_diagram(
+            request.diagram_code,
+            request.snl_data,
+            request.diagram_type
+        )
+        return verification_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Diagram verification failed: {str(e)}")
+
+@app.post("/api/optimize-diagram")
+async def optimize_diagram(request: DiagramOptimizationRequest):
+    """
+    Optimize a diagram based on verification results
+    """
+    try:
+        optimized_result = await diagram_service.optimize_diagram(
+            request.diagram_code,
+            request.verification_results,
+            request.diagram_type
+        )
+        return optimized_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Diagram optimization failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

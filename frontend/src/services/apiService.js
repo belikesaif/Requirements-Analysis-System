@@ -1,68 +1,158 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8000/api';
 
-class ApiService {
-  constructor() {
-    this.client = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Add response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response) => response.data,
-      (error) => {
-        const message = error.response?.data?.detail || error.message || 'An error occurred';
-        throw new Error(message);
-      }
-    );
+// Create axios instance with default config
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 300000, // 5 minutes for AI processing
+  headers: {
+    'Content-Type': 'application/json'
   }
+});
 
+// Add request interceptor for logging
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Response Error:', error);
+    
+    if (error.response) {
+      // Server responded with error status
+      const message = error.response.data?.detail || error.response.data?.message || 'Server Error';
+      throw new Error(`${error.response.status}: ${message}`);
+    } else if (error.request) {
+      // Request made but no response
+      throw new Error('No response from server. Please check if the backend is running.');
+    } else {
+      // Something else happened
+      throw new Error(error.message || 'Unknown error occurred');
+    }
+  }
+);
+
+export const apiService = {
   async processRequirements(data) {
-    return this.client.post('/api/process-requirements', data);
-  }
+    try {
+      const response = await apiClient.post('/process-requirements', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Requirements processing failed: ${error.message}`);
+    }
+  },
 
   async generateDiagrams(data) {
-    return this.client.post('/api/generate-diagrams', data);
-  }
-
-  async getComparisonStats() {
-    return this.client.get('/api/comparison-stats');
-  }
-
-  async getCaseStudies() {
-    return this.client.get('/api/case-studies');
-  }
-
-  async getCaseStudy(id) {
-    return this.client.get(`/api/case-studies/${id}`);
-  }
+    try {
+      const response = await apiClient.post('/generate-diagrams', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Diagram generation failed: ${error.message}`);
+    }
+  },
 
   async uploadFile(formData, onUploadProgress) {
-    return this.client.post('/api/upload-file', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress,
-    });
-  }
+    try {
+      const response = await apiClient.post('/upload-file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress,
+        timeout: 60000 // 1 minute for file upload
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(`File upload failed: ${error.message}`);
+    }
+  },
+
+  async validateRequirement(requirement) {
+    try {
+      const response = await apiClient.post('/validate-requirement', { requirement });
+      return response.data;
+    } catch (error) {
+      throw new Error(`Requirement validation failed: ${error.message}`);
+    }
+  },
+
+  async verifyDiagram(data) {
+    try {
+      const response = await apiClient.post('/verify-diagram', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Diagram verification failed: ${error.message}`);
+    }
+  },
+
+  async optimizeDiagram(data) {
+    try {
+      const response = await apiClient.post('/optimize-diagram', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Diagram optimization failed: ${error.message}`);
+    }
+  },
+
+  async generateBothDiagrams(data) {
+    try {
+      const response = await apiClient.post('/generate-both-diagrams', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Simultaneous diagram generation failed: ${error.message}`);
+    }
+  },
+
+  async identifyActors(data) {
+    try {
+      const response = await apiClient.post('/identify-actors', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Actor identification failed: ${error.message}`);
+    }
+  },
+
+  async finalOptimization(data) {
+    try {
+      const response = await apiClient.post('/final-optimization', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Final optimization failed: ${error.message}`);
+    }
+  },
+
+  async getComparisonStats() {
+    const response = await axios.get(`${API_BASE_URL}/comparison-stats`);
+    return response.data;
+  },
+
+  async getCaseStudies() {
+    const response = await axios.get(`${API_BASE_URL}/case-studies`);
+    return response.data;
+  },
+
+  async getCaseStudy(id) {
+    const response = await axios.get(`${API_BASE_URL}/case-studies/${id}`);
+    return response.data;
+  },
 
   async exportResearchData() {
-    return this.client.get('/api/export-data');
-  }
+    const response = await axios.get(`${API_BASE_URL}/export-research-data`);
+    return response.data;
+  },
 
-  async clearAllData() {
-    return this.client.delete('/api/clear-data');
+  async clearData() {
+    const response = await axios.delete(`${API_BASE_URL}/clear-data`);
+    return response.data;
   }
-
-  // Health check
-  async healthCheck() {
-    return this.client.get('/');
-  }
-}
-
-export const apiService = new ApiService();
+};

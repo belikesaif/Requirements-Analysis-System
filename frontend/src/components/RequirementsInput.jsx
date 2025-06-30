@@ -178,9 +178,24 @@ const RequirementsInput = ({ onProcessingComplete, onError, onSuccess }) => {
             />
 
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Chip label={`${wordCount} words`} size="small" />
-                <Chip label={`${sentenceCount} sentences`} size="small" />
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={`${wordCount} words`} 
+                  size="small"
+                  color={wordCount > 50 ? 'success' : 'default'}
+                />
+                <Chip 
+                  label={`${sentenceCount} sentences`} 
+                  size="small"
+                  color={sentenceCount > 3 ? 'success' : 'default'}
+                />
+                {inputText.trim() && (
+                  <Chip 
+                    label={inputText.length > 200 ? "Good length" : "Too short"} 
+                    size="small"
+                    color={inputText.length > 200 ? 'success' : 'warning'}
+                  />
+                )}
               </Box>
 
               <Button
@@ -188,11 +203,18 @@ const RequirementsInput = ({ onProcessingComplete, onError, onSuccess }) => {
                 size="large"
                 startIcon={<AIIcon />}
                 onClick={handleProcessRequirements}
-                disabled={isProcessing || !inputText.trim()}
+                disabled={isProcessing || !inputText.trim() || inputText.length < 50}
+                sx={{ minWidth: 180 }}
               >
                 {isProcessing ? 'Processing...' : 'Process Requirements'}
               </Button>
             </Box>
+
+            {inputText.length < 50 && inputText.length > 0 && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Requirements text should be at least 50 characters for meaningful analysis.
+              </Alert>
+            )}
 
             {isProcessing && (
               <Box sx={{ mt: 2 }}>

@@ -175,51 +175,68 @@ Return only a comma-separated list of actor names. For example: "Member, Librari
         except Exception as e:
             raise Exception(f"AI actor extraction failed: {str(e)}")
     
-    async def validate_requirement(self, requirement: str) -> Dict[str, Any]:
+    async def validate_requirement(self, requirement: str) -> Dict[str, float]:
         """
-        Validate a requirement using AI analysis
+        Validate a single requirement using AI
         """
         try:
-            prompt = f"""Analyze the following requirement and provide validation feedback:
-
-Requirement: {requirement}
-
-Evaluate the requirement based on:
-1. Clarity (is it clear and unambiguous?)
-2. Completeness (does it specify what needs to be done?)
-3. Testability (can it be tested?)
-4. Format (does it follow SNL format?)
-5. Atomicity (is it a single, focused requirement?)
-
-Provide a score from 1-10 for each criterion and overall feedback.
-Format your response as JSON."""
+            prompt = self._create_validation_prompt(requirement)
             
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a requirements validation expert. Respond in valid JSON format."},
+                    {"role": "system", "content": self._get_validation_system_prompt()},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.2,
-                max_tokens=300
+                max_tokens=500
             )
             
-            # Try to parse JSON response
-            import json
+            # Parse validation results
             try:
+                import json
                 validation_result = json.loads(response.choices[0].message.content)
                 return validation_result
             except json.JSONDecodeError:
                 # Fallback if JSON parsing fails
                 return {
-                    "overall_score": 7,
-                    "feedback": response.choices[0].message.content,
-                    "clarity": 7,
-                    "completeness": 7,
-                    "testability": 7,
-                    "format": 7,
-                    "atomicity": 7
+                    'clarity': 7.0,
+                    'completeness': 7.0,
+                    'atomicity': 7.0
                 }
         
         except Exception as e:
             raise Exception(f"Requirement validation failed: {str(e)}")
+    
+    def _get_validation_system_prompt(self) -> str:
+        """
+        System prompt for requirement validation
+        """
+        return """You are an expert requirements analyst. Your task is to validate software requirements for clarity, completeness, and atomicity.
+
+Guidelines:
+1. Clarity: Evaluate if the requirement is clear and unambiguous
+2. Completeness: Check if all necessary details are included
+3. Atomicity: Verify that the requirement describes a single feature/function
+
+Score each aspect from 0.0 to 10.0 and return results in JSON format:
+{
+    "clarity": float,
+    "completeness": float,
+    "atomicity": float
+}"""
+    
+    def _create_validation_prompt(self, requirement: str) -> str:
+        """
+        Create prompt for requirement validation
+        """
+        return f"""Please validate the following software requirement:
+
+{requirement}
+
+Analyze the requirement for:
+1. Clarity: Is it clear and unambiguous?
+2. Completeness: Are all necessary details included?
+3. Atomicity: Does it describe a single feature/function?
+
+Return your analysis in the specified JSON format with scores from 0.0 to 10.0."""
