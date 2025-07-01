@@ -1,7 +1,7 @@
 {
-  "8a011ad1-bb84-49e7-8d34-f0b44cf1c8b8": {
-    "id": "8a011ad1-bb84-49e7-8d34-f0b44cf1c8b8",
-    "timestamp": "2025-07-01T02:00:29.702931",
+  "c354d43f-c2bd-4b6d-9227-245fc2e96455": {
+    "id": "c354d43f-c2bd-4b6d-9227-245fc2e96455",
+    "timestamp": "2025-07-01T19:49:44.223119",
     "title": "Library Managment System",
     "original_text": "The Member clicks the log-in button on the Home Page. The system displays the log- in page. The member enters his login Id with password. The member clicks on the confirm button. The system checks that all of the required information was entered. If the entered information is wrong then system asks member to reenter the details. The system validates the entered information against the tables stored in the database. Member must be logged in to the system. The member clicks on View user details. The system opens a page showing the details of the member. The details include the total number of issued books, date of issue, return date, fine to be paid. The member closes the page. The system shows OK message. The books should be stored in database. The books must be ready to retrieve. The system asks user to login. The system identifies the type of user- member, guest or administrator. The system shows the categories to browse. The user selects a category of books to view. If no category is selected by the user then the system again asks user to select a category. The system checks the books in the database. The system retrieves all the books falling in that category. The user selects the desired books. The system shows the details of the selected books. The system asks user to print the details. If User does not want to print the details then user can ignore the step. User can reserve a book by inputting the relevant details & the librarian can also reserve a book for a member. User should be logged into the system. User should have correct book Id. Books should be available to reserve. The system asks user to login. The system identifies the type of user- member, guest or administrator. The system shows the categories to browse. The user selects book to reserve. If no book is selected by the user then the system again asks user to select a book to reserve. The user enters Book Id to reserve. If the book Id is wrong then system asks user to recheck the book id. The system checks the books in the database. If the selected book is already reserved on another Id then system asks user to select another book. Members should be logged into the system. Guest user can also search books. Book should be available to search. The system shows the categories to browse. The member selects a category of searching a book. If no category is selected by the member then the system again asks user to select a category. The system checks the books in the database. The system retrieves all the books falling in that category. Member should give the member Id to the librarian. Books should be available to issue. The librarian Checks the availability of the books. The librarian also checks total number of books issued on that Id. Librarian issues the book. The librarian cannot issue the books if the user has three books issued on his Id. The system updates the information in database. Librarian should be logged into the system. Member should have borrowed books. Member should give the member Id to the librarian. The member returns the book. The librarian enters book id , member id in the system. If the entered book id is incorrect then system asks to re-enter the book id. The system prompts a message that the book with book id is successfully returned. Members should be stored in the database. Members should be available to retrieve by the system. Member must be logged in to the system. Guest can also view members. The user clicks on View members. The system opens a page showing the details of the member. The details include name of member, the total number of issued books, date of issue, return date, fine to be paid. The member closes the page. Librarian should be logged into the system. Books should be available to remove. Book details should be\n \navailable to add or remove books in the database. The librarian has option of adding or removing a book in database. The system asks librarian to add or remove the book. The librarian adds a book. The system asks librarian to enter all the required details about the new book to be added. The librarian enters the details. If the librarian selects to remove a book then the book should be outdated. The system administrator that all the information has been correctly provided. Administrator should be logged into the system. Member should be available to remove. Member details should be available to add or remove member in the database. The system asks administrator to add or remove a member. The administrator selects to add a member. The system asks administrator to enter all the required details about the new member to be added. The administrator enters the details. If the administrator selects to remove a member then a valid reason of removal is required. The system validates that all the information has been correctly provided.\n",
     "rupp_result": {
@@ -117,42 +117,52 @@
         "unique_requirements": 91,
         "actors_identified": 6
       },
-      "processing_time": 5.61
+      "processing_time": 9.21
     },
     "ai_result": {
-      "snl_text": "1. The system shall provide the Member with the ability to click the log-in button on the Home Page.\n2. The system shall display the log-in page when the Member clicks the log-in button.\n3. The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.\n4. If the entered information is incorrect, then the system shall ask the Member to reenter the details.\n5. The system shall validate the entered information against the tables stored in the database to ensure the Member is logged in.\n6. The system shall provide the Member with the ability to click on \"View user details\" to see information such as total number of issued books, dates, and fines.\n7. The system shall open a page showing the Member's details when the Member clicks on \"View user details.\"\n8. The system shall display an OK message when the Member closes the page.\n9. The system shall store books in the database and ensure they are ready to retrieve.\n10. The system shall identify the type of user (member, guest, or administrator) upon login.\n11. The system shall show categories of books to browse after user identification.\n12. The system shall retrieve and display books falling under the selected category by the user.\n13. The system shall show details of the selected books and ask the user to print the details.\n14. The system shall allow the user to reserve a book by inputting relevant details or allow the librarian to reserve a book for a member.\n15. The system shall check the availability of the selected book for reservation and prompt the user to recheck the book id if incorrect.\n16. The system shall allow guest users to search for available books.\n17. The system shall prompt the member to provide their member Id to the librarian for issuing books.\n18. The librarian shall check the availability of books and the total number of books issued to the member before issuing a book.\n19. The librarian shall not be able to issue books if the member already has three books issued on their Id.\n20. The system shall update book information in the database upon book issuance by the librarian.\n21. The librarian shall be able to remove books from the database and update book details.\n22. The librarian shall have the option to add a new book by entering all required details about the book.\n23. The system shall prompt the librarian to add or remove a book and handle the process accordingly.\n24. The system shall allow the administrator to add or remove a member by entering all required details about the new member.\n25. If the administrator selects to remove a member, a valid reason for removal must be provided.\n26. The system shall validate that all information provided by the administrator for adding or removing a member is correct.",
+      "snl_text": "1. The system shall provide the Member with the ability to click the log-in button on the Home Page.\n2. The system shall be able to display the log-in page when the Member clicks the log-in button.\n3. The system shall provide the Member with the ability to enter their login ID and password on the log-in page.\n4. The system shall be able to check that all required information is entered when the Member clicks on the confirm button.\n5. If the entered information is incorrect, then the system shall ask the Member to reenter the details.\n6. The system shall validate the entered information against the tables stored in the database.\n7. The system shall ensure that the Member is logged in to access the system.\n8. The system shall provide the Member with the ability to click on \"View user details.\"\n9. The system shall be able to open a page showing the details of the Member, including the total number of issued books, date of issue, return date, and fine to be paid.\n10. The system shall show an \"OK\" message when the Member closes the user details page.\n11. The system shall store books in the database and ensure they are ready to retrieve.\n12. The system shall ask the user to login and identify the type of user (member, guest, or administrator).\n13. The system shall show categories for browsing books.\n14. The system shall retrieve and display books falling under the selected category.\n15. The system shall provide the user with the ability to select desired books and view their details.\n16. The system shall ask the user if they want to print the details of the selected books.\n17. The system shall allow the user to reserve a book by inputting relevant details or allow the librarian to reserve a book for a member.\n18. The system shall ensure that the user is logged in, has the correct book ID, and that the books are available for reservation.\n19. The system shall ask the user to login and identify the type of user before browsing categories to reserve a book.\n20. The system shall allow the user to select a book to reserve and input the Book ID.\n21. If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.\n22. The system shall not allow reservation if the selected book is already reserved under another ID.\n23. The system shall allow guest users to search for available books.\n24. The system shall show categories for browsing books to guest users.\n25. The system shall retrieve and display books falling under the selected category for guest users.\n26. The librarian shall check the availability of books and the total number of books issued to a specific ID before issuing a book.\n27. The librarian shall not issue a book if the user has three books already issued on their ID.\n28. The system shall update book information in the database when a book is issued or returned.\n29. The librarian shall be able to remove books from the system if needed.\n30. The librarian shall have the option to add or remove a book in the database.\n31. The system shall prompt the librarian to enter all required details about the new book to be added.\n32. The system shall ask the librarian to add or remove a book and validate the provided information.\n33. The administrator shall be able to add or remove a member in the database.\n34. The system shall prompt the administrator to enter all required details about the new member to be added.\n35. If the administrator selects to remove a member, a valid reason for removal must be provided.\n36. The system shall validate that all information provided by the administrator is correct.",
       "requirements": [
         "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-        "The system shall display the log-in page when the Member clicks the log-in button.",
-        "The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.",
+        "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+        "The system shall provide the Member with the ability to enter their login ID and password on the log-in page.",
+        "The system shall be able to check that all required information is entered when the Member clicks on the confirm button.",
         "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
-        "The system shall validate the entered information against the tables stored in the database to ensure the Member is logged in.",
-        "The system shall provide the Member with the ability to click on \"View user details\" to see information such as total number of issued books, dates, and fines.",
-        "The system shall open a page showing the Member's details when the Member clicks on \"View user details.\"",
-        "The system shall display an OK message when the Member closes the page.",
+        "The system shall validate the entered information against the tables stored in the database.",
+        "The system shall ensure that the Member is logged in to access the system.",
+        "The system shall provide the Member with the ability to click on \"View user details.\"",
+        "The system shall be able to open a page showing the details of the Member, including the total number of issued books, date of issue, return date, and fine to be paid.",
+        "The system shall show an \"OK\" message when the Member closes the user details page.",
         "The system shall store books in the database and ensure they are ready to retrieve.",
-        "The system shall identify the type of user (member, guest, or administrator) upon login.",
-        "The system shall show categories of books to browse after user identification.",
-        "The system shall retrieve and display books falling under the selected category by the user.",
-        "The system shall show details of the selected books and ask the user to print the details.",
+        "The system shall ask the user to login and identify the type of user (member, guest, or administrator).",
+        "The system shall show categories for browsing books.",
+        "The system shall retrieve and display books falling under the selected category.",
+        "The system shall provide the user with the ability to select desired books and view their details.",
+        "The system shall ask the user if they want to print the details of the selected books.",
         "The system shall allow the user to reserve a book by inputting relevant details or allow the librarian to reserve a book for a member.",
-        "The system shall check the availability of the selected book for reservation and prompt the user to recheck the book id if incorrect.",
+        "The system shall ensure that the user is logged in, has the correct book ID, and that the books are available for reservation.",
+        "The system shall ask the user to login and identify the type of user before browsing categories to reserve a book.",
+        "The system shall allow the user to select a book to reserve and input the Book ID.",
+        "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+        "The system shall not allow reservation if the selected book is already reserved under another ID.",
         "The system shall allow guest users to search for available books.",
-        "The system shall prompt the member to provide their member Id to the librarian for issuing books.",
-        "The librarian shall check the availability of books and the total number of books issued to the member before issuing a book.",
-        "The librarian shall not be able to issue books if the member already has three books issued on their Id.",
-        "The system shall update book information in the database upon book issuance by the librarian.",
-        "The librarian shall be able to remove books from the database and update book details.",
-        "The librarian shall have the option to add a new book by entering all required details about the book.",
-        "The system shall prompt the librarian to add or remove a book and handle the process accordingly.",
-        "The system shall allow the administrator to add or remove a member by entering all required details about the new member.",
+        "The system shall show categories for browsing books to guest users.",
+        "The system shall retrieve and display books falling under the selected category for guest users.",
+        "The librarian shall check the availability of books and the total number of books issued to a specific ID before issuing a book.",
+        "The librarian shall not issue a book if the user has three books already issued on their ID.",
+        "The system shall update book information in the database when a book is issued or returned.",
+        "The librarian shall be able to remove books from the system if needed.",
+        "The librarian shall have the option to add or remove a book in the database.",
+        "The system shall prompt the librarian to enter all required details about the new book to be added.",
+        "The system shall ask the librarian to add or remove a book and validate the provided information.",
+        "The administrator shall be able to add or remove a member in the database.",
+        "The system shall prompt the administrator to enter all required details about the new member to be added.",
         "If the administrator selects to remove a member, a valid reason for removal must be provided.",
-        "The system shall validate that all information provided by the administrator for adding or removing a member is correct."
+        "The system shall validate that all information provided by the administrator is correct."
       ],
       "model_used": "gpt-3.5-turbo",
-      "sentences_count": 26,
-      "raw_response": "1. The system shall provide the Member with the ability to click the log-in button on the Home Page.\n2. The system shall display the log-in page when the Member clicks the log-in button.\n3. The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.\n4. If the entered information is incorrect, then the system shall ask the Member to reenter the details.\n5. The system shall validate the entered information against the tables stored in the database to ensure the Member is logged in.\n6. The system shall provide the Member with the ability to click on \"View user details\" to see information such as total number of issued books, dates, and fines.\n7. The system shall open a page showing the Member's details when the Member clicks on \"View user details.\"\n8. The system shall display an OK message when the Member closes the page.\n9. The system shall store books in the database and ensure they are ready to retrieve.\n10. The system shall identify the type of user (member, guest, or administrator) upon login.\n11. The system shall show categories of books to browse after user identification.\n12. The system shall retrieve and display books falling under the selected category by the user.\n13. The system shall show details of the selected books and ask the user to print the details.\n14. The system shall allow the user to reserve a book by inputting relevant details or allow the librarian to reserve a book for a member.\n15. The system shall check the availability of the selected book for reservation and prompt the user to recheck the book id if incorrect.\n16. The system shall allow guest users to search for available books.\n17. The system shall prompt the member to provide their member Id to the librarian for issuing books.\n18. The librarian shall check the availability of books and the total number of books issued to the member before issuing a book.\n19. The librarian shall not be able to issue books if the member already has three books issued on their Id.\n20. The system shall update book information in the database upon book issuance by the librarian.\n21. The librarian shall be able to remove books from the database and update book details.\n22. The librarian shall have the option to add a new book by entering all required details about the book.\n23. The system shall prompt the librarian to add or remove a book and handle the process accordingly.\n24. The system shall allow the administrator to add or remove a member by entering all required details about the new member.\n25. If the administrator selects to remove a member, a valid reason for removal must be provided.\n26. The system shall validate that all information provided by the administrator for adding or removing a member is correct.",
-      "processing_time": 5658.81
+      "sentences_count": 36,
+      "raw_response": "1. The system shall provide the Member with the ability to click the log-in button on the Home Page.\n2. The system shall be able to display the log-in page when the Member clicks the log-in button.\n3. The system shall provide the Member with the ability to enter their login ID and password on the log-in page.\n4. The system shall be able to check that all required information is entered when the Member clicks on the confirm button.\n5. If the entered information is incorrect, then the system shall ask the Member to reenter the details.\n6. The system shall validate the entered information against the tables stored in the database.\n7. The system shall ensure that the Member is logged in to access the system.\n8. The system shall provide the Member with the ability to click on \"View user details.\"\n9. The system shall be able to open a page showing the details of the Member, including the total number of issued books, date of issue, return date, and fine to be paid.\n10. The system shall show an \"OK\" message when the Member closes the user details page.\n11. The system shall store books in the database and ensure they are ready to retrieve.\n12. The system shall ask the user to login and identify the type of user (member, guest, or administrator).\n13. The system shall show categories for browsing books.\n14. The system shall retrieve and display books falling under the selected category.\n15. The system shall provide the user with the ability to select desired books and view their details.\n16. The system shall ask the user if they want to print the details of the selected books.\n17. The system shall allow the user to reserve a book by inputting relevant details or allow the librarian to reserve a book for a member.\n18. The system shall ensure that the user is logged in, has the correct book ID, and that the books are available for reservation.\n19. The system shall ask the user to login and identify the type of user before browsing categories to reserve a book.\n20. The system shall allow the user to select a book to reserve and input the Book ID.\n21. If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.\n22. The system shall not allow reservation if the selected book is already reserved under another ID.\n23. The system shall allow guest users to search for available books.\n24. The system shall show categories for browsing books to guest users.\n25. The system shall retrieve and display books falling under the selected category for guest users.\n26. The librarian shall check the availability of books and the total number of books issued to a specific ID before issuing a book.\n27. The librarian shall not issue a book if the user has three books already issued on their ID.\n28. The system shall update book information in the database when a book is issued or returned.\n29. The librarian shall be able to remove books from the system if needed.\n30. The librarian shall have the option to add or remove a book in the database.\n31. The system shall prompt the librarian to enter all required details about the new book to be added.\n32. The system shall ask the librarian to add or remove a book and validate the provided information.\n33. The administrator shall be able to add or remove a member in the database.\n34. The system shall prompt the administrator to enter all required details about the new member to be added.\n35. If the administrator selects to remove a member, a valid reason for removal must be provided.\n36. The system shall validate that all information provided by the administrator is correct.",
+      "processing_time": 7356.65
     },
     "comparison": {
       "rupp_requirements": [
@@ -250,31 +260,41 @@
       ],
       "ai_requirements": [
         "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-        "The system shall display the log-in page when the Member clicks the log-in button.",
-        "The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.",
+        "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+        "The system shall provide the Member with the ability to enter their login ID and password on the log-in page.",
+        "The system shall be able to check that all required information is entered when the Member clicks on the confirm button.",
         "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
-        "The system shall validate the entered information against the tables stored in the database to ensure the Member is logged in.",
-        "The system shall provide the Member with the ability to click on \"View user details\" to see information such as total number of issued books, dates, and fines.",
-        "The system shall open a page showing the Member's details when the Member clicks on \"View user details.\"\n8.",
-        "The system shall display an OK message when the Member closes the page.",
+        "The system shall validate the entered information against the tables stored in the database.",
+        "The system shall ensure that the Member is logged in to access the system.",
+        "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+        "The system shall be able to open a page showing the details of the Member, including the total number of issued books, date of issue, return date, and fine to be paid.",
+        "The system shall show an \"OK\" message when the Member closes the user details page.",
         "The system shall store books in the database and ensure they are ready to retrieve.",
-        "The system shall identify the type of user (member, guest, or administrator) upon login.",
-        "The system shall show categories of books to browse after user identification.",
-        "The system shall retrieve and display books falling under the selected category by the user.",
-        "The system shall show details of the selected books and ask the user to print the details.",
+        "The system shall ask the user to login and identify the type of user (member, guest, or administrator).",
+        "The system shall show categories for browsing books.",
+        "The system shall retrieve and display books falling under the selected category.",
+        "The system shall provide the user with the ability to select desired books and view their details.",
+        "The system shall ask the user if they want to print the details of the selected books.",
         "The system shall allow the user to reserve a book by inputting relevant details or allow the librarian to reserve a book for a member.",
-        "The system shall check the availability of the selected book for reservation and prompt the user to recheck the book id if incorrect.",
+        "The system shall ensure that the user is logged in, has the correct book ID, and that the books are available for reservation.",
+        "The system shall ask the user to login and identify the type of user before browsing categories to reserve a book.",
+        "The system shall allow the user to select a book to reserve and input the Book ID.",
+        "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+        "The system shall not allow reservation if the selected book is already reserved under another ID.",
         "The system shall allow guest users to search for available books.",
-        "The system shall prompt the member to provide their member Id to the librarian for issuing books.",
-        "The librarian shall check the availability of books and the total number of books issued to the member before issuing a book.",
-        "The librarian shall not be able to issue books if the member already has three books issued on their Id.\n20.",
-        "The system shall update book information in the database upon book issuance by the librarian.",
-        "The librarian shall be able to remove books from the database and update book details.",
-        "The librarian shall have the option to add a new book by entering all required details about the book.",
-        "The system shall prompt the librarian to add or remove a book and handle the process accordingly.",
-        "The system shall allow the administrator to add or remove a member by entering all required details about the new member.",
+        "The system shall show categories for browsing books to guest users.",
+        "The system shall retrieve and display books falling under the selected category for guest users.",
+        "The librarian shall check the availability of books and the total number of books issued to a specific ID before issuing a book.",
+        "The librarian shall not issue a book if the user has three books already issued on their ID.",
+        "The system shall update book information in the database when a book is issued or returned.",
+        "The librarian shall be able to remove books from the system if needed.",
+        "The librarian shall have the option to add or remove a book in the database.",
+        "The system shall prompt the librarian to enter all required details about the new book to be added.",
+        "The system shall ask the librarian to add or remove a book and validate the provided information.",
+        "The administrator shall be able to add or remove a member in the database.",
+        "The system shall prompt the administrator to enter all required details about the new member to be added.",
         "If the administrator selects to remove a member, a valid reason for removal must be provided.",
-        "The system shall validate that all information provided by the administrator for adding or removing a member is correct."
+        "The system shall validate that all information provided by the administrator is correct."
       ],
       "similarities": [
         {
@@ -292,20 +312,20 @@
           "rupp_requirement": "The system shall be able to display the log- in page..",
           "best_match": {
             "ai_index": 1,
-            "ai_requirement": "The system shall display the log-in page when the Member clicks the log-in button.",
-            "similarity": 0.4970588235294117
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.6264880952380952
           },
-          "similarity_score": 0.4970588235294117
+          "similarity_score": 0.6264880952380952
         },
         {
           "rupp_index": 2,
           "rupp_requirement": "The system shall be able to accept his login id with password..",
           "best_match": {
             "ai_index": 2,
-            "ai_requirement": "The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.",
-            "similarity": 0.42669082125603863
+            "ai_requirement": "The system shall provide the Member with the ability to enter their login ID and password on the log-in page.",
+            "similarity": 0.5187103594080338
           },
-          "similarity_score": 0.42669082125603863
+          "similarity_score": 0.5187103594080338
         },
         {
           "rupp_index": 3,
@@ -321,17 +341,17 @@
           "rupp_index": 4,
           "rupp_requirement": "The system shall be able to validate that all of the required information was entered..",
           "best_match": {
-            "ai_index": 2,
-            "ai_requirement": "The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.",
-            "similarity": 0.5414141414141413
+            "ai_index": 3,
+            "ai_requirement": "The system shall be able to check that all required information is entered when the Member clicks on the confirm button.",
+            "similarity": 0.6038647342995169
           },
-          "similarity_score": 0.5414141414141413
+          "similarity_score": 0.6038647342995169
         },
         {
           "rupp_index": 5,
           "rupp_requirement": "If the entered information is wrong, then the system shall asks member to reenter the details..",
           "best_match": {
-            "ai_index": 3,
+            "ai_index": 4,
             "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
             "similarity": 0.8298319327731092
           },
@@ -341,17 +361,17 @@
           "rupp_index": 6,
           "rupp_requirement": "The system shall be able to accept ed information is wrong.",
           "best_match": {
-            "ai_index": 2,
-            "ai_requirement": "The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.",
-            "similarity": 0.46472148541114056
+            "ai_index": 3,
+            "ai_requirement": "The system shall be able to check that all required information is entered when the Member clicks on the confirm button.",
+            "similarity": 0.5314372778059929
           },
-          "similarity_score": 0.46472148541114056
+          "similarity_score": 0.5314372778059929
         },
         {
           "rupp_index": 7,
           "rupp_requirement": "The system shall be able to ask member to reenter the details..",
           "best_match": {
-            "ai_index": 3,
+            "ai_index": 4,
             "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
             "similarity": 0.5588952654232424
           },
@@ -361,11 +381,11 @@
           "rupp_index": 8,
           "rupp_requirement": "The system shall be able to validate the entered information against the tables stored in the database..",
           "best_match": {
-            "ai_index": 4,
-            "ai_requirement": "The system shall validate the entered information against the tables stored in the database to ensure the Member is logged in.",
-            "similarity": 0.725
+            "ai_index": 5,
+            "ai_requirement": "The system shall validate the entered information against the tables stored in the database.",
+            "similarity": 0.8571428571428571
           },
-          "similarity_score": 0.725
+          "similarity_score": 0.8571428571428571
         },
         {
           "rupp_index": 9,
@@ -381,107 +401,107 @@
           "rupp_index": 10,
           "rupp_requirement": "The system shall provide member with the ability to the click on view user details..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.6947026324341892
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.8574127906976743
           },
-          "similarity_score": 0.6947026324341892
+          "similarity_score": 0.8574127906976743
         },
         {
           "rupp_index": 11,
           "rupp_requirement": "The system shall be able to display the details of the member..",
           "best_match": {
             "ai_index": 1,
-            "ai_requirement": "The system shall display the log-in page when the Member clicks the log-in button.",
-            "similarity": 0.4901724137931034
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.6158653846153845
           },
-          "similarity_score": 0.4901724137931034
+          "similarity_score": 0.6158653846153845
         },
         {
           "rupp_index": 12,
           "rupp_requirement": "The system shall be able to close the page..",
           "best_match": {
-            "ai_index": 7,
-            "ai_requirement": "The system shall display an OK message when the Member closes the page.",
-            "similarity": 0.48233695652173914
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.5185401459854014
           },
-          "similarity_score": 0.48233695652173914
+          "similarity_score": 0.5185401459854014
         },
         {
           "rupp_index": 13,
           "rupp_requirement": "The system shall be able to display the ok message..",
           "best_match": {
-            "ai_index": 7,
-            "ai_requirement": "The system shall display an OK message when the Member closes the page.",
-            "similarity": 0.5211382113821138
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.5937931034482757
           },
-          "similarity_score": 0.5211382113821138
+          "similarity_score": 0.5937931034482757
         },
         {
           "rupp_index": 14,
           "rupp_requirement": "The system shall be able to store d in database..",
           "best_match": {
-            "ai_index": 8,
-            "ai_requirement": "The system shall store books in the database and ensure they are ready to retrieve.",
-            "similarity": 0.48181818181818176
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.5725490196078431
           },
-          "similarity_score": 0.48181818181818176
+          "similarity_score": 0.5725490196078431
         },
         {
           "rupp_index": 15,
           "rupp_requirement": "The system shall be able to retrieve ..",
           "best_match": {
-            "ai_index": 8,
-            "ai_requirement": "The system shall store books in the database and ensure they are ready to retrieve.",
-            "similarity": 0.4683060109289617
+            "ai_index": 28,
+            "ai_requirement": "The librarian shall be able to remove books from the system if needed.",
+            "similarity": 0.48820445609436436
           },
-          "similarity_score": 0.4683060109289617
+          "similarity_score": 0.48820445609436436
         },
         {
           "rupp_index": 16,
           "rupp_requirement": "The system shall be able to ask user to login..",
           "best_match": {
-            "ai_index": 12,
-            "ai_requirement": "The system shall show details of the selected books and ask the user to print the details.",
-            "similarity": 0.5044224989265779
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.49249999999999994
           },
-          "similarity_score": 0.5044224989265779
+          "similarity_score": 0.49249999999999994
         },
         {
           "rupp_index": 17,
           "rupp_requirement": "If the system identies the type of user- member, then the system shall guest or administrator..",
           "best_match": {
-            "ai_index": 9,
-            "ai_requirement": "The system shall identify the type of user (member, guest, or administrator) upon login.",
-            "similarity": 0.5949180327868852
+            "ai_index": 11,
+            "ai_requirement": "The system shall ask the user to login and identify the type of user (member, guest, or administrator).",
+            "similarity": 0.5484848484848485
           },
-          "similarity_score": 0.5949180327868852
+          "similarity_score": 0.5484848484848485
         },
         {
           "rupp_index": 18,
           "rupp_requirement": "The system shall be able to display the categories to browse..",
           "best_match": {
-            "ai_index": 10,
-            "ai_requirement": "The system shall show categories of books to browse after user identification.",
-            "similarity": 0.49374999999999997
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.5916129032258064
           },
-          "similarity_score": 0.49374999999999997
+          "similarity_score": 0.5916129032258064
         },
         {
           "rupp_index": 19,
           "rupp_requirement": "The system shall be able to selects a category of books to view..",
           "best_match": {
-            "ai_index": 10,
-            "ai_requirement": "The system shall show categories of books to browse after user identification.",
-            "similarity": 0.5111888111888112
+            "ai_index": 23,
+            "ai_requirement": "The system shall show categories for browsing books to guest users.",
+            "similarity": 0.5075757575757576
           },
-          "similarity_score": 0.5111888111888112
+          "similarity_score": 0.5075757575757576
         },
         {
           "rupp_index": 20,
           "rupp_requirement": "If no category is selected by the user, then the system shall again asks user to select a category..",
           "best_match": {
-            "ai_index": 3,
+            "ai_index": 4,
             "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
             "similarity": 0.42529353233830847
           },
@@ -491,101 +511,101 @@
           "rupp_index": 21,
           "rupp_requirement": "The system shall be able to if no category is selected by the user.",
           "best_match": {
-            "ai_index": 11,
-            "ai_requirement": "The system shall retrieve and display books falling under the selected category by the user.",
-            "similarity": 0.5155577623303541
+            "ai_index": 21,
+            "ai_requirement": "The system shall not allow reservation if the selected book is already reserved under another ID.",
+            "similarity": 0.4830376940133037
           },
-          "similarity_score": 0.5155577623303541
+          "similarity_score": 0.4830376940133037
         },
         {
           "rupp_index": 22,
           "rupp_requirement": "The system shall be able to ask user to select a category..",
           "best_match": {
-            "ai_index": 12,
-            "ai_requirement": "The system shall show details of the selected books and ask the user to print the details.",
-            "similarity": 0.4705757682797598
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.5604088443888193
           },
-          "similarity_score": 0.4705757682797598
+          "similarity_score": 0.5604088443888193
         },
         {
           "rupp_index": 23,
           "rupp_requirement": "The system shall be able to validate the books in the database..",
           "best_match": {
-            "ai_index": 20,
-            "ai_requirement": "The librarian shall be able to remove books from the database and update book details.",
-            "similarity": 0.52
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.5725490196078431
           },
-          "similarity_score": 0.52
+          "similarity_score": 0.5725490196078431
         },
         {
           "rupp_index": 24,
           "rupp_requirement": "The system shall be able to retrieve all the books falling in that category..",
           "best_match": {
-            "ai_index": 11,
-            "ai_requirement": "The system shall retrieve and display books falling under the selected category by the user.",
-            "similarity": 0.570473372781065
+            "ai_index": 13,
+            "ai_requirement": "The system shall retrieve and display books falling under the selected category.",
+            "similarity": 0.6171974522292992
           },
-          "similarity_score": 0.570473372781065
+          "similarity_score": 0.6171974522292992
         },
         {
           "rupp_index": 25,
           "rupp_requirement": "The system shall be able to selects the desired books..",
           "best_match": {
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.48333333333333334
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.5287162162162162
           },
-          "similarity_score": 0.48333333333333334
+          "similarity_score": 0.5287162162162162
         },
         {
           "rupp_index": 26,
           "rupp_requirement": "The system shall be able to display the details of the selected books..",
           "best_match": {
-            "ai_index": 12,
-            "ai_requirement": "The system shall show details of the selected books and ask the user to print the details.",
-            "similarity": 0.5427536231884058
+            "ai_index": 15,
+            "ai_requirement": "The system shall ask the user if they want to print the details of the selected books.",
+            "similarity": 0.6516985138004247
           },
-          "similarity_score": 0.5427536231884058
+          "similarity_score": 0.6516985138004247
         },
         {
           "rupp_index": 27,
           "rupp_requirement": "The system shall be able to ask user to print the details..",
           "best_match": {
-            "ai_index": 12,
-            "ai_requirement": "The system shall show details of the selected books and ask the user to print the details.",
-            "similarity": 0.6309119621002763
+            "ai_index": 15,
+            "ai_requirement": "The system shall ask the user if they want to print the details of the selected books.",
+            "similarity": 0.5773225152129816
           },
-          "similarity_score": 0.6309119621002763
+          "similarity_score": 0.5773225152129816
         },
         {
           "rupp_index": 28,
           "rupp_requirement": "If user does not want to print the details, then the system shall user can ignore the step..",
           "best_match": {
-            "ai_index": 3,
-            "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
-            "similarity": 0.3901779680108132
+            "ai_index": 15,
+            "ai_requirement": "The system shall ask the user if they want to print the details of the selected books.",
+            "similarity": 0.46821829855537717
           },
-          "similarity_score": 0.3901779680108132
+          "similarity_score": 0.46821829855537717
         },
         {
           "rupp_index": 29,
           "rupp_requirement": "The system shall provide user with the ability to the does not want to print the details.",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.5340322580645162
+            "ai_index": 14,
+            "ai_requirement": "The system shall provide the user with the ability to select desired books and view their details.",
+            "similarity": 0.7036025893611032
           },
-          "similarity_score": 0.5340322580645162
+          "similarity_score": 0.7036025893611032
         },
         {
           "rupp_index": 30,
           "rupp_requirement": "The system shall provide user with the ability to ignore the step..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.618651362984218
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.6558064516129032
           },
-          "similarity_score": 0.618651362984218
+          "similarity_score": 0.6558064516129032
         },
         {
           "rupp_index": 31,
@@ -601,27 +621,27 @@
           "rupp_index": 32,
           "rupp_requirement": "The system shall provide user with the ability to be logged into the system..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.6254688445251059
+            "ai_index": 14,
+            "ai_requirement": "The system shall provide the user with the ability to select desired books and view their details.",
+            "similarity": 0.6303157894736842
           },
-          "similarity_score": 0.6254688445251059
+          "similarity_score": 0.6303157894736842
         },
         {
           "rupp_index": 33,
           "rupp_requirement": "The system shall provide user with the ability to have correct book id..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.5909996885705386
+            "ai_index": 14,
+            "ai_requirement": "The system shall provide the user with the ability to select desired books and view their details.",
+            "similarity": 0.6451393188854488
           },
-          "similarity_score": 0.5909996885705386
+          "similarity_score": 0.6451393188854488
         },
         {
           "rupp_index": 34,
           "rupp_requirement": "The system shall be available to reserve..",
           "best_match": {
-            "ai_index": 15,
+            "ai_index": 22,
             "ai_requirement": "The system shall allow guest users to search for available books.",
             "similarity": 0.5340762041696621
           },
@@ -631,111 +651,111 @@
           "rupp_index": 35,
           "rupp_requirement": "The system shall be able to selects book to reserve..",
           "best_match": {
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.49025423728813555
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.5756427015250545
           },
-          "similarity_score": 0.49025423728813555
+          "similarity_score": 0.5756427015250545
         },
         {
           "rupp_index": 36,
           "rupp_requirement": "If no book is selected by the user, then the system shall again asks user to select a book to reserve..",
           "best_match": {
-            "ai_index": 3,
-            "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
-            "similarity": 0.4408627450980392
+            "ai_index": 20,
+            "ai_requirement": "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+            "similarity": 0.5062176165803108
           },
-          "similarity_score": 0.4408627450980392
+          "similarity_score": 0.5062176165803108
         },
         {
           "rupp_index": 37,
           "rupp_requirement": "The system shall be able to if no book is selected by the user.",
           "best_match": {
-            "ai_index": 11,
-            "ai_requirement": "The system shall retrieve and display books falling under the selected category by the user.",
-            "similarity": 0.5416129032258064
+            "ai_index": 28,
+            "ai_requirement": "The librarian shall be able to remove books from the system if needed.",
+            "similarity": 0.5166666666666666
           },
-          "similarity_score": 0.5416129032258064
+          "similarity_score": 0.5166666666666666
         },
         {
           "rupp_index": 38,
           "rupp_requirement": "The system shall be able to ask user to select a book to reserve..",
           "best_match": {
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.479951787866613
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.6614467408585054
           },
-          "similarity_score": 0.479951787866613
+          "similarity_score": 0.6614467408585054
         },
         {
           "rupp_index": 39,
           "rupp_requirement": "The system shall be able to accept book id to reserve..",
           "best_match": {
-            "ai_index": 20,
-            "ai_requirement": "The librarian shall be able to remove books from the database and update book details.",
-            "similarity": 0.4475177304964539
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.5125304136253042
           },
-          "similarity_score": 0.4475177304964539
+          "similarity_score": 0.5125304136253042
         },
         {
           "rupp_index": 40,
           "rupp_requirement": "If the book id is wrong, then the system shall asks user to recheck the book id..",
           "best_match": {
-            "ai_index": 3,
-            "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
-            "similarity": 0.5461538461538461
+            "ai_index": 20,
+            "ai_requirement": "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+            "similarity": 0.739766081871345
           },
-          "similarity_score": 0.5461538461538461
+          "similarity_score": 0.739766081871345
         },
         {
           "rupp_index": 41,
           "rupp_requirement": "The system shall be able to if the book id is wrong.",
           "best_match": {
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.4615384615384615
+            "ai_index": 20,
+            "ai_requirement": "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+            "similarity": 0.5059652029826014
           },
-          "similarity_score": 0.4615384615384615
+          "similarity_score": 0.5059652029826014
         },
         {
           "rupp_index": 42,
           "rupp_requirement": "The system shall be able to validate the book id..",
           "best_match": {
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.5010869565217391
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.5230837789661319
           },
-          "similarity_score": 0.5010869565217391
+          "similarity_score": 0.5230837789661319
         },
         {
           "rupp_index": 43,
           "rupp_requirement": "If the selected book is already reserved on another id, then the system shall asks user to select another book..",
           "best_match": {
-            "ai_index": 3,
-            "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
-            "similarity": 0.5046572769953052
+            "ai_index": 20,
+            "ai_requirement": "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+            "similarity": 0.5504950495049504
           },
-          "similarity_score": 0.5046572769953052
+          "similarity_score": 0.5504950495049504
         },
         {
           "rupp_index": 44,
           "rupp_requirement": "The system shall be able to if the selected book is already reserved on another id.",
           "best_match": {
-            "ai_index": 18,
-            "ai_requirement": "The librarian shall not be able to issue books if the member already has three books issued on their Id.\n20.",
-            "similarity": 0.5258010471204189
+            "ai_index": 21,
+            "ai_requirement": "The system shall not allow reservation if the selected book is already reserved under another ID.",
+            "similarity": 0.7803508771929825
           },
-          "similarity_score": 0.5258010471204189
+          "similarity_score": 0.7803508771929825
         },
         {
           "rupp_index": 45,
           "rupp_requirement": "The system shall be able to ask user to select another book..",
           "best_match": {
-            "ai_index": 12,
-            "ai_requirement": "The system shall show details of the selected books and ask the user to print the details.",
-            "similarity": 0.4934123387940048
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.5307692307692308
           },
-          "similarity_score": 0.4934123387940048
+          "similarity_score": 0.5307692307692308
         },
         {
           "rupp_index": 46,
@@ -751,37 +771,37 @@
           "rupp_index": 47,
           "rupp_requirement": "The system shall provide guest with the ability to the user can also search books..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.5405555555555556
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.6093567251461988
           },
-          "similarity_score": 0.5405555555555556
+          "similarity_score": 0.6093567251461988
         },
         {
           "rupp_index": 48,
           "rupp_requirement": "The system shall provide users with the ability to book should be available to search..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.538695652173913
+            "ai_index": 14,
+            "ai_requirement": "The system shall provide the user with the ability to select desired books and view their details.",
+            "similarity": 0.5843243243243244
           },
-          "similarity_score": 0.538695652173913
+          "similarity_score": 0.5843243243243244
         },
         {
           "rupp_index": 49,
           "rupp_requirement": "The system shall be able to selects a category of searching a book..",
           "best_match": {
-            "ai_index": 11,
-            "ai_requirement": "The system shall retrieve and display books falling under the selected category by the user.",
-            "similarity": 0.46839285714285717
+            "ai_index": 12,
+            "ai_requirement": "The system shall show categories for browsing books.",
+            "similarity": 0.5079411764705882
           },
-          "similarity_score": 0.46839285714285717
+          "similarity_score": 0.5079411764705882
         },
         {
           "rupp_index": 50,
           "rupp_requirement": "If no category is selected by the member, then the system shall again asks user to select a category..",
           "best_match": {
-            "ai_index": 3,
+            "ai_index": 4,
             "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
             "similarity": 0.42882758620689654
           },
@@ -791,27 +811,27 @@
           "rupp_index": 51,
           "rupp_requirement": "The system shall be able to if no category is selected by the member.",
           "best_match": {
-            "ai_index": 11,
-            "ai_requirement": "The system shall retrieve and display books falling under the selected category by the user.",
-            "similarity": 0.4726086956521739
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.5048148148148147
           },
-          "similarity_score": 0.4726086956521739
+          "similarity_score": 0.5048148148148147
         },
         {
           "rupp_index": 52,
           "rupp_requirement": "The system shall provide librarian with the ability to ..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.5767045454545454
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.6140086206896552
           },
-          "similarity_score": 0.5767045454545454
+          "similarity_score": 0.6140086206896552
         },
         {
           "rupp_index": 53,
           "rupp_requirement": "The system shall be available to issue..",
           "best_match": {
-            "ai_index": 15,
+            "ai_index": 22,
             "ai_requirement": "The system shall allow guest users to search for available books.",
             "similarity": 0.5420512820512821
           },
@@ -821,7 +841,7 @@
           "rupp_index": 54,
           "rupp_requirement": "The system shall be able to validate the availability of the books..",
           "best_match": {
-            "ai_index": 15,
+            "ai_index": 22,
             "ai_requirement": "The system shall allow guest users to search for available books.",
             "similarity": 0.523219814241486
           },
@@ -841,21 +861,21 @@
           "rupp_index": 56,
           "rupp_requirement": "The system shall provide librarian with the ability to the cannot issue the books if the user has three books issued on his id..",
           "best_match": {
-            "ai_index": 18,
-            "ai_requirement": "The librarian shall not be able to issue books if the member already has three books issued on their Id.\n20.",
-            "similarity": 0.5967984934086629
+            "ai_index": 26,
+            "ai_requirement": "The librarian shall not issue a book if the user has three books already issued on their ID.",
+            "similarity": 0.6156363636363635
           },
-          "similarity_score": 0.5967984934086629
+          "similarity_score": 0.6156363636363635
         },
         {
           "rupp_index": 57,
           "rupp_requirement": "The system shall be able to update the information in database..",
           "best_match": {
-            "ai_index": 19,
-            "ai_requirement": "The system shall update book information in the database upon book issuance by the librarian.",
-            "similarity": 0.5494426751592356
+            "ai_index": 5,
+            "ai_requirement": "The system shall validate the entered information against the tables stored in the database.",
+            "similarity": 0.5604166666666666
           },
-          "similarity_score": 0.5494426751592356
+          "similarity_score": 0.5604166666666666
         },
         {
           "rupp_index": 58,
@@ -881,107 +901,107 @@
           "rupp_index": 60,
           "rupp_requirement": "The system shall provide member with the ability to returns the book..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.661377245508982
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.6639240506329114
           },
-          "similarity_score": 0.661377245508982
+          "similarity_score": 0.6639240506329114
         },
         {
           "rupp_index": 61,
           "rupp_requirement": "The system shall be able to accept book id , member id in the system..",
           "best_match": {
-            "ai_index": 16,
-            "ai_requirement": "The system shall prompt the member to provide their member Id to the librarian for issuing books.",
-            "similarity": 0.48401197604790414
+            "ai_index": 6,
+            "ai_requirement": "The system shall ensure that the Member is logged in to access the system.",
+            "similarity": 0.571125730994152
           },
-          "similarity_score": 0.48401197604790414
+          "similarity_score": 0.571125730994152
         },
         {
           "rupp_index": 62,
           "rupp_requirement": "If the entered book id is incorrect, then the system shall asks to re-enter the book id..",
           "best_match": {
-            "ai_index": 3,
-            "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
-            "similarity": 0.6947368421052631
+            "ai_index": 20,
+            "ai_requirement": "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+            "similarity": 0.7141527001862197
           },
-          "similarity_score": 0.6947368421052631
+          "similarity_score": 0.7141527001862197
         },
         {
           "rupp_index": 63,
           "rupp_requirement": "The system shall be able to accept ed book id is incorrect.",
           "best_match": {
-            "ai_index": 14,
-            "ai_requirement": "The system shall check the availability of the selected book for reservation and prompt the user to recheck the book id if incorrect.",
-            "similarity": 0.46317934782608694
+            "ai_index": 28,
+            "ai_requirement": "The librarian shall be able to remove books from the system if needed.",
+            "similarity": 0.4689922480620155
           },
-          "similarity_score": 0.46317934782608694
+          "similarity_score": 0.4689922480620155
         },
         {
           "rupp_index": 64,
           "rupp_requirement": "The system shall be able to ask to re-enter the book id..",
           "best_match": {
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.48370298939247824
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.5567146282973621
           },
-          "similarity_score": 0.48370298939247824
+          "similarity_score": 0.5567146282973621
         },
         {
           "rupp_index": 65,
           "rupp_requirement": "The system shall be able to prompt the user to a message that the book with book id is successfully returned..",
           "best_match": {
-            "ai_index": 14,
-            "ai_requirement": "The system shall check the availability of the selected book for reservation and prompt the user to recheck the book id if incorrect.",
-            "similarity": 0.48065843621399174
+            "ai_index": 19,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.4850543478260869
           },
-          "similarity_score": 0.48065843621399174
+          "similarity_score": 0.4850543478260869
         },
         {
           "rupp_index": 66,
           "rupp_requirement": "The system shall be able to store d in the database..",
           "best_match": {
-            "ai_index": 8,
-            "ai_requirement": "The system shall store books in the database and ensure they are ready to retrieve.",
-            "similarity": 0.5117647058823529
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.6019453450671607
           },
-          "similarity_score": 0.5117647058823529
+          "similarity_score": 0.6019453450671607
         },
         {
           "rupp_index": 67,
           "rupp_requirement": "The system shall be able to retrieve by the system..",
           "best_match": {
-            "ai_index": 20,
-            "ai_requirement": "The librarian shall be able to remove books from the database and update book details.",
-            "similarity": 0.45869565217391306
+            "ai_index": 28,
+            "ai_requirement": "The librarian shall be able to remove books from the system if needed.",
+            "similarity": 0.5790163934426229
           },
-          "similarity_score": 0.45869565217391306
+          "similarity_score": 0.5790163934426229
         },
         {
           "rupp_index": 68,
           "rupp_requirement": "The system shall provide guest with the ability to also view members..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.5861277445109779
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.6483122362869198
           },
-          "similarity_score": 0.5861277445109779
+          "similarity_score": 0.6483122362869198
         },
         {
           "rupp_index": 69,
           "rupp_requirement": "The system shall provide member with the ability to s..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.648157894736842
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.6984615384615385
           },
-          "similarity_score": 0.648157894736842
+          "similarity_score": 0.6984615384615385
         },
         {
           "rupp_index": 70,
           "rupp_requirement": "The system shall be available to remove..",
           "best_match": {
-            "ai_index": 15,
+            "ai_index": 22,
             "ai_requirement": "The system shall allow guest users to search for available books.",
             "similarity": 0.5380261248185776
           },
@@ -991,91 +1011,91 @@
           "rupp_index": 71,
           "rupp_requirement": "The system shall be available to add or remove books in the database..",
           "best_match": {
-            "ai_index": 22,
-            "ai_requirement": "The system shall prompt the librarian to add or remove a book and handle the process accordingly.",
-            "similarity": 0.5409281437125748
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.6856209150326797
           },
-          "similarity_score": 0.5409281437125748
+          "similarity_score": 0.6856209150326797
         },
         {
           "rupp_index": 72,
           "rupp_requirement": "The system shall provide librarian with the ability to has option of adding or removing a book in database..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.5005853658536585
+            "ai_index": 29,
+            "ai_requirement": "The librarian shall have the option to add or remove a book in the database.",
+            "similarity": 0.5868577075098813
           },
-          "similarity_score": 0.5005853658536585
+          "similarity_score": 0.5868577075098813
         },
         {
           "rupp_index": 73,
           "rupp_requirement": "The system shall be able to ask librarian to add or remove the book..",
           "best_match": {
-            "ai_index": 22,
-            "ai_requirement": "The system shall prompt the librarian to add or remove a book and handle the process accordingly.",
-            "similarity": 0.573303741280913
+            "ai_index": 31,
+            "ai_requirement": "The system shall ask the librarian to add or remove a book and validate the provided information.",
+            "similarity": 0.6054216867469879
           },
-          "similarity_score": 0.573303741280913
+          "similarity_score": 0.6054216867469879
         },
         {
           "rupp_index": 74,
           "rupp_requirement": "The system shall provide librarian with the ability to adds a book..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.5748484848484848
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.5833333333333333
           },
-          "similarity_score": 0.5748484848484848
+          "similarity_score": 0.5833333333333333
         },
         {
           "rupp_index": 75,
           "rupp_requirement": "The system shall be able to ask librarian to enter all the required details about the new book to be added..",
           "best_match": {
-            "ai_index": 23,
-            "ai_requirement": "The system shall allow the administrator to add or remove a member by entering all required details about the new member.",
-            "similarity": 0.5562479005710446
+            "ai_index": 30,
+            "ai_requirement": "The system shall prompt the librarian to enter all required details about the new book to be added.",
+            "similarity": 0.8321256038647343
           },
-          "similarity_score": 0.5562479005710446
+          "similarity_score": 0.8321256038647343
         },
         {
           "rupp_index": 76,
           "rupp_requirement": "The system shall be able to accept the details..",
           "best_match": {
-            "ai_index": 12,
-            "ai_requirement": "The system shall show details of the selected books and ask the user to print the details.",
-            "similarity": 0.472463768115942
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.5072340425531915
           },
-          "similarity_score": 0.472463768115942
+          "similarity_score": 0.5072340425531915
         },
         {
           "rupp_index": 77,
           "rupp_requirement": "If the librarian selects to remove a book, then the system shall the book should be outdated..",
           "best_match": {
-            "ai_index": 20,
-            "ai_requirement": "The librarian shall be able to remove books from the database and update book details.",
-            "similarity": 0.48434343434343435
+            "ai_index": 28,
+            "ai_requirement": "The librarian shall be able to remove books from the system if needed.",
+            "similarity": 0.5702182284980744
           },
-          "similarity_score": 0.48434343434343435
+          "similarity_score": 0.5702182284980744
         },
         {
           "rupp_index": 78,
           "rupp_requirement": "The system shall be able to if the librarian selects to remove a book.",
           "best_match": {
-            "ai_index": 22,
-            "ai_requirement": "The system shall prompt the librarian to add or remove a book and handle the process accordingly.",
-            "similarity": 0.5241616766467065
+            "ai_index": 1,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.5241846948659993
           },
-          "similarity_score": 0.5241616766467065
+          "similarity_score": 0.5241846948659993
         },
         {
           "rupp_index": 79,
           "rupp_requirement": "The system shall be outdated..",
           "best_match": {
-            "ai_index": 7,
-            "ai_requirement": "The system shall display an OK message when the Member closes the page.",
-            "similarity": 0.4157654226961157
+            "ai_index": 12,
+            "ai_requirement": "The system shall show categories for browsing books.",
+            "similarity": 0.46560975609756095
           },
-          "similarity_score": 0.4157654226961157
+          "similarity_score": 0.46560975609756095
         },
         {
           "rupp_index": 80,
@@ -1101,11 +1121,11 @@
           "rupp_index": 82,
           "rupp_requirement": "The system shall provide member with the ability to be available to remove..",
           "best_match": {
-            "ai_index": 0,
-            "ai_requirement": "The system shall provide the Member with the ability to click the log-in button on the Home Page.",
-            "similarity": 0.6429105746344781
+            "ai_index": 7,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.6448350071736011
           },
-          "similarity_score": 0.6429105746344781
+          "similarity_score": 0.6448350071736011
         },
         {
           "rupp_index": 83,
@@ -1121,37 +1141,37 @@
           "rupp_index": 84,
           "rupp_requirement": "The system shall be able to ask administrator to add or remove a member..",
           "best_match": {
-            "ai_index": 23,
-            "ai_requirement": "The system shall allow the administrator to add or remove a member by entering all required details about the new member.",
-            "similarity": 0.5648139847601972
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.6351190476190476
           },
-          "similarity_score": 0.5648139847601972
+          "similarity_score": 0.6351190476190476
         },
         {
           "rupp_index": 85,
           "rupp_requirement": "The system shall be able to selects to add a member..",
           "best_match": {
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.42652043868394807
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.5391240157480315
           },
-          "similarity_score": 0.42652043868394807
+          "similarity_score": 0.5391240157480315
         },
         {
           "rupp_index": 86,
           "rupp_requirement": "The system shall be able to ask administrator to enter all the required details about the new member to be added..",
           "best_match": {
-            "ai_index": 23,
-            "ai_requirement": "The system shall allow the administrator to add or remove a member by entering all required details about the new member.",
-            "similarity": 0.6557978723404254
+            "ai_index": 33,
+            "ai_requirement": "The system shall prompt the administrator to enter all required details about the new member to be added.",
+            "similarity": 0.8367579908675798
           },
-          "similarity_score": 0.6557978723404254
+          "similarity_score": 0.8367579908675798
         },
         {
           "rupp_index": 87,
           "rupp_requirement": "If the administrator selects to remove a member, then the system shall a valid reason of removal is required..",
           "best_match": {
-            "ai_index": 24,
+            "ai_index": 34,
             "ai_requirement": "If the administrator selects to remove a member, a valid reason for removal must be provided.",
             "similarity": 0.6950738916256157
           },
@@ -1161,31 +1181,31 @@
           "rupp_index": 88,
           "rupp_requirement": "The system shall be able to if the administrator selects to remove a member.",
           "best_match": {
-            "ai_index": 24,
-            "ai_requirement": "If the administrator selects to remove a member, a valid reason for removal must be provided.",
-            "similarity": 0.5239489255683587
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.5331764705882354
           },
-          "similarity_score": 0.5239489255683587
+          "similarity_score": 0.5331764705882354
         },
         {
           "rupp_index": 89,
           "rupp_requirement": "The system shall ensure that a valid reason of removal is required..",
           "best_match": {
-            "ai_index": 25,
-            "ai_requirement": "The system shall validate that all information provided by the administrator for adding or removing a member is correct.",
-            "similarity": 0.425
+            "ai_index": 6,
+            "ai_requirement": "The system shall ensure that the Member is logged in to access the system.",
+            "similarity": 0.4845070422535211
           },
-          "similarity_score": 0.425
+          "similarity_score": 0.4845070422535211
         },
         {
           "rupp_index": 90,
           "rupp_requirement": "The system shall be able to validate that all the information has been correctly provided..",
           "best_match": {
-            "ai_index": 2,
-            "ai_requirement": "The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.",
-            "similarity": 0.48962006079027354
+            "ai_index": 35,
+            "ai_requirement": "The system shall validate that all information provided by the administrator is correct.",
+            "similarity": 0.5798000588062334
           },
-          "similarity_score": 0.48962006079027354
+          "similarity_score": 0.5798000588062334
         }
       ],
       "categorization": {
@@ -1197,15 +1217,9 @@
             "category": "missing"
           },
           {
-            "index": 4,
-            "requirement": "The system shall be able to validate that all of the required information was entered..",
-            "best_similarity": 0.5414141414141413,
-            "category": "missing"
-          },
-          {
             "index": 6,
             "requirement": "The system shall be able to accept ed information is wrong.",
-            "best_similarity": 0.46472148541114056,
+            "best_similarity": 0.5314372778059929,
             "category": "missing"
           },
           {
@@ -1221,33 +1235,33 @@
             "category": "missing"
           },
           {
-            "index": 10,
-            "requirement": "The system shall provide member with the ability to the click on view user details..",
-            "best_similarity": 0.6947026324341892,
+            "index": 11,
+            "requirement": "The system shall be able to display the details of the member..",
+            "best_similarity": 0.6158653846153845,
             "category": "missing"
           },
           {
-            "index": 11,
-            "requirement": "The system shall be able to display the details of the member..",
-            "best_similarity": 0.4901724137931034,
+            "index": 12,
+            "requirement": "The system shall be able to close the page..",
+            "best_similarity": 0.5185401459854014,
             "category": "missing"
           },
           {
             "index": 13,
             "requirement": "The system shall be able to display the ok message..",
-            "best_similarity": 0.5211382113821138,
+            "best_similarity": 0.5937931034482757,
             "category": "missing"
           },
           {
-            "index": 15,
-            "requirement": "The system shall be able to retrieve ..",
-            "best_similarity": 0.4683060109289617,
+            "index": 16,
+            "requirement": "The system shall be able to ask user to login..",
+            "best_similarity": 0.49249999999999994,
             "category": "missing"
           },
           {
-            "index": 19,
-            "requirement": "The system shall be able to selects a category of books to view..",
-            "best_similarity": 0.5111888111888112,
+            "index": 18,
+            "requirement": "The system shall be able to display the categories to browse..",
+            "best_similarity": 0.5916129032258064,
             "category": "missing"
           },
           {
@@ -1257,45 +1271,33 @@
             "category": "missing"
           },
           {
-            "index": 22,
-            "requirement": "The system shall be able to ask user to select a category..",
-            "best_similarity": 0.4705757682797598,
+            "index": 23,
+            "requirement": "The system shall be able to validate the books in the database..",
+            "best_similarity": 0.5725490196078431,
             "category": "missing"
           },
           {
-            "index": 24,
-            "requirement": "The system shall be able to retrieve all the books falling in that category..",
-            "best_similarity": 0.570473372781065,
-            "category": "missing"
-          },
-          {
-            "index": 26,
-            "requirement": "The system shall be able to display the details of the selected books..",
-            "best_similarity": 0.5427536231884058,
+            "index": 25,
+            "requirement": "The system shall be able to selects the desired books..",
+            "best_similarity": 0.5287162162162162,
             "category": "missing"
           },
           {
             "index": 27,
             "requirement": "The system shall be able to ask user to print the details..",
-            "best_similarity": 0.6309119621002763,
+            "best_similarity": 0.5773225152129816,
             "category": "missing"
           },
           {
             "index": 28,
             "requirement": "If user does not want to print the details, then the system shall user can ignore the step..",
-            "best_similarity": 0.3901779680108132,
-            "category": "missing"
-          },
-          {
-            "index": 29,
-            "requirement": "The system shall provide user with the ability to the does not want to print the details.",
-            "best_similarity": 0.5340322580645162,
+            "best_similarity": 0.46821829855537717,
             "category": "missing"
           },
           {
             "index": 30,
             "requirement": "The system shall provide user with the ability to ignore the step..",
-            "best_similarity": 0.618651362984218,
+            "best_similarity": 0.6558064516129032,
             "category": "missing"
           },
           {
@@ -1307,79 +1309,73 @@
           {
             "index": 32,
             "requirement": "The system shall provide user with the ability to be logged into the system..",
-            "best_similarity": 0.6254688445251059,
+            "best_similarity": 0.6303157894736842,
             "category": "missing"
           },
           {
             "index": 33,
             "requirement": "The system shall provide user with the ability to have correct book id..",
-            "best_similarity": 0.5909996885705386,
-            "category": "missing"
-          },
-          {
-            "index": 34,
-            "requirement": "The system shall be available to reserve..",
-            "best_similarity": 0.5340762041696621,
+            "best_similarity": 0.6451393188854488,
             "category": "missing"
           },
           {
             "index": 35,
             "requirement": "The system shall be able to selects book to reserve..",
-            "best_similarity": 0.49025423728813555,
-            "category": "missing"
-          },
-          {
-            "index": 36,
-            "requirement": "If no book is selected by the user, then the system shall again asks user to select a book to reserve..",
-            "best_similarity": 0.4408627450980392,
+            "best_similarity": 0.5756427015250545,
             "category": "missing"
           },
           {
             "index": 37,
             "requirement": "The system shall be able to if no book is selected by the user.",
-            "best_similarity": 0.5416129032258064,
+            "best_similarity": 0.5166666666666666,
             "category": "missing"
           },
           {
             "index": 38,
             "requirement": "The system shall be able to ask user to select a book to reserve..",
-            "best_similarity": 0.479951787866613,
+            "best_similarity": 0.6614467408585054,
             "category": "missing"
           },
           {
             "index": 39,
             "requirement": "The system shall be able to accept book id to reserve..",
-            "best_similarity": 0.4475177304964539,
+            "best_similarity": 0.5125304136253042,
             "category": "missing"
           },
           {
             "index": 40,
             "requirement": "If the book id is wrong, then the system shall asks user to recheck the book id..",
-            "best_similarity": 0.5461538461538461,
+            "best_similarity": 0.739766081871345,
             "category": "missing"
           },
           {
             "index": 41,
             "requirement": "The system shall be able to if the book id is wrong.",
-            "best_similarity": 0.4615384615384615,
+            "best_similarity": 0.5059652029826014,
             "category": "missing"
           },
           {
             "index": 42,
             "requirement": "The system shall be able to validate the book id..",
-            "best_similarity": 0.5010869565217391,
+            "best_similarity": 0.5230837789661319,
             "category": "missing"
           },
           {
             "index": 43,
             "requirement": "If the selected book is already reserved on another id, then the system shall asks user to select another book..",
-            "best_similarity": 0.5046572769953052,
+            "best_similarity": 0.5504950495049504,
+            "category": "missing"
+          },
+          {
+            "index": 44,
+            "requirement": "The system shall be able to if the selected book is already reserved on another id.",
+            "best_similarity": 0.7803508771929825,
             "category": "missing"
           },
           {
             "index": 45,
             "requirement": "The system shall be able to ask user to select another book..",
-            "best_similarity": 0.4934123387940048,
+            "best_similarity": 0.5307692307692308,
             "category": "missing"
           },
           {
@@ -1391,19 +1387,13 @@
           {
             "index": 47,
             "requirement": "The system shall provide guest with the ability to the user can also search books..",
-            "best_similarity": 0.5405555555555556,
+            "best_similarity": 0.6093567251461988,
             "category": "missing"
           },
           {
             "index": 48,
             "requirement": "The system shall provide users with the ability to book should be available to search..",
-            "best_similarity": 0.538695652173913,
-            "category": "missing"
-          },
-          {
-            "index": 49,
-            "requirement": "The system shall be able to selects a category of searching a book..",
-            "best_similarity": 0.46839285714285717,
+            "best_similarity": 0.5843243243243244,
             "category": "missing"
           },
           {
@@ -1415,13 +1405,13 @@
           {
             "index": 51,
             "requirement": "The system shall be able to if no category is selected by the member.",
-            "best_similarity": 0.4726086956521739,
+            "best_similarity": 0.5048148148148147,
             "category": "missing"
           },
           {
             "index": 52,
             "requirement": "The system shall provide librarian with the ability to ..",
-            "best_similarity": 0.5767045454545454,
+            "best_similarity": 0.6140086206896552,
             "category": "missing"
           },
           {
@@ -1443,9 +1433,9 @@
             "category": "missing"
           },
           {
-            "index": 56,
-            "requirement": "The system shall provide librarian with the ability to the cannot issue the books if the user has three books issued on his id..",
-            "best_similarity": 0.5967984934086629,
+            "index": 57,
+            "requirement": "The system shall be able to update the information in database..",
+            "best_similarity": 0.5604166666666666,
             "category": "missing"
           },
           {
@@ -1463,49 +1453,55 @@
           {
             "index": 60,
             "requirement": "The system shall provide member with the ability to returns the book..",
-            "best_similarity": 0.661377245508982,
+            "best_similarity": 0.6639240506329114,
             "category": "missing"
           },
           {
             "index": 62,
             "requirement": "If the entered book id is incorrect, then the system shall asks to re-enter the book id..",
-            "best_similarity": 0.6947368421052631,
+            "best_similarity": 0.7141527001862197,
+            "category": "missing"
+          },
+          {
+            "index": 63,
+            "requirement": "The system shall be able to accept ed book id is incorrect.",
+            "best_similarity": 0.4689922480620155,
             "category": "missing"
           },
           {
             "index": 64,
             "requirement": "The system shall be able to ask to re-enter the book id..",
-            "best_similarity": 0.48370298939247824,
+            "best_similarity": 0.5567146282973621,
             "category": "missing"
           },
           {
             "index": 65,
             "requirement": "The system shall be able to prompt the user to a message that the book with book id is successfully returned..",
-            "best_similarity": 0.48065843621399174,
+            "best_similarity": 0.4850543478260869,
             "category": "missing"
           },
           {
             "index": 66,
             "requirement": "The system shall be able to store d in the database..",
-            "best_similarity": 0.5117647058823529,
+            "best_similarity": 0.6019453450671607,
             "category": "missing"
           },
           {
             "index": 67,
             "requirement": "The system shall be able to retrieve by the system..",
-            "best_similarity": 0.45869565217391306,
+            "best_similarity": 0.5790163934426229,
             "category": "missing"
           },
           {
             "index": 68,
             "requirement": "The system shall provide guest with the ability to also view members..",
-            "best_similarity": 0.5861277445109779,
+            "best_similarity": 0.6483122362869198,
             "category": "missing"
           },
           {
             "index": 69,
             "requirement": "The system shall provide member with the ability to s..",
-            "best_similarity": 0.648157894736842,
+            "best_similarity": 0.6984615384615385,
             "category": "missing"
           },
           {
@@ -1515,45 +1511,39 @@
             "category": "missing"
           },
           {
-            "index": 72,
-            "requirement": "The system shall provide librarian with the ability to has option of adding or removing a book in database..",
-            "best_similarity": 0.5005853658536585,
-            "category": "missing"
-          },
-          {
-            "index": 73,
-            "requirement": "The system shall be able to ask librarian to add or remove the book..",
-            "best_similarity": 0.573303741280913,
+            "index": 71,
+            "requirement": "The system shall be available to add or remove books in the database..",
+            "best_similarity": 0.6856209150326797,
             "category": "missing"
           },
           {
             "index": 74,
             "requirement": "The system shall provide librarian with the ability to adds a book..",
-            "best_similarity": 0.5748484848484848,
+            "best_similarity": 0.5833333333333333,
             "category": "missing"
           },
           {
             "index": 76,
             "requirement": "The system shall be able to accept the details..",
-            "best_similarity": 0.472463768115942,
+            "best_similarity": 0.5072340425531915,
             "category": "missing"
           },
           {
             "index": 77,
             "requirement": "If the librarian selects to remove a book, then the system shall the book should be outdated..",
-            "best_similarity": 0.48434343434343435,
+            "best_similarity": 0.5702182284980744,
             "category": "missing"
           },
           {
             "index": 78,
             "requirement": "The system shall be able to if the librarian selects to remove a book.",
-            "best_similarity": 0.5241616766467065,
+            "best_similarity": 0.5241846948659993,
             "category": "missing"
           },
           {
             "index": 79,
             "requirement": "The system shall be outdated..",
-            "best_similarity": 0.4157654226961157,
+            "best_similarity": 0.46560975609756095,
             "category": "missing"
           },
           {
@@ -1571,7 +1561,7 @@
           {
             "index": 82,
             "requirement": "The system shall provide member with the ability to be available to remove..",
-            "best_similarity": 0.6429105746344781,
+            "best_similarity": 0.6448350071736011,
             "category": "missing"
           },
           {
@@ -1583,64 +1573,82 @@
           {
             "index": 84,
             "requirement": "The system shall be able to ask administrator to add or remove a member..",
-            "best_similarity": 0.5648139847601972,
+            "best_similarity": 0.6351190476190476,
             "category": "missing"
           },
           {
             "index": 85,
             "requirement": "The system shall be able to selects to add a member..",
-            "best_similarity": 0.42652043868394807,
-            "category": "missing"
-          },
-          {
-            "index": 86,
-            "requirement": "The system shall be able to ask administrator to enter all the required details about the new member to be added..",
-            "best_similarity": 0.6557978723404254,
+            "best_similarity": 0.5391240157480315,
             "category": "missing"
           },
           {
             "index": 88,
             "requirement": "The system shall be able to if the administrator selects to remove a member.",
-            "best_similarity": 0.5239489255683587,
+            "best_similarity": 0.5331764705882354,
             "category": "missing"
           },
           {
-            "index": 90,
-            "requirement": "The system shall be able to validate that all the information has been correctly provided..",
-            "best_similarity": 0.48962006079027354,
+            "index": 89,
+            "requirement": "The system shall ensure that a valid reason of removal is required..",
+            "best_similarity": 0.4845070422535211,
             "category": "missing"
           }
         ],
         "overspecified": [],
         "out_of_scope": [
           {
-            "index": 5,
-            "requirement": "The system shall provide the Member with the ability to click on \"View user details\" to see information such as total number of issued books, dates, and fines.",
-            "original_similarity": 0.026713732558915813,
+            "index": 8,
+            "requirement": "The system shall be able to open a page showing the details of the Member, including the total number of issued books, date of issue, return date, and fine to be paid.",
+            "original_similarity": 0.04280045724959054,
             "category": "out_of_scope"
           },
           {
-            "index": 6,
-            "requirement": "The system shall open a page showing the Member's details when the Member clicks on \"View user details.\"\n8.",
-            "original_similarity": 0.025076473819643216,
+            "index": 9,
+            "requirement": "The system shall show an \"OK\" message when the Member closes the user details page.",
+            "original_similarity": 0.015865917584503918,
             "category": "out_of_scope"
           },
           {
-            "index": 13,
+            "index": 10,
+            "requirement": "The system shall store books in the database and ensure they are ready to retrieve.",
+            "original_similarity": 0.013423632296115517,
+            "category": "out_of_scope"
+          },
+          {
+            "index": 16,
             "requirement": "The system shall allow the user to reserve a book by inputting relevant details or allow the librarian to reserve a book for a member.",
             "original_similarity": 0.03013403429004452,
             "category": "out_of_scope"
           },
           {
             "index": 17,
-            "requirement": "The librarian shall check the availability of books and the total number of books issued to the member before issuing a book.",
-            "original_similarity": 0.02419702834922666,
+            "requirement": "The system shall ensure that the user is logged in, has the correct book ID, and that the books are available for reservation.",
+            "original_similarity": 0.02367626728110599,
             "category": "out_of_scope"
           },
           {
-            "index": 21,
-            "requirement": "The librarian shall have the option to add a new book by entering all required details about the book.",
-            "original_similarity": 0.036964915625893796,
+            "index": 18,
+            "requirement": "The system shall ask the user to login and identify the type of user before browsing categories to reserve a book.",
+            "original_similarity": 0.02377554149360243,
+            "category": "out_of_scope"
+          },
+          {
+            "index": 24,
+            "requirement": "The system shall retrieve and display books falling under the selected category for guest users.",
+            "original_similarity": 0.017878741690018643,
+            "category": "out_of_scope"
+          },
+          {
+            "index": 25,
+            "requirement": "The librarian shall check the availability of books and the total number of books issued to a specific ID before issuing a book.",
+            "original_similarity": 0.02520396391888699,
+            "category": "out_of_scope"
+          },
+          {
+            "index": 27,
+            "requirement": "The system shall update book information in the database when a book is issued or returned.",
+            "original_similarity": 0.020000236099634045,
             "category": "out_of_scope"
           }
         ],
@@ -1657,22 +1665,30 @@
             "rupp_index": 1,
             "rupp_requirement": "The system shall be able to display the log- in page..",
             "ai_index": 1,
-            "ai_requirement": "The system shall display the log-in page when the Member clicks the log-in button.",
-            "similarity": 0.4970588235294117,
+            "ai_requirement": "The system shall be able to display the log-in page when the Member clicks the log-in button.",
+            "similarity": 0.6264880952380952,
             "category": "matched"
           },
           {
             "rupp_index": 2,
             "rupp_requirement": "The system shall be able to accept his login id with password..",
             "ai_index": 2,
-            "ai_requirement": "The system shall be able to check that all required information (login Id and password) is entered when the Member clicks on the confirm button.",
-            "similarity": 0.42669082125603863,
+            "ai_requirement": "The system shall provide the Member with the ability to enter their login ID and password on the log-in page.",
+            "similarity": 0.5187103594080338,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 4,
+            "rupp_requirement": "The system shall be able to validate that all of the required information was entered..",
+            "ai_index": 3,
+            "ai_requirement": "The system shall be able to check that all required information is entered when the Member clicks on the confirm button.",
+            "similarity": 0.6038647342995169,
             "category": "matched"
           },
           {
             "rupp_index": 5,
             "rupp_requirement": "If the entered information is wrong, then the system shall asks member to reenter the details..",
-            "ai_index": 3,
+            "ai_index": 4,
             "ai_requirement": "If the entered information is incorrect, then the system shall ask the Member to reenter the details.",
             "similarity": 0.8298319327731092,
             "category": "matched"
@@ -1680,186 +1696,227 @@
           {
             "rupp_index": 8,
             "rupp_requirement": "The system shall be able to validate the entered information against the tables stored in the database..",
-            "ai_index": 4,
-            "ai_requirement": "The system shall validate the entered information against the tables stored in the database to ensure the Member is logged in.",
-            "similarity": 0.725,
+            "ai_index": 5,
+            "ai_requirement": "The system shall validate the entered information against the tables stored in the database.",
+            "similarity": 0.8571428571428571,
             "category": "matched"
           },
           {
-            "rupp_index": 12,
-            "rupp_requirement": "The system shall be able to close the page..",
+            "rupp_index": 10,
+            "rupp_requirement": "The system shall provide member with the ability to the click on view user details..",
             "ai_index": 7,
-            "ai_requirement": "The system shall display an OK message when the Member closes the page.",
-            "similarity": 0.48233695652173914,
+            "ai_requirement": "The system shall provide the Member with the ability to click on \"View user details.\"\n9.",
+            "similarity": 0.8574127906976743,
             "category": "matched"
           },
           {
             "rupp_index": 14,
             "rupp_requirement": "The system shall be able to store d in database..",
-            "ai_index": 8,
-            "ai_requirement": "The system shall store books in the database and ensure they are ready to retrieve.",
-            "similarity": 0.48181818181818176,
+            "ai_index": 32,
+            "ai_requirement": "The administrator shall be able to add or remove a member in the database.",
+            "similarity": 0.5725490196078431,
             "category": "matched"
           },
           {
-            "rupp_index": 16,
-            "rupp_requirement": "The system shall be able to ask user to login..",
-            "ai_index": 12,
-            "ai_requirement": "The system shall show details of the selected books and ask the user to print the details.",
-            "similarity": 0.5044224989265779,
+            "rupp_index": 15,
+            "rupp_requirement": "The system shall be able to retrieve ..",
+            "ai_index": 28,
+            "ai_requirement": "The librarian shall be able to remove books from the system if needed.",
+            "similarity": 0.48820445609436436,
             "category": "matched"
           },
           {
             "rupp_index": 17,
             "rupp_requirement": "If the system identies the type of user- member, then the system shall guest or administrator..",
-            "ai_index": 9,
-            "ai_requirement": "The system shall identify the type of user (member, guest, or administrator) upon login.",
-            "similarity": 0.5949180327868852,
+            "ai_index": 11,
+            "ai_requirement": "The system shall ask the user to login and identify the type of user (member, guest, or administrator).",
+            "similarity": 0.5484848484848485,
             "category": "matched"
           },
           {
-            "rupp_index": 18,
-            "rupp_requirement": "The system shall be able to display the categories to browse..",
-            "ai_index": 10,
-            "ai_requirement": "The system shall show categories of books to browse after user identification.",
-            "similarity": 0.49374999999999997,
+            "rupp_index": 19,
+            "rupp_requirement": "The system shall be able to selects a category of books to view..",
+            "ai_index": 23,
+            "ai_requirement": "The system shall show categories for browsing books to guest users.",
+            "similarity": 0.5075757575757576,
             "category": "matched"
           },
           {
             "rupp_index": 21,
             "rupp_requirement": "The system shall be able to if no category is selected by the user.",
-            "ai_index": 11,
-            "ai_requirement": "The system shall retrieve and display books falling under the selected category by the user.",
-            "similarity": 0.5155577623303541,
+            "ai_index": 21,
+            "ai_requirement": "The system shall not allow reservation if the selected book is already reserved under another ID.",
+            "similarity": 0.4830376940133037,
             "category": "matched"
           },
           {
-            "rupp_index": 23,
-            "rupp_requirement": "The system shall be able to validate the books in the database..",
-            "ai_index": 20,
-            "ai_requirement": "The librarian shall be able to remove books from the database and update book details.",
-            "similarity": 0.52,
-            "category": "matched"
-          },
-          {
-            "rupp_index": 25,
-            "rupp_requirement": "The system shall be able to selects the desired books..",
-            "ai_index": 15,
-            "ai_requirement": "The system shall allow guest users to search for available books.",
-            "similarity": 0.48333333333333334,
-            "category": "matched"
-          },
-          {
-            "rupp_index": 44,
-            "rupp_requirement": "The system shall be able to if the selected book is already reserved on another id.",
-            "ai_index": 18,
-            "ai_requirement": "The librarian shall not be able to issue books if the member already has three books issued on their Id.\n20.",
-            "similarity": 0.5258010471204189,
-            "category": "matched"
-          },
-          {
-            "rupp_index": 57,
-            "rupp_requirement": "The system shall be able to update the information in database..",
+            "rupp_index": 22,
+            "rupp_requirement": "The system shall be able to ask user to select a category..",
             "ai_index": 19,
-            "ai_requirement": "The system shall update book information in the database upon book issuance by the librarian.",
-            "similarity": 0.5494426751592356,
+            "ai_requirement": "The system shall allow the user to select a book to reserve and input the Book ID.",
+            "similarity": 0.5604088443888193,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 24,
+            "rupp_requirement": "The system shall be able to retrieve all the books falling in that category..",
+            "ai_index": 13,
+            "ai_requirement": "The system shall retrieve and display books falling under the selected category.",
+            "similarity": 0.6171974522292992,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 26,
+            "rupp_requirement": "The system shall be able to display the details of the selected books..",
+            "ai_index": 15,
+            "ai_requirement": "The system shall ask the user if they want to print the details of the selected books.",
+            "similarity": 0.6516985138004247,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 29,
+            "rupp_requirement": "The system shall provide user with the ability to the does not want to print the details.",
+            "ai_index": 14,
+            "ai_requirement": "The system shall provide the user with the ability to select desired books and view their details.",
+            "similarity": 0.7036025893611032,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 34,
+            "rupp_requirement": "The system shall be available to reserve..",
+            "ai_index": 22,
+            "ai_requirement": "The system shall allow guest users to search for available books.",
+            "similarity": 0.5340762041696621,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 36,
+            "rupp_requirement": "If no book is selected by the user, then the system shall again asks user to select a book to reserve..",
+            "ai_index": 20,
+            "ai_requirement": "If the Book ID entered is incorrect, the system shall ask the user to recheck the Book ID.",
+            "similarity": 0.5062176165803108,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 49,
+            "rupp_requirement": "The system shall be able to selects a category of searching a book..",
+            "ai_index": 12,
+            "ai_requirement": "The system shall show categories for browsing books.",
+            "similarity": 0.5079411764705882,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 56,
+            "rupp_requirement": "The system shall provide librarian with the ability to the cannot issue the books if the user has three books issued on his id..",
+            "ai_index": 26,
+            "ai_requirement": "The librarian shall not issue a book if the user has three books already issued on their ID.",
+            "similarity": 0.6156363636363635,
             "category": "matched"
           },
           {
             "rupp_index": 61,
             "rupp_requirement": "The system shall be able to accept book id , member id in the system..",
-            "ai_index": 16,
-            "ai_requirement": "The system shall prompt the member to provide their member Id to the librarian for issuing books.",
-            "similarity": 0.48401197604790414,
+            "ai_index": 6,
+            "ai_requirement": "The system shall ensure that the Member is logged in to access the system.",
+            "similarity": 0.571125730994152,
             "category": "matched"
           },
           {
-            "rupp_index": 63,
-            "rupp_requirement": "The system shall be able to accept ed book id is incorrect.",
-            "ai_index": 14,
-            "ai_requirement": "The system shall check the availability of the selected book for reservation and prompt the user to recheck the book id if incorrect.",
-            "similarity": 0.46317934782608694,
+            "rupp_index": 72,
+            "rupp_requirement": "The system shall provide librarian with the ability to has option of adding or removing a book in database..",
+            "ai_index": 29,
+            "ai_requirement": "The librarian shall have the option to add or remove a book in the database.",
+            "similarity": 0.5868577075098813,
             "category": "matched"
           },
           {
-            "rupp_index": 71,
-            "rupp_requirement": "The system shall be available to add or remove books in the database..",
-            "ai_index": 22,
-            "ai_requirement": "The system shall prompt the librarian to add or remove a book and handle the process accordingly.",
-            "similarity": 0.5409281437125748,
+            "rupp_index": 73,
+            "rupp_requirement": "The system shall be able to ask librarian to add or remove the book..",
+            "ai_index": 31,
+            "ai_requirement": "The system shall ask the librarian to add or remove a book and validate the provided information.",
+            "similarity": 0.6054216867469879,
             "category": "matched"
           },
           {
             "rupp_index": 75,
             "rupp_requirement": "The system shall be able to ask librarian to enter all the required details about the new book to be added..",
-            "ai_index": 23,
-            "ai_requirement": "The system shall allow the administrator to add or remove a member by entering all required details about the new member.",
-            "similarity": 0.5562479005710446,
+            "ai_index": 30,
+            "ai_requirement": "The system shall prompt the librarian to enter all required details about the new book to be added.",
+            "similarity": 0.8321256038647343,
+            "category": "matched"
+          },
+          {
+            "rupp_index": 86,
+            "rupp_requirement": "The system shall be able to ask administrator to enter all the required details about the new member to be added..",
+            "ai_index": 33,
+            "ai_requirement": "The system shall prompt the administrator to enter all required details about the new member to be added.",
+            "similarity": 0.8367579908675798,
             "category": "matched"
           },
           {
             "rupp_index": 87,
             "rupp_requirement": "If the administrator selects to remove a member, then the system shall a valid reason of removal is required..",
-            "ai_index": 24,
+            "ai_index": 34,
             "ai_requirement": "If the administrator selects to remove a member, a valid reason for removal must be provided.",
             "similarity": 0.6950738916256157,
             "category": "matched"
           },
           {
-            "rupp_index": 89,
-            "rupp_requirement": "The system shall ensure that a valid reason of removal is required..",
-            "ai_index": 25,
-            "ai_requirement": "The system shall validate that all information provided by the administrator for adding or removing a member is correct.",
-            "similarity": 0.425,
+            "rupp_index": 90,
+            "rupp_requirement": "The system shall be able to validate that all the information has been correctly provided..",
+            "ai_index": 35,
+            "ai_requirement": "The system shall validate that all information provided by the administrator is correct.",
+            "similarity": 0.5798000588062334,
             "category": "matched"
           }
         ]
       },
       "metrics": {
-        "precision": 0.808,
-        "recall": 0.231,
-        "f1_score": 0.359,
-        "accuracy": 0.231,
-        "matched_pairs": 21,
-        "missing_count": 70,
+        "precision": 0.75,
+        "recall": 0.297,
+        "f1_score": 0.425,
+        "accuracy": 0.297,
+        "matched_pairs": 27,
+        "missing_count": 64,
         "overspecified_count": 0,
-        "out_of_scope_count": 5,
+        "out_of_scope_count": 9,
         "total_rupp_requirements": 91,
-        "total_ai_requirements": 26,
+        "total_ai_requirements": 36,
         "similarity_threshold": 0.3
       },
       "summary": {
         "total_rupp_requirements": 91,
-        "total_ai_requirements": 26,
-        "missing_count": 70,
+        "total_ai_requirements": 36,
+        "missing_count": 64,
         "overspecified_count": 0,
-        "out_of_scope_count": 5,
-        "matched_count": 21,
-        "overall_similarity": 0.359,
+        "out_of_scope_count": 9,
+        "matched_count": 27,
+        "overall_similarity": 0.425,
         "quality_assessment": "Very Poor",
         "recommendations": [
-          "Consider adding 70 missing requirements to AI-generated SNL",
-          "Remove 5 out-of-scope requirements",
+          "Consider adding 64 missing requirements to AI-generated SNL",
+          "Remove 9 out-of-scope requirements",
+          "Improve requirement precision by reducing overspecification",
           "Improve requirement coverage by capturing more functional requirements"
         ]
       },
       "rupp_metrics": {
-        "processing_time": 1976.36,
+        "processing_time": 3498.34,
         "requirements_count": 91,
         "actors_detected": 5,
-        "accuracy_score": 23.1
+        "accuracy_score": 29.7
       },
       "ai_metrics": {
-        "processing_time": 2371.63,
-        "requirements_count": 26,
+        "processing_time": 4198.0,
+        "requirements_count": 36,
         "actors_detected": 5,
-        "accuracy_score": 80.8
+        "accuracy_score": 75.0
       },
       "comparison": {
         "winner": "RUPP",
-        "summary": "RUPP generated 91 requirements vs AI generated 26 requirements"
+        "summary": "RUPP generated 91 requirements vs AI generated 36 requirements"
       }
     },
-    "processed_date": "2025-07-01T02:00:29.702931"
+    "processed_date": "2025-07-01T19:49:44.223119"
   }
 }
