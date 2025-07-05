@@ -14,7 +14,7 @@ class AIService:
         self.client = openai.AsyncOpenAI(
             api_key=os.getenv("OPENAI_API_KEY")
         )
-        self.model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
     
     async def generate_ai_snl(self, requirements_text: str) -> Dict[str, Any]:
         """
@@ -30,7 +30,7 @@ class AIService:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=2000
+                max_tokens=4000
             )
             
             ai_snl_text = response.choices[0].message.content
@@ -51,19 +51,23 @@ class AIService:
     
     def _get_system_prompt(self) -> str:
         """
-        Get the system prompt for SNL generation
-        """
-        return """You are an expert software requirements analyst. Your task is to convert natural language case study descriptions into Structured Natural Language (SNL) requirements following these guidelines:
+    Get the system prompt for SNL generation
+    """
+        return """You are an expert software requirements analyst. Your task is to convert natural language case study descriptions into DETAILED Structured Natural Language (SNL) requirements following these guidelines:
 
 1. Use the format: "The system shall provide [ACTOR] with the ability to [ACTION]" for user actions
 2. Use the format: "The system shall be able to [ACTION]" for system actions
 3. Use conditional format: "If [CONDITION] then the system shall be able to [ACTION]" for conditional requirements
 4. Identify all actors (users, roles) in the text
-5. Extract all functional requirements
+5. Extract ALL functional requirements at the most granular level possible
 6. Ensure each requirement is atomic and testable
-7. Maintain traceability to the original case study
+7. Break down complex features into multiple atomic requirements
+8. Capture ALL data validation, error handling, and edge cases as separate requirements
+9. Include system responses, notifications, and feedback mechanisms as separate requirements
+10. Maintain traceability to the original case study
+11. Generate a MINIMUM of 70 requirements for comprehensive coverage
 
-Generate clear, unambiguous requirements that follow software engineering best practices."""
+Generate clear, unambiguous, highly detailed requirements that follow software engineering best practices."""
     
     def _create_snl_prompt(self, requirements_text: str) -> str:
         """
@@ -240,3 +244,7 @@ Analyze the requirement for:
 3. Atomicity: Does it describe a single feature/function?
 
 Return your analysis in the specified JSON format with scores from 0.0 to 10.0."""
+    
+    
+    
+

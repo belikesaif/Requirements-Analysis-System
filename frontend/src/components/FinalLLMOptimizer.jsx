@@ -49,6 +49,10 @@ const FinalLLMOptimizer = ({
   const [loading, setLoading] = useState(false);
   const [optimizedDiagrams, setOptimizedDiagrams] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
+  const [diagramErrors, setDiagramErrors] = useState({
+    class: null,
+    sequence: null
+  });
 
   const handleFinalOptimization = async () => {
     if (!originalRequirements || !classDiagram || !sequenceDiagram) {
@@ -62,16 +66,33 @@ const FinalLLMOptimizer = ({
     try {
       console.log('Performing final LLM optimization...');
       
-      const response = await apiService.finalOptimization({
+      // Prepare optimization data, only include diagram_errors if they exist
+      const optimizationData = {
         original_requirements: originalRequirements,
         class_diagram: classDiagram,
         sequence_diagram: sequenceDiagram,
         identified_actors: identifiedActors,
         verification_issues: verificationIssues
-      });
+      };
+
+      // Only include diagram_errors if there are actual errors
+      if (diagramErrors.class || diagramErrors.sequence) {
+        optimizationData.diagram_errors = {};
+        if (diagramErrors.class) {
+          optimizationData.diagram_errors.class = diagramErrors.class;
+        }
+        if (diagramErrors.sequence) {
+          optimizationData.diagram_errors.sequence = diagramErrors.sequence;
+        }
+      }
+      
+      const response = await apiService.finalOptimization(optimizationData);
 
       setOptimizedDiagrams(response);
       setActiveStep(2);
+
+      // Reset diagram errors after successful optimization
+      setDiagramErrors({ class: null, sequence: null });
 
       // Pass data to parent component
       if (onOptimizationComplete) {
@@ -84,6 +105,21 @@ const FinalLLMOptimizer = ({
       setActiveStep(0);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle PlantUML rendering errors
+  const handleDiagramError = (diagramType, errorMessage) => {
+    console.error(`${diagramType} diagram error:`, errorMessage);
+    
+    setDiagramErrors(prev => ({
+      ...prev,
+      [diagramType]: errorMessage
+    }));
+
+    // Report to parent component
+    if (onError) {
+      onError(`${diagramType} diagram rendering error: ${errorMessage}`);
     }
   };
 
@@ -109,7 +145,10 @@ const FinalLLMOptimizer = ({
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light', color: 'warning.contrastText' }}>
               <Typography variant="h4">
-                {(verificationIssues.missing_actors?.length || 0) + (verificationIssues.inconsistencies?.length || 0)}
+                {(verificationIssues.missing_actors?.length || 0) + 
+                 (verificationIssues.inconsistencies?.length || 0) +
+                 (diagramErrors.class ? 1 : 0) + 
+                 (diagramErrors.sequence ? 1 : 0)}
               </Typography>
               <Typography variant="body2">Issues to Fix</Typography>
             </Paper>
@@ -190,10 +229,30 @@ const FinalLLMOptimizer = ({
               </Alert>
             )}
 
-            {(!verificationIssues.missing_actors?.length && !verificationIssues.inconsistencies?.length) && (
+            {(!verificationIssues.missing_actors?.length && 
+              !verificationIssues.inconsistencies?.length && 
+              !diagramErrors.class && 
+              !diagramErrors.sequence) && (
               <Typography variant="body2" color="success.main">
                 ✓ No major issues identified
               </Typography>
+            )}
+
+            {/* Show diagram rendering errors */}
+            {(diagramErrors.class || diagramErrors.sequence) && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                <Typography variant="subtitle2">Diagram Rendering Issues:</Typography>
+                {diagramErrors.class && (
+                  <Typography variant="body2">
+                    • Class Diagram: {diagramErrors.class}
+                  </Typography>
+                )}
+                {diagramErrors.sequence && (
+                  <Typography variant="body2">
+                    • Sequence Diagram: {diagramErrors.sequence}
+                  </Typography>
+                )}
+              </Alert>
             )}
           </CardContent>
         </Card>
@@ -255,6 +314,8 @@ const FinalLLMOptimizer = ({
               <PlantUMLViewer 
                 plantUMLCode={optimizedDiagrams.optimized_class_diagram}
                 title="Final Optimized Class Diagram"
+                diagramType="class"
+                onError={(error) => handleDiagramError('class', error)}
               />
             </CardContent>
           </Card>
@@ -272,6 +333,8 @@ const FinalLLMOptimizer = ({
               <PlantUMLViewer 
                 plantUMLCode={optimizedDiagrams.optimized_sequence_diagram}
                 title="Final Optimized Sequence Diagram"
+                diagramType="sequence"
+                onError={(error) => handleDiagramError('sequence', error)}
               />
             </CardContent>
           </Card>
@@ -361,6 +424,11 @@ const FinalLLMOptimizer = ({
             <Typography variant="body2">
               <strong>Optimization Context:</strong> Using original requirements + {identifiedActors.length} actors + 
               verification feedback + initial diagrams for comprehensive optimization.
+              {(diagramErrors.class || diagramErrors.sequence) && (
+                <span style={{ color: 'orange', marginLeft: 8 }}>
+                  ⚠️ Diagram rendering issues detected - will be addressed in optimization.
+                </span>
+              )}
             </Typography>
           </Alert>
 

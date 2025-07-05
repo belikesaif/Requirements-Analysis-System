@@ -76,6 +76,7 @@ class FinalOptimizationRequest(BaseModel):
     sequence_diagram: str
     identified_actors: List[str]
     verification_issues: Dict[str, Any]
+    diagram_errors: Optional[Dict[str, str]] = None  # Include diagram rendering errors
 
 class RequirementRequest(BaseModel):
     requirement: str
@@ -89,6 +90,38 @@ class DiagramOptimizationRequest(BaseModel):
     diagram_code: str
     verification_results: Dict[str, Any]
     diagram_type: str
+
+class PlantUMLErrorReport(BaseModel):
+    diagram_type: str
+    error_type: str
+    error_message: str
+    plantuml_code: str
+    retry_count: int
+    timestamp: str
+    validation_status: Optional[Dict[str, Any]] = None
+
+class PlantUMLValidationRequest(BaseModel):
+    plantuml_code: str
+    diagram_type: str
+
+@app.get("/api/health")
+async def health_check():
+    """Enhanced health check with PlantUML error handling status"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "features": {
+            "plantuml_error_reporting": True,
+            "plantuml_validation": True,
+            "diagram_error_tracking": True
+        },
+        "endpoints": [
+            "/api/report-plantuml-error",
+            "/api/validate-plantuml", 
+            "/api/plantuml-error-stats",
+            "/api/final-optimization"
+        ]
+    }
 
 @app.get("/")
 async def root():
@@ -248,6 +281,7 @@ async def final_optimization(request: FinalOptimizationRequest):
     """
     try:
         print("Performing final LLM optimization with actors...")
+        print(f"Request data: {request}")
         
         # Send everything to GPT-3.5 for final optimization
         optimized_diagrams = await diagram_service.optimize_diagrams_with_llm_and_actors(
@@ -255,13 +289,14 @@ async def final_optimization(request: FinalOptimizationRequest):
             class_diagram=request.class_diagram,
             sequence_diagram=request.sequence_diagram,
             identified_actors=request.identified_actors,
-            verification_issues=request.verification_issues
+            verification_issues=request.verification_issues,
+            diagram_errors=getattr(request, 'diagram_errors', None)
         )
         
         return {
             "optimized_class_diagram": optimized_diagrams["class_diagram"],
             "optimized_sequence_diagram": optimized_diagrams["sequence_diagram"],
-            "optimization_summary": optimized_diagrams["improvements"],
+            "improvements": optimized_diagrams["improvements"],
             "final_actors": optimized_diagrams["final_actors"],
             "timestamp": datetime.now().isoformat(),
             "status": "success"
@@ -269,6 +304,8 @@ async def final_optimization(request: FinalOptimizationRequest):
         
     except Exception as e:
         print(f"Error in final optimization: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Final optimization failed: {str(e)}")
 
 @app.get("/api/comparison-stats")
@@ -382,6 +419,65 @@ async def optimize_diagram(request: DiagramOptimizationRequest):
         return optimized_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Diagram optimization failed: {str(e)}")
+
+@app.post("/api/report-plantuml-error")
+async def report_plantuml_error(request: PlantUMLErrorReport):
+    """
+    Report PlantUML rendering error for analysis
+    """
+    try:
+        error_id = storage.store_plantuml_error({
+            "diagram_type": request.diagram_type,
+            "error_type": request.error_type,
+            "error_message": request.error_message,
+            "plantuml_code": request.plantuml_code,
+            "retry_count": request.retry_count,
+            "timestamp": request.timestamp,
+            "validation_status": request.validation_status
+        })
+        
+        return {
+            "status": "error_reported",
+            "error_id": error_id,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        # Don't fail the request if error reporting fails
+        print(f"Warning: Failed to store PlantUML error: {str(e)}")
+        return {
+            "status": "error_reporting_failed",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.post("/api/validate-plantuml")
+async def validate_plantuml(request: PlantUMLValidationRequest):
+    """
+    Validate PlantUML syntax before rendering
+    """
+    try:
+        validation_result = await diagram_service.validate_plantuml_syntax(
+            request.plantuml_code,
+            request.diagram_type
+        )
+        
+        validation_result["timestamp"] = datetime.now().isoformat()
+        return validation_result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PlantUML validation failed: {str(e)}")
+
+@app.get("/api/plantuml-error-stats")
+async def get_plantuml_error_stats():
+    """
+    Get PlantUML error statistics for analysis
+    """
+    try:
+        stats = storage.get_plantuml_error_statistics()
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get PlantUML error statistics: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

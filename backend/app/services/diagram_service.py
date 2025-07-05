@@ -5,17 +5,23 @@ AI-Powered Diagram Service for generating UML diagrams from SNL requirements usi
 import openai
 import os
 import json
+import logging
+import asyncio
 from typing import Dict, Any, List
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
+
+# Configure logging for the module
+logger = logging.getLogger(__name__)
 
 class DiagramService:
     def __init__(self):
         self.client = openai.AsyncOpenAI(
             api_key=os.getenv("OPENAI_API_KEY")
         )
-        self.model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4.1")
         
         # Initialize spaCy for NLP processing
         try:
@@ -37,15 +43,16 @@ class DiagramService:
             
             # Enhanced prompt with POS-tagged entities
             prompt = self._create_enhanced_class_diagram_prompt(snl_text, actors, extracted_entities)
+            system_prompt = self._get_initial_class_diagram_system_prompt()
             
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": self._get_enhanced_class_diagram_system_prompt()},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=4000
             )
             
             plantuml_code = response.choices[0].message.content
@@ -56,36 +63,51 @@ class DiagramService:
             return plantuml_code
         
         except Exception as e:
+            logger.error(f"Class diagram generation failed: {str(e)}")
             raise Exception(f"Class diagram generation failed: {str(e)}")
     
     async def generate_sequence_diagram(self, snl_data: Dict[str, Any]) -> str:
         """
-        Generate PlantUML sequence diagram from SNL data using OpenAI
+        Generate PlantUML sequence diagram from SNL data using OpenAI with enhanced entity extraction
         """
         try:
             snl_text = snl_data.get('snl_text', '')
             actors = snl_data.get('actors', [])
             
-            prompt = self._create_sequence_diagram_prompt(snl_text, actors)
+            
+            # Extract entities using POS tagging for enhanced sequence diagram
+            extracted_entities = self._extract_entities_with_pos(snl_text) if self.nlp else {}
+            
+            # Enhanced prompt with POS-tagged entities
+            prompt = self._create_enhanced_sequence_diagram_prompt(snl_text, actors, extracted_entities)
+            system_prompt = self._get_enhanced_sequence_diagram_system_prompt()
+            
+            
+            # Estimate input tokens (rough approximation: 4 characters per token)
+            estimated_input_tokens = (len(system_prompt) + len(prompt)) // 4
             
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": self._get_sequence_diagram_system_prompt()},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=4000
             )
             
             plantuml_code = response.choices[0].message.content
+            logger.info(f"Generated PlantUML code length: {len(plantuml_code)} characters")
             
             # Clean and validate the PlantUML code
             plantuml_code = self._clean_plantuml_code(plantuml_code)
+            logger.info(f"Cleaned PlantUML code length: {len(plantuml_code)} characters")
             
+            logger.info("Sequence diagram generation completed successfully")
             return plantuml_code
         
         except Exception as e:
+            logger.error(f"Sequence diagram generation failed: {str(e)}")
             raise Exception(f"Sequence diagram generation failed: {str(e)}")
     
     async def generate_class_diagram_from_rupp(self, snl_text: str) -> str:
@@ -93,18 +115,32 @@ class DiagramService:
         Generate initial PlantUML class diagram from SNL text only (before actor identification)
         This is the first step in the diagram generation process using only the RUPP SNL output
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
+            logger.info(f"Starting initial class diagram generation from RUPP - SNL text length: {len(snl_text)} characters")
+            
             # Create prompt for initial class diagram using only SNL text
             prompt = self._create_initial_class_diagram_prompt(snl_text)
+            system_prompt = self._get_initial_class_diagram_system_prompt()
+            
+            # Log prompt sizes
+            logger.info(f"System prompt length: {len(system_prompt)} characters")
+            logger.info(f"User prompt length: {len(prompt)} characters")
+            
+            # Estimate input tokens
+            estimated_input_tokens = (len(system_prompt) + len(prompt)) // 4
+            logger.info(f"Estimated input tokens: {estimated_input_tokens}")
             
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": self._get_initial_class_diagram_system_prompt()},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=4000
             )
             
             plantuml_code = response.choices[0].message.content
@@ -133,7 +169,7 @@ class DiagramService:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=4000
             )
             
             plantuml_code = response.choices[0].message.content
@@ -598,7 +634,7 @@ User --> System : uses
                     action_parts.append(token.text)
                 elif actor_found and token.text in ['.', ',']:
                     break
-            
+            print(f"Extracted action for {actor}: {' '.join(action_parts)}")
             return ' '.join(action_parts) if action_parts else 'perform action'
         
         except Exception:
@@ -707,7 +743,7 @@ User --> System : uses
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=4000
             )
             
             optimized_code = response.choices[0].message.content
@@ -827,88 +863,443 @@ Please generate an optimized version of the diagram that:
 
 Return ONLY the optimized PlantUML code."""
     
-    def _extract_entities_with_pos(self, text: str) -> Dict[str, List[str]]:
-        """
-        Extract entities using POS tagging for enhanced diagram generation
-        """
-        if not self.nlp:
-            return {'nouns': [], 'verbs': [], 'proper_nouns': []}
-        
-        doc = self.nlp(text)
-        entities = {
-            'nouns': [],
-            'verbs': [],
-            'proper_nouns': [],
-            'adjectives': []
-        }
-        
-        for token in doc:
-            if token.pos_ == 'NOUN' and len(token.text) > 2:
-                entities['nouns'].append(token.lemma_.lower())
-            elif token.pos_ == 'PROPN' and len(token.text) > 2:
-                entities['proper_nouns'].append(token.text)
-            elif token.pos_ == 'VERB' and token.lemma_ not in ['be', 'have', 'do']:
-                entities['verbs'].append(token.lemma_.lower())
-            elif token.pos_ == 'ADJ' and len(token.text) > 2:
-                entities['adjectives'].append(token.lemma_.lower())
-        
-        # Remove duplicates and filter relevant entities
-        for key in entities:
-            entities[key] = list(set(entities[key]))
-            
-        return entities
 
     def _get_enhanced_class_diagram_system_prompt(self) -> str:
         """
-        Enhanced system prompt for class diagram generation with POS tagging integration
+        Enhanced system prompt for class diagram generation with comprehensive UML concepts
         """
-        return """You are an expert software architect and UML diagram specialist. Your task is to generate PlantUML class diagrams from Structured Natural Language (SNL) requirements with enhanced entity recognition.
+        return """You are an expert software architect and UML diagram specialist with deep knowledge of object-oriented design principles and UML best practices. Your task is to generate comprehensive PlantUML class diagrams from Structured Natural Language (SNL) requirements.
 
-Guidelines:
-1. Analyze the SNL requirements AND extracted entities (nouns, verbs, proper nouns)
-2. Use extracted nouns as potential class names and attributes
-3. Use extracted verbs as potential methods
-4. Create classes for main entities (User, System, Database, etc.)
-5. Define appropriate attributes and methods for each class based on extracted entities
-6. Establish relationships between classes (associations, dependencies, inheritance)
-7. Use proper PlantUML syntax with access modifiers (+, -, #, ~)
-8. Prioritize clarity - don't overcomplicate with too many classes
-9. Focus on domain-relevant classes from the requirements context
+## FUNDAMENTAL UML CLASS DIAGRAM CONCEPTS:
 
-Generate ONLY the PlantUML code, starting with @startuml and ending with @enduml."""
+### BASIC ELEMENTS:
+1. **Classes**: Represent entities with attributes and methods
+   - Format: class ClassName { attributes, methods }
+   - Use PascalCase for class names (e.g., BookManager, UserAccount)
+
+2. **Attributes**: Properties of a class
+   - Format: [visibility] name : type [= default_value]
+   - Examples: +name: String, -id: Integer, #balance: Double = 0.0
+
+3. **Methods**: Operations a class can perform
+   - Format: [visibility] methodName(parameters) : return_type
+   - Examples: +login(username: String, password: String) : Boolean
+
+4. **Visibility Modifiers**:
+   - **+** Public: Accessible from anywhere
+   - **-** Private: Only accessible within the class
+   - **#** Protected: Accessible within class and subclasses
+   - **~** Package: Accessible within the same package
+
+### ADVANCED CONCEPTS:
+
+#### RELATIONSHIPS (CRITICAL FOR GOOD DESIGN):
+
+1. **Association (--)**:
+   - General relationship between classes
+   - Example: User -- Book : borrows
+   - Shows classes that work together
+
+2. **Aggregation (o--)**:
+   - "Has-a" relationship, weaker ownership
+   - Parts can exist independently
+   - Example: Library o-- Book : contains
+
+3. **Composition (*--)**:
+   - Strong "has-a" relationship, stronger ownership
+   - Parts cannot exist without the whole
+   - Example: Order *-- OrderItem : contains
+
+4. **Inheritance (--|>)**:
+   - "Is-a" relationship, generalization/specialization
+   - Example: Student --|> Person : extends
+
+5. **Dependency (-->)**:
+   - One class uses another temporarily
+   - Example: LoginController --> AuthenticationService : uses
+
+6. **Realization (..|>)**:
+   - Class implements an interface
+   - Example: UserRepository ..|> Repository : implements
+
+#### MULTIPLICITY RULES:
+- **1** : Exactly one
+- **0..1** : Zero or one
+- **0..*or *** : Zero or many
+- **1..*or +** : One or many
+- **n..m** : Between n and m
+- Example: Student "1" -- "0..*" Course : enrolls
+
+#### STEREOTYPES AND ANNOTATIONS:
+- **<<interface>>** : Interface classes
+- **<<abstract>>** : Abstract classes
+- **<<enumeration>>** : Enum classes
+- **<<utility>>** : Utility classes
+- **{abstract}** : Abstract methods
+
+### DESIGN PRINCIPLES TO FOLLOW:
+
+1. **Single Responsibility**: Each class should have one reason to change
+2. **Open/Closed**: Classes should be open for extension, closed for modification
+3. **Liskov Substitution**: Subtypes must be substitutable for their base types
+4. **Interface Segregation**: Clients shouldn't depend on interfaces they don't use
+5. **Dependency Inversion**: Depend on abstractions, not concretions
+
+### ANALYSIS GUIDELINES:
+
+#### ENTITY IDENTIFICATION:
+1. **Nouns in requirements** → Potential classes
+2. **Adjectives** → Potential attributes
+3. **Verbs** → Potential methods or relationships
+4. **Business rules** → Constraints and validations
+
+#### CLASS DESIGN RULES:
+1. **Avoid God Classes**: Don't create classes that do everything
+2. **Meaningful Names**: Use domain-specific, descriptive names
+3. **Cohesion**: Keep related functionality together
+4. **Loose Coupling**: Minimize dependencies between classes
+
+#### RELATIONSHIP IDENTIFICATION:
+1. **"Has-a" statements** → Aggregation/Composition
+2. **"Is-a" statements** → Inheritance
+3. **"Uses" statements** → Dependency/Association
+4. **"Implements" statements** → Realization
+
+### PLANTUML SYNTAX RULES:
+
+#### BASIC SYNTAX:
+```
+@startuml
+class ClassName {
+    +publicAttribute: Type
+    -privateAttribute: Type
+    #protectedAttribute: Type
+    ~packageAttribute: Type
+    --
+    +publicMethod(): ReturnType
+    -privateMethod(param: Type): ReturnType
+    {abstract} +abstractMethod(): Type
+    {static} +staticMethod(): Type
+}
+@enduml
+```
+
+#### RELATIONSHIP SYNTAX:
+```
+ClassA --|> ClassB : inheritance
+ClassA --> ClassB : dependency
+ClassA -- ClassB : association
+ClassA o-- ClassB : aggregation
+ClassA *-- ClassB : composition
+ClassA ..|> InterfaceB : realization
+ClassA "1" -- "0..*" ClassB : labeled association
+```
+
+### QUALITY CRITERIA:
+
+1. **Completeness**: All major entities from requirements are represented
+2. **Correctness**: Relationships accurately reflect the domain
+3. **Consistency**: Naming and notation follow conventions
+4. **Clarity**: Diagram is readable and understandable
+5. **Maintainability**: Structure supports future changes
+
+### MANDATORY REQUIREMENTS:
+
+1. **EVERY class MUST have meaningful attributes and methods**
+2. **EVERY class MUST have at least one relationship (no orphaned classes)**
+3. **USE specific, domain-relevant class names (avoid generic terms)**
+4. **INCLUDE proper visibility modifiers for all attributes and methods**
+5. **SHOW multiplicities for associations where relevant**
+6. **VALIDATE that all referenced classes in relationships are defined**
+7. **BALANCE complexity - include essential elements without overcomplication**
+
+### FORBIDDEN PRACTICES:
+
+1. **Generic class names** like "System", "Manager", "Handler"
+2. **Classes without attributes or methods**
+3. **Relationships without labels**
+4. **Undefined class references in relationships**
+5. **Overly complex diagrams with too many classes**
+
+### ERROR HANDLING PATTERNS:
+Always consider including:
+1. **Validation errors**: Input validation failures
+2. **System errors**: Internal system failures
+3. **Network errors**: Communication failures
+4. **Authentication errors**: Access denied scenarios
+5. **Business logic errors**: Domain rule violations
+
+Generate ONLY the PlantUML code that demonstrates these concepts, starting with @startuml and ending with @enduml. Focus on creating a well-structured, professionally designed class diagram that follows UML best practices and object-oriented design principles."""
     
-    def _create_enhanced_class_diagram_prompt(self, snl_text: str, actors: List[str], extracted_entities: Dict[str, List[str]]) -> str:
+    def _get_enhanced_sequence_diagram_system_prompt(self) -> str:
         """
-        Create enhanced prompt for class diagram generation with POS tagging data
+        Enhanced system prompt for sequence diagram generation with comprehensive UML concepts
+        """
+        return """You are an expert software architect and UML diagram specialist with deep knowledge of behavioral modeling and interaction design. Your task is to generate comprehensive PlantUML sequence diagrams from Structured Natural Language (SNL) requirements.
+
+## FUNDAMENTAL UML SEQUENCE DIAGRAM CONCEPTS:
+
+### BASIC ELEMENTS:
+
+1. **Participants**: Objects or actors that participate in the interaction
+   - **Actors**: External entities (users, systems)
+     - Syntax: actor ActorName
+     - Example: actor User, actor Administrator
+   
+   - **Participants**: System components, classes, or services
+     - Syntax: participant ParticipantName
+     - Example: participant LoginService, participant Database
+
+2. **Lifelines**: Vertical dashed lines representing object existence over time
+   - Automatically created for each participant
+   - Show the lifespan of objects during the interaction
+
+3. **Messages**: Communications between participants
+   - **Synchronous**: --> (waits for response)
+   - **Asynchronous**: ->> (doesn't wait for response)
+   - **Return**: <-- (response message)
+   - **Self-call**: --> (to self)
+
+### ADVANCED CONCEPTS:
+
+#### MESSAGE TYPES:
+
+1. **Synchronous Messages (-->)**:
+   - Sender waits for the receiver to process
+   - Used for method calls, API requests
+   - Example: User --> LoginService : authenticate(username, password)
+
+2. **Asynchronous Messages (->>)**:
+   - Sender doesn't wait for completion
+   - Used for events, notifications
+   - Example: PaymentService ->> NotificationService : sendPaymentConfirmation()
+
+3. **Return Messages (<--)**:
+   - Show the response or result
+   - Can be explicit or implicit
+   - Example: LoginService <-- Database : userDetails
+
+4. **Create Messages**:
+   - Show object creation
+   - Syntax: create ObjectName
+   - Example: LoginService -> create UserSession
+
+5. **Destroy Messages**:
+   - Show object destruction
+   - Syntax: destroy ObjectName
+   - Shows when objects are no longer needed
+
+#### ACTIVATION BOXES:
+- Show when an object is active (processing)
+- Syntax: activate/deactivate ParticipantName
+- Visual representation of method execution time
+
+#### INTERACTION FRAGMENTS:
+
+1. **Alternative (alt)**:
+   - Conditional logic, if-else statements
+   ```
+   alt condition
+       Message if true
+   else
+       Message if false
+   end
+   ```
+
+2. **Optional (opt)**:
+   - Optional execution based on condition
+   ```
+   opt condition
+       Optional message
+   end
+   ```
+
+3. **Loop**:
+   - Repetitive interactions
+   ```
+   loop condition
+       Repeated messages
+   end
+   ```
+
+4. **Parallel (par)**:
+   - Concurrent execution
+   ```
+   par
+       First parallel flow
+   and
+       Second parallel flow
+   end
+   ```
+
+5. **Break**:
+   - Exception handling or early termination
+   ```
+   break condition
+       Exception handling
+   end
+   ```
+
+#### NOTES AND ANNOTATIONS:
+- **note left/right/over**: Add explanatory notes
+- **ref**: Reference to another sequence diagram
+- **group**: Group related messages
+
+### DESIGN PRINCIPLES:
+
+#### INTERACTION DESIGN:
+1. **Clear Flow**: Show logical sequence of operations
+2. **Proper Abstraction**: Right level of detail for the audience
+3. **Error Handling**: Include exception scenarios
+4. **Timing**: Show time-dependent interactions
+
+#### MESSAGE DESIGN:
+1. **Meaningful Names**: Descriptive message labels
+2. **Parameters**: Include relevant parameters
+3. **Return Values**: Show important return values
+4. **State Changes**: Reflect state modifications
+
+### PLANTUML SYNTAX RULES:
+
+#### BASIC SYNTAX:
+```
+@startuml
+actor User
+participant LoginService
+participant Database
+participant EmailService
+
+User --> LoginService : login(username, password)
+activate LoginService
+
+LoginService --> Database : validateCredentials(username, password)
+activate Database
+Database --> LoginService : userDetails
+deactivate Database
+
+alt valid credentials
+    LoginService --> User : loginSuccess(token)
+    LoginService ->> EmailService : logLoginEvent(userId)
+else invalid credentials
+    LoginService --> User : loginFailed(error)
+end
+
+deactivate LoginService
+@enduml
+```
+
+#### ADVANCED SYNTAX:
+```
+@startuml
+!theme plain
+
+== Authentication Phase ==
+User --> LoginService : authenticate()
+note right: User initiates login process
+
+LoginService -> create UserSession
+activate UserSession
+
+loop for each validation rule
+    LoginService --> ValidationService : validate(rule)
+end
+
+par
+    LoginService --> AuditService : logAttempt()
+and
+    LoginService --> SecurityService : checkRateLimit()
+end
+
+@enduml
+```
+
+### WORKFLOW MODELING:
+
+#### SCENARIO IDENTIFICATION:
+1. **Main Success Scenario**: Primary happy path
+2. **Alternative Scenarios**: Different paths to success
+3. **Exception Scenarios**: Error handling paths
+4. **Edge Cases**: Boundary conditions
+
+#### TEMPORAL ORDERING:
+1. **Sequential**: Messages in time order
+2. **Concurrent**: Parallel processing
+3. **Conditional**: Branch-based execution
+4. **Iterative**: Repeated operations
+
+### QUALITY CRITERIA:
+
+1. **Completeness**: All major interactions are shown
+2. **Correctness**: Sequence reflects actual behavior
+3. **Consistency**: Notation and naming are uniform
+4. **Clarity**: Easy to follow and understand
+5. **Relevance**: Focuses on important interactions
+
+### MANDATORY REQUIREMENTS:
+
+1. **USE specific participant names** (avoid generic "System")
+2. **INCLUDE meaningful message labels** with parameters
+3. **SHOW activation boxes** for processing activities
+4. **USE appropriate message types** (sync/async)
+5. **INCLUDE return messages** for important responses
+6. **ADD interaction fragments** for complex logic
+7. **ORGANIZE with section headers** using == Section Name ==
+8. **VALIDATE message flow** makes logical sense
+9. **INCLUDE error handling** scenarios where relevant
+10. **SHOW object creation/destruction** when appropriate
+
+### SECTION ORGANIZATION:
+Use section headers to organize complex workflows:
+```
+== Authentication Phase ==
+[authentication messages]
+
+== Data Retrieval Phase ==
+[data access messages]
+
+== Response Processing Phase ==
+[response handling messages]
+```
+
+### FORBIDDEN PRACTICES:
+
+1. **Generic participants** like "System", "Database" without context
+2. **Messages without labels** or with vague labels
+3. **Missing activation boxes** for processing
+4. **Overly complex single diagram** (break into multiple if needed)
+5. **Inconsistent participant naming**
+6. **Missing return messages** for important operations
+7. **Unclear message flow** or logical ordering
+
+### ERROR HANDLING PATTERNS:
+Always consider including:
+1. **Validation errors**: Input validation failures
+2. **System errors**: Internal system failures
+3. **Network errors**: Communication failures
+4. **Authentication errors**: Access denied scenarios
+5. **Business logic errors**: Domain rule violations
+
+Generate ONLY the PlantUML code that demonstrates professional sequence diagram design, starting with @startuml and ending with @enduml. Focus on creating a clear, well-organized sequence diagram that follows UML best practices and properly models the behavioral aspects of the system."""
+    
+    def _create_enhanced_sequence_diagram_prompt(self, snl_text: str, actors: List[str], extracted_entities: Dict[str, List[str]]) -> str:
+        """
+        Create enhanced prompt for sequence diagram generation with GOLD STANDARD enforcement
         """
         actors_text = ", ".join(actors) if actors else "Not specified"
         
-        entities_text = ""
-        if extracted_entities:
-            entities_text = f"""
-Extracted Entities (from POS tagging):
-- Nouns (potential classes/attributes): {', '.join(extracted_entities.get('nouns', [])[:10])}
-- Verbs (potential methods): {', '.join(extracted_entities.get('verbs', [])[:10])}
-- Proper Nouns (potential class names): {', '.join(extracted_entities.get('proper_nouns', [])[:5])}
-"""
-        
-        return f"""Generate a PlantUML class diagram from the following SNL requirements:
+        return f"""Generate a PlantUML sequence diagram.
 
 SNL Requirements:
 {snl_text}
 
 Identified Actors: {actors_text}
-{entities_text}
 
-Please create a comprehensive class diagram that shows:
-1. Main classes for entities mentioned in the requirements
-2. Attributes and methods for each class (use extracted entities as guidance)
-3. Relationships between classes
-4. Proper access modifiers
-5. Focus on 3-7 main classes to maintain clarity
+MANDATORY REQUIREMENTS:
+5. Use proper PlantUML sequence syntax with == section == headers
+6. Do NOT create generic "System" participant - use the specific participants
 
-Focus on the core entities and their relationships as described in the requirements."""
-
+The diagram MUST match the exact and accurate sequnce diagram rules."""
+    
     async def extract_actors_from_requirements(self, original_requirements: str, class_diagram: str, sequence_diagram: str) -> List[str]:
         """
         Extract actors from original requirements and verify against generated diagrams
@@ -1140,9 +1531,11 @@ Be extremely strict about missing actors. If an identified actor is not explicit
 
     async def optimize_diagrams_with_llm_and_actors(self, original_requirements: str, class_diagram: str, 
                                                   sequence_diagram: str, identified_actors: List[str], 
-                                                  verification_issues: Dict[str, Any]) -> Dict[str, Any]:
+                                                  verification_issues: Dict[str, Any], 
+                                                  diagram_errors: Dict[str, str] = None) -> Dict[str, Any]:
         """
         Final LLM optimization using GPT-3.5 with identified actors and verification feedback
+        Enhanced for consistency and strict compliance
         """
         try:
             actors_text = ", ".join(identified_actors)
@@ -1156,125 +1549,223 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                 issues_text += f"Generic elements to avoid: {', '.join(verification_issues['generic_elements'])}\n"
             if verification_issues.get('recommendations'):
                 issues_text += f"Recommendations: {', '.join(verification_issues['recommendations'])}\n"
+            
+            # Include diagram rendering errors if provided
+            if diagram_errors and isinstance(diagram_errors, dict):
+                if diagram_errors.get('class'):
+                    issues_text += f"Class diagram rendering error: {diagram_errors['class']}\n"
+                if diagram_errors.get('sequence'):
+                    issues_text += f"Sequence diagram rendering error: {diagram_errors['sequence']}\n"
 
-            # Optimize class diagram
-            class_prompt = f"""STRICT OPTIMIZATION TASK: Generate an optimized class diagram using ONLY the specified actors.
+            # Enhanced Class Diagram Optimization
+            class_prompt = f"""Generate a PlantUML class diagram with STRICT REQUIREMENTS:
 
-IDENTIFIED ACTORS (USE EXACTLY THESE): {actors_text}
+ACTORS TO IMPLEMENT AS CLASSES: {actors_text}
+REQUIREMENTS: {original_requirements[:500]}
+ISSUES TO FIX: {issues_text[:200]}
 
-Original Requirements:
-{original_requirements}
+MANDATORY CLASS STRUCTURE:
+- Create class for EACH actor: {actors_text}
+- Each class "{actors_text}" MUST have at least one relationship (Very Important)
+- NO generic classes (System, Database, Application)
+- Each "{actors_text}" class MUST have 3-5 attributes with types
+- Each "{actors_text}" class MUST have 3-5 methods with visibility
+- Use PascalCase for "{actors_text}" class names
+- Use proper visibility modifiers (+, -, #, ~)
+- Use proper multiplicity for associations
 
-Current Class Diagram:
-{class_diagram}
+REQUIRED ATTRIBUTES FORMAT:
+- visibility name: Type
+- Examples: -userId: string, +name: string, -isAvailable: boolean
 
-Verification Issues:
-{issues_text}
+REQUIRED METHODS FORMAT:
+- visibility methodName(params): ReturnType
+- Examples: +login(): boolean, +addBook(book: Book): void
 
-MANDATORY REQUIREMENTS:
-1. Create a class for EACH identified actor: {actors_text}
-2. DO NOT create any generic classes like "System", "Database", "Application"
-3. DO NOT add any actors/classes not in the identified list
-4. If you need system components, name them specifically (e.g., "LoginController", "BookCatalog")
-5. Each identified actor MUST appear as a class with appropriate attributes and methods
-6. MUST include meaningful relationships between classes (associations, dependencies, aggregations)
-7. Use the original requirements to define class attributes, methods, and relationships
-8. Show how actors interact with each other through relationships
-9. Include relationship labels and multiplicity where appropriate
+INHERITANCE RULES:
+- If User is an actor, other user types inherit from User
+- Use syntax: SubClass <|-- SuperClass
+- Example: Librarian <|-- User : extends
+- Use proper UML inheritance notation
+- Use proper UML association notation
 
-REQUIRED RELATIONSHIPS (MANDATORY):
-- Every class MUST have at least one relationship to another class
-- Show associations between classes that interact (e.g., Member --> Book : borrows)
-- Include dependency relationships for temporary interactions
-- Add aggregation/composition where one class contains another
-- Use inheritance if there are class hierarchies
-- Label all relationships with meaningful names
-- Include multiplicity (e.g., "1" -- "0..*", "1" o-- "many")
+ASSOCIATION RULES:
+- EVERY class needs relationships
+- Use proper UML syntax with multiplicity
+- Examples: Librarian --> "0..*" Book : manages
 
-REFERENCE VALIDATION (CRITICAL):
-- If you reference a class in a relationship, that class MUST be defined in the diagram
-- Do not reference undefined classes in relationships
-- Use consistent class names throughout the diagram
-- Avoid orphaned classes (classes with no relationships)
+SYNTAX RULES:
+- Use PascalCase for all class names without spaces. E.g., 'FundTransfer', not 'Fund Transfer'.
+- Define only one version of each class. Avoid duplicate definitions (e.g., 'Service' vs. 'Services').
+- Inherit from parent classes using the correct direction. E.g., 'Child <|-- Parent' is invalid.
+- All attributes must follow the format: +attributeName: Type
+- All methods must follow the format: +methodName(param: Type): ReturnType
+- Use meaningful relationship labels; ensure association direction reflects real ownership or access.
+- If a class contains another (e.g., Services contains many Service), model it with the correct aggregation.
 
-FORBIDDEN:
-- Generic "System" class
-- Any actor not in the identified list
-- Vague or generic class names
-- Classes without any relationships to other classes
-- Relationships that reference undefined classes
+Note: Before generating UML code, validate all class participants, check for naming collisions, confirm inheritance direction, and ensure syntactical correctness with complete closure of blocks. Prefer single-word PascalCase naming convention across all identifiers.
 
-Generate ONLY the optimized PlantUML class diagram code that includes ALL identified actors as classes WITH proper relationships between them."""
+
+OUTPUT ONLY PlantUML code from @startuml to @enduml"""
+
+            # Enhanced Sequence Diagram Optimization  
+            human_actors = [actor for actor in identified_actors if self._is_human_actor(actor)]
+            system_actors = [actor for actor in identified_actors if not self._is_human_actor(actor)]
+            
+            sequence_prompt = f"""Generate a PlantUML sequence diagram with STRICT INTERACTION REQUIREMENTS:
+
+MANDATORY PARTICIPANTS: {actors_text}
+REQUIREMENTS: {original_requirements[:500]}
+ISSUES TO FIX: {issues_text[:200]}
+
+CRITICAL: EVERY PARTICIPANT MUST HAVE INTERACTIONS!
+
+PARTICIPANT DECLARATION (MANDATORY):
+- Use 'actor' for human roles: {', '.join(human_actors)}
+- Use 'participant' for system components: {', '.join(system_actors)}
+- EVERY identified actor MUST appear as participant
+- NO generic participants (System, Database, Application)
+
+INTERACTION REQUIREMENTS (MANDATORY):
+- EVERY participant MUST send at least 2 messages
+- EVERY participant MUST receive at least 2 messages  
+- Create a complete workflow showing realistic business process
+- Use activation boxes: activate/deactivate for processing
+- Include return messages for every request: A -> B : request, B --> A : response
+
+REQUIRED WORKFLOW STRUCTURE:
+1. Authentication/Login flow (if applicable)
+2. Main business process with ALL participants
+3. Data processing/validation steps
+4. Response/confirmation messages
+5. Administrative actions (if admin actors exist)
+
+MESSAGE SYNTAX (MANDATORY):
+- A -> B : specific_action_description()
+- B --> A : response_with_data
+- activate B / deactivate B for processing
+- Use == Section Name == for workflow phases
+
+FORBIDDEN ELEMENTS:
+- Empty participants (participants without messages)
+- Generic "System" participant
+- Undefined participant references
+- Messages without descriptions
+- Participants not in actor list
+
+VALIDATION CHECKLIST:
+✓ All {len(identified_actors)} participants declared
+✓ All participants used in messages
+✓ Realistic workflow with business logic
+✓ Proper activation/deactivation
+✓ Return messages for requests
+✓ No generic system references
+
+OUTPUT ONLY PlantUML code from @startuml to @enduml"""
+
+            # Make API calls with enhanced prompts
+            print("Generating class diagram with enhanced prompt...")
+            print(f"Actors: {actors_text}")
+            print(f"Requirements: {original_requirements[:500]}...")
+            print(f"Issues: {issues_text[:200]}...")
+            print("Class Diagram Prompt:", class_prompt)
+            print("Sequence Diagram Prompt:", sequence_prompt)
+            print("Using model:", self.model)
+            # Generate class and sequence diagrams using the enhanced prompts
+            print("Calling LLM for class diagram generation...")
 
             class_response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a strict UML diagram generator. You MUST create classes for ALL specified actors and AVOID generic elements. Follow the requirements exactly."},
+                    {"role": "system", "content": "You are a UML expert. Generate ONLY PlantUML code. Include ALL specified actors as classes with proper attributes and methods. NO generic elements allowed."},
                     {"role": "user", "content": class_prompt}
                 ],
-                temperature=0.2,  # Lower temperature for more controlled output
-                max_tokens=1500
+                temperature=0.1,
+                max_tokens=3000
             )
 
-            # Optimize sequence diagram
-            sequence_prompt = f"""STRICT OPTIMIZATION TASK: Generate an optimized sequence diagram using ONLY the specified actors.
-
-IDENTIFIED ACTORS (USE EXACTLY THESE AS PARTICIPANTS): {actors_text}
-
-Original Requirements:
-{original_requirements}
-
-Current Sequence Diagram:
-{sequence_diagram}
-
-Verification Issues:
-{issues_text}
-
-MANDATORY REQUIREMENTS:
-1. Include EACH identified actor as a participant: {actors_text}
-2. DO NOT use generic participants like "System", "Database", "Application"
-3. DO NOT add any participants not in the identified list
-4. Show realistic interactions between the identified actors based on requirements
-5. If you need system services, name them specifically (e.g., "LoginService", "BookService")
-6. Focus on the main workflow involving the identified actors
-7. Each identified actor MUST participate in the sequence
-8. MUST show meaningful message flows between participants
-9. Include activation boxes for active participants
-10. Show request-response patterns between actors
-11. Include conditional flows (alt/opt) if mentioned in requirements
-12. Show return messages where appropriate
-
-REQUIRED INTERACTIONS (MANDATORY):
-- Show how actors communicate with each other
-- Include message labels that describe the interaction
-- Use proper sequence diagram syntax with arrows
-- Show the flow of control between participants
-- Include lifelines for all participants
-- Use activation boxes to show when participants are active
-
-FORBIDDEN:
-- Generic "System" participant
-- Any participant not in the identified list
-- Vague or generic participant names
-- Sequences without meaningful interactions between actors
-
-Generate ONLY the optimized PlantUML sequence diagram code that includes ALL identified actors as participants WITH proper message flows and interactions between them."""
-
+            print("Calling LLM for sequence diagram generation...")
+            # Generate sequence diagram using the enhanced prompt
+            print("Using model:", self.model)
             sequence_response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a strict UML sequence diagram generator. You MUST include ALL specified actors as participants and AVOID generic elements. Follow the requirements exactly."},
+                    {"role": "system", "content": "You are a UML expert. Generate ONLY PlantUML code. Include ALL specified actors as participants. NO 'System' participant allowed."},
                     {"role": "user", "content": sequence_prompt}
                 ],
-                temperature=0.2,  # Lower temperature for more controlled output
-                max_tokens=1500
+                temperature=0.1,
+                max_tokens=3000
             )
 
             optimized_class = self._clean_plantuml_code(class_response.choices[0].message.content)
             optimized_sequence = self._clean_plantuml_code(sequence_response.choices[0].message.content)
 
-            # Validate and fix any undefined references in the optimized diagrams
+            # Post-processing to ensure consistency
+            optimized_class = self._enforce_class_consistency(optimized_class, identified_actors)
+            optimized_sequence = self._enforce_sequence_consistency(optimized_sequence, identified_actors)
+
+            # Validate and fix sequence diagram
+            optimized_sequence = self._validate_and_fix_class_diagram(optimized_sequence)
             optimized_class = self._validate_and_fix_class_diagram(optimized_class)
+
+            # I'm having issues with wrong plantuml code being generated, so let's ensure we have the right format
+            if not optimized_class.startswith('@startuml'):
+                optimized_class = f"@startuml\n{optimized_class}\n@enduml"
+            if not optimized_sequence.startswith('@startuml'):
+                optimized_sequence = f"@startuml\n{optimized_sequence}\n@enduml"
+            # Final output
+            print("Final optimized class diagram:")
+
+            
+
+
+            
+            
+
+            def fallback_fix_diagram(diagram_code: str, diagram_type: str) -> str:
+                try:
+                    print(f"Attempting fallback fix for {diagram_type} diagram...")
+
+                    correction_prompt = f"""The following PlantUML {diagram_type} diagram code has syntax issues. Please correct it and return only the corrected PlantUML code wrapped in @startuml and @enduml. {diagram_code}"""
+
+                    correction_response = asyncio.run(self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role": "system", "content": f"You are a PlantUML syntax expert. Fix the syntax for {diagram_type} diagrams only. Return only the corrected code with @startuml and @enduml."},
+                            {"role": "user", "content": correction_prompt}
+                        ],
+                        temperature=0.1,
+                        max_tokens=2000
+                    ))
+
+                    corrected_code = correction_response.choices[0].message.content
+                    corrected_code = self._clean_plantuml_code(corrected_code)
+
+                    # Ensure proper wrapping if missing
+                    if not corrected_code.startswith('@startuml'):
+                        corrected_code = '@startuml\n' + corrected_code
+                    if not corrected_code.endswith('@enduml'):
+                        corrected_code = corrected_code + '\n@enduml'
+                
+                    return corrected_code
+
+                except Exception as correction_error:
+                    print(f"Fallback correction failed for {diagram_type} diagram: {str(correction_error)}")
+                    return diagram_code  # Return original if correction fails
+
+            # Revalidate and fallback fix if needed
+            if not self._is_valid_plantuml(optimized_class):
+                print("Class diagram validation failed, applying fallback fix...")
+                optimized_class = fallback_fix_diagram(optimized_class, "class")
+
+            if not self._is_valid_plantuml(optimized_sequence):
+                print("Sequence diagram validation failed, applying fallback fix...")
+                optimized_sequence = fallback_fix_diagram(optimized_sequence, "sequence")
+
+            print("Final optimized class diagram:")
+            print(optimized_class)
+            print("\nFinal optimized sequence diagram:")
+            print(optimized_sequence)
 
             return {
                 "class_diagram": optimized_class,
@@ -1282,10 +1773,11 @@ Generate ONLY the optimized PlantUML sequence diagram code that includes ALL ide
                 "improvements": [
                     f"Included ALL identified actors: {actors_text}",
                     "Removed generic 'System' elements",
-                    "Used specific class/participant names",
-                    "Addressed verification issues",
-                    "Maintained consistency between diagrams",
-                    "Validated and fixed undefined references"
+                    "Added proper class attributes and methods",
+                    "Ensured all participants appear in sequence",
+                    "Validated UML syntax compliance",
+                    "Fixed undefined references",
+                    "Fallback LLM correction applied if needed"
                 ],
                 "final_actors": identified_actors
             }
@@ -1298,6 +1790,35 @@ Generate ONLY the optimized PlantUML sequence diagram code that includes ALL ide
                 "improvements": [f"Optimization failed: {str(e)}"],
                 "final_actors": identified_actors
             }
+    
+        
+    def _is_valid_plantuml(self, diagram_code: str) -> bool:
+        """
+        Performs basic validation of PlantUML code to check structural integrity.
+        This is not a full parser but detects obvious formatting/syntax issues.
+        """
+
+        # Check for required delimiters
+        if not diagram_code.strip().startswith('@startuml') or not diagram_code.strip().endswith('@enduml'):
+            return False
+
+        # Check for balanced brackets (simple heuristic for malformed blocks)
+        open_count = diagram_code.count('{')
+        close_count = diagram_code.count('}')
+        if open_count != close_count:
+            return False
+
+        # Ensure at least one PlantUML keyword is used (participant, class, actor, etc.)
+        uml_keywords = ['participant', 'actor', 'class', 'interface', '->', '-->', '<--']
+        if not any(keyword in diagram_code for keyword in uml_keywords):
+            return False
+
+        # Detect obviously malformed lines (e.g., lone arrows)
+        malformed_arrows = re.findall(r'^\s*[-<]+>+\s*$', diagram_code, re.MULTILINE)
+        if malformed_arrows:
+            return False
+
+        return True
     
     def _resolve_actor_conflicts(self, actors: List[str], requirements_text: str) -> List[str]:
         """
@@ -1425,14 +1946,6 @@ Generate ONLY the optimized PlantUML sequence diagram code that includes ALL ide
                 
                 for part in parts:
                     # Skip relationship operators and labels
-                    if part and part.isalpha() and part[0].isupper() and part not in ['--', '->', '..', '|>', '<|']:
-                        referenced_in_line.add(part)
-                
-                # Check if all referenced classes are defined
-                undefined_in_line = referenced_in_line - defined_classes
-                
-                if not undefined_in_line:
-                    # All classes are defined, keep the relationship
                     valid_relationships.append(rel_line)
                 else:
                     # Some classes are undefined, try to fix or skip
@@ -1441,8 +1954,10 @@ Generate ONLY the optimized PlantUML sequence diagram code that includes ALL ide
             # Reconstruct the diagram
             fixed_lines = []
             for line in other_lines:
-                if line.strip() and not line.strip().startswith('@'):
-                    fixed_lines.append(line)
+                if line.strip() and not line.startswith('@'):
+                    # Remove System references
+                    if 'System' not in line:
+                        fixed_lines.append(line)
             
             # Add valid relationships
             fixed_lines.extend(valid_relationships)
@@ -1480,3 +1995,549 @@ Generate ONLY the optimized PlantUML sequence diagram code that includes ALL ide
         except Exception as e:
             print(f"Error validating class diagram: {str(e)}")
             return plantuml_code
+    
+    def _extract_entities_with_pos(self, text: str) -> Dict[str, List[str]]:
+        """
+        Extract entities using POS tagging for enhanced diagram generation
+        """
+        if not self.nlp:
+            return {'nouns': [], 'verbs': [], 'proper_nouns': [], 'adjectives': []}
+        
+        doc = self.nlp(text)
+        entities = {
+            'nouns': [],
+            'verbs': [],
+            'proper_nouns': [],
+            'adjectives': []
+        }
+        
+        for token in doc:
+            if token.pos_ == 'NOUN' and len(token.text) > 2:
+                entities['nouns'].append(token.lemma_.lower())
+            elif token.pos_ == 'PROPN' and len(token.text) > 2:
+                entities['proper_nouns'].append(token.text)
+            elif token.pos_ == 'VERB' and token.lemma_ not in ['be', 'have', 'do']:
+                entities['verbs'].append(token.lemma_.lower())
+            elif token.pos_ == 'ADJ' and len(token.text) > 2:
+                entities['adjectives'].append(token.lemma_.lower())
+        
+        # Remove duplicates and filter relevant entities
+        for key in entities:
+            entities[key] = list(set(entities[key]))
+            
+        return entities
+    
+
+    def _enforce_class_consistency(self, class_diagram: str, identified_actors: List[str]) -> str:
+        """
+        Post-process class diagram to ensure consistency with identified actors
+        """
+        try:
+            lines = class_diagram.split('\n')
+            processed_lines = []
+            existing_classes = set()
+            
+            # Extract existing class names from the diagram
+            class_pattern = r'class\s+(\w+)'
+            for line in lines:
+                match = re.search(class_pattern, line)
+                if match:
+                    existing_classes.add(match.group(1))
+            
+            # Process each line
+            for line in lines:
+                # Skip empty lines and comments
+                if not line.strip() or line.strip().startswith("'"):
+                    processed_lines.append(line)
+                    continue
+                    
+                # Remove generic system classes
+                if any(generic in line.lower() for generic in ['class system', 'class database', 'class application']):
+                    continue
+                
+                # Fix generic references in relationships
+                line = self._fix_generic_references(line)
+                processed_lines.append(line)
+            
+            # Add missing actor classes
+            missing_actors = []
+            for actor in identified_actors:
+                actor_class = self._to_pascal_case(actor)
+                if actor_class not in existing_classes:
+                    missing_actors.append(actor_class)
+            
+            # Insert missing classes before @enduml
+            if missing_actors:
+                insert_index = -1
+                for i, line in enumerate(processed_lines):
+                    if '@enduml' in line:
+                        insert_index = i
+                        break
+                
+                if insert_index > 0:
+                    for actor_class in missing_actors:
+                        class_definition = self._generate_class_definition(actor_class)
+                        processed_lines.insert(insert_index, class_definition)
+                        processed_lines.insert(insert_index + 1, "")
+                        insert_index += 2
+            
+            # Ensure all classes have proper structure
+            result = '\n'.join(processed_lines)
+            result = self._ensure_class_structure(result, identified_actors)
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error in _enforce_class_consistency: {str(e)}")
+            return class_diagram
+
+    def _enforce_sequence_consistency(self, sequence_diagram: str, identified_actors: List[str]) -> str:
+        """
+        Post-process sequence diagram to ensure consistency with identified actors
+        """
+        try:
+            lines = sequence_diagram.split('\n')
+            processed_lines = []
+            declared_participants = set()
+            
+            # Extract existing participants
+            participant_patterns = [
+                r'actor\s+(\w+)',
+                r'participant\s+(\w+)',
+                r'participant\s+"([^"]+)"\s+as\s+(\w+)',
+                r'actor\s+"([^"]+)"\s+as\s+(\w+)'
+            ]
+            
+            for line in lines:
+                for pattern in participant_patterns:
+                    matches = re.findall(pattern, line)
+                    for match in matches:
+                        if isinstance(match, tuple):
+                            declared_participants.add(match[-1])  # Get the alias
+                        else:
+                            declared_participants.add(match)
+            
+            # Process each line
+            for line in lines:
+                # Skip empty lines and comments
+                if not line.strip() or line.strip().startswith("'"):
+                    processed_lines.append(line)
+                    continue
+                
+                # Remove generic system participants
+                if any(generic in line.lower() for generic in ['participant system', 'actor system']):
+                    continue
+                
+                # Fix generic references in messages
+                line = self._fix_generic_message_references(line)
+                processed_lines.append(line)
+            
+            # Add missing actor participants
+            missing_participants = []
+            for actor in identified_actors:
+                actor_participant = self._to_pascal_case(actor)
+                if actor_participant not in declared_participants:
+                    missing_participants.append((actor, actor_participant))
+            
+            # Insert missing participants after @startuml
+            if missing_participants:
+                insert_index = 0
+                for i, line in enumerate(processed_lines):
+                    if '@startuml' in line:
+                        insert_index = i + 1
+                        break
+                
+                for original_actor, participant_name in missing_participants:
+                    # Determine if it should be actor or participant
+                    participant_type = "actor" if self._is_human_actor(original_actor) else "participant"
+                    participant_line = f'{participant_type} {participant_name}'
+                    processed_lines.insert(insert_index, participant_line)
+                    insert_index += 1
+            
+            # Ensure all participants are used in messages
+            result = '\n'.join(processed_lines)
+            result = self._ensure_participant_usage(result, identified_actors)
+            
+            # Additional check: if very few interactions, generate comprehensive ones
+            interaction_count = len(re.findall(r'\w+\s*-[->]+\s*\w+', result))
+            if interaction_count < len(identified_actors):
+                result = self._generate_comprehensive_interactions(result, identified_actors)
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error in _enforce_sequence_consistency: {str(e)}")
+            return sequence_diagram
+
+    
+
+    def _fix_generic_references(self, line: str) -> str:
+        """Fix generic references in class diagram relationships"""
+        # Replace generic system references
+        replacements = {
+            'System': 'MainSystem',
+            'Database': 'DataStore',
+            'Application': 'AppCore'
+        }
+        
+        for generic, replacement in replacements.items():
+            line = re.sub(r'\b' + generic + r'\b', replacement, line)
+        
+        return line
+
+    def _fix_generic_message_references(self, line: str) -> str:
+        """Fix generic references in sequence diagram messages"""
+        # Replace generic system references in messages
+        replacements = {
+            'System': 'MainSystem',
+            'Database': 'DataStore',
+            'Application': 'AppCore'
+        }
+        
+        for generic, replacement in replacements.items():
+            line = re.sub(r'\b' + generic + r'\s*->', replacement + ' ->', line)
+            line = re.sub(r'->\s*' + generic + r'\b', '-> ' + replacement, line)
+        
+        return line
+
+    def _to_pascal_case(self, text: str) -> str:
+        """Convert text to PascalCase"""
+        # Handle common actor names
+        words = re.split(r'[\s_-]+', text.strip())
+        return ''.join(word.capitalize() for word in words if word)
+
+    def _generate_class_definition(self, class_name: str) -> str:
+        """Generate a complete class definition with attributes and methods"""
+        # Generate realistic attributes and methods based on class name
+        attributes, methods = self._get_class_members(class_name)
+        
+        definition = f"class {class_name} {{\n"
+        
+        # Add attributes
+        for attr in attributes:
+            definition += f"  {attr}\n"
+        
+        # Add separator
+        definition += "  --\n"
+        
+        # Add methods
+        for method in methods:
+            definition += f"  {method}\n"
+        
+        definition += "}"
+        
+        return definition
+
+    def _get_class_members(self, class_name: str) -> tuple:
+        """Get appropriate attributes and methods for a class based on its name"""
+        name_lower = class_name.lower()
+        
+        # Default attributes and methods
+        attributes = [
+            f"-{name_lower}Id: string",
+            f"+name: string",
+            f"-isActive: boolean"
+        ]
+        
+        methods = [
+            f"+get{class_name}Id(): string",
+            f"+setName(name: string): void",
+            f"+isValid(): boolean"
+        ]
+        
+        # Customize based on class name
+        if 'user' in name_lower:
+            attributes.extend(["-email: string", "-password: string"])
+            methods.extend(["+login(): boolean", "+logout(): void"])
+        elif 'book' in name_lower:
+            attributes.extend(["-isbn: string", "-author: string"])
+            methods.extend(["+getAuthor(): string", "+isAvailable(): boolean"])
+        elif 'librarian' in name_lower:
+            attributes.extend(["-employeeId: string", "-department: string"])
+            methods.extend(["+addBook(book: Book): void", "+removeBook(bookId: string): boolean"])
+        
+        return attributes[:5], methods[:5]  # Limit to 5 each
+
+    def _ensure_class_structure(self, diagram: str, identified_actors: List[str]) -> str:
+        """Ensure all classes have proper structure with attributes and methods"""
+        lines = diagram.split('\n')
+        processed_lines = []
+        
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            
+            # Check if this is a simple class declaration without body
+            if re.match(r'^\s*class\s+\w+\s*$', line):
+                class_name = re.search(r'class\s+(\w+)', line).group(1)
+                # Replace with full class definition
+                full_definition = self._generate_class_definition(class_name)
+                processed_lines.append(full_definition)
+            else:
+                processed_lines.append(line)
+            
+            i += 1
+        
+        return '\n'.join(processed_lines)
+
+    def _is_human_actor(self, actor: str) -> bool:
+        """Determine if an actor represents a human role"""
+        human_indicators = ['user', 'admin', 'customer', 'client', 'manager', 'staff', 'librarian', 'student']
+        return any(indicator in actor.lower() for indicator in human_indicators)
+
+    def _ensure_participant_usage(self, diagram: str, identified_actors: List[str]) -> str:
+        """Ensure all participants are used in at least one message"""
+        lines = diagram.split('\n')
+        
+        # Find all declared participants
+        declared_participants = set()
+        participant_patterns = [
+            r'actor\s+(\w+)',
+            r'participant\s+(\w+)',
+            r'participant\s+"([^"]+)"\s+as\s+(\w+)',
+            r'actor\s+"([^"]+)"\s+as\s+(\w+)'
+        ]
+        
+        for line in lines:
+            for pattern in participant_patterns:
+                matches = re.findall(pattern, line)
+                for match in matches:
+                    if isinstance(match, tuple):
+                        declared_participants.add(match[-1])  # Get the alias
+                    else:
+                        declared_participants.add(match)
+        
+        # Find participants used in messages
+        used_participants = set()
+        message_patterns = [
+            r'(\w+)\s*-[->]+\s*(\w+)',
+            r'(\w+)\s*<-[->]*\s*(\w+)',
+            r'(\w+)\s*\.\.[->]+\s*(\w+)',
+            r'(\w+)\s*<\.\.[->]*\s*(\w+)'
+        ]
+        
+        for line in lines:
+            for pattern in message_patterns:
+                matches = re.findall(pattern, line)
+                for match in matches:
+                    used_participants.add(match[0])
+                    used_participants.add(match[1])
+        
+        # Add meaningful messages for unused participants
+        unused_participants = declared_participants - used_participants
+        
+        if unused_participants:
+            # Find insertion point (before @enduml)
+            insert_index = -1
+            for i, line in enumerate(lines):
+                if '@enduml' in line:
+                    insert_index = i
+                    break
+            
+            if insert_index > 0:
+                # Add a section for meaningful interactions
+                lines.insert(insert_index, "")
+                lines.insert(insert_index + 1, "== Main Interactions ==")
+                insert_index += 2
+                
+                # Generate meaningful interactions for each unused participant
+                for participant in unused_participants:
+                    interactions = self._generate_realistic_interactions(participant, declared_participants)
+                    for interaction in interactions:
+                        lines.insert(insert_index, interaction)
+                        insert_index += 1
+        
+        return '\n'.join(lines)
+
+    def _generate_realistic_interactions(self, participant: str, all_participants: set) -> List[str]:
+        """Generate realistic interactions for a participant based on their role"""
+        interactions = []
+        participant_lower = participant.lower()
+        
+        # Find other participants to interact with
+        other_participants = all_participants - {participant}
+        if not other_participants:
+            other_participants = {"System"}
+        
+        main_target = next(iter(other_participants))
+        
+        # Generate role-based interactions
+        if any(role in participant_lower for role in ['user', 'member', 'customer', 'client']):
+            interactions.extend([
+                f"{participant} -> {main_target} : login(credentials)",
+                f"{main_target} --> {participant} : authentication_result",
+                f"{participant} -> {main_target} : request_service()",
+                f"{main_target} --> {participant} : service_response"
+            ])
+        elif any(role in participant_lower for role in ['admin', 'administrator', 'manager']):
+            interactions.extend([
+                f"{participant} -> {main_target} : manage_system(action)",
+                f"activate {main_target}",
+                f"{main_target} -> {main_target} : execute_admin_action()",
+                f"{main_target} --> {participant} : action_completed(status)",
+                f"deactivate {main_target}",
+            ])
+        elif any(role in participant_lower for role in ['librarian', 'staff', 'employee']):
+            interactions.extend([
+                f"{participant} -> {main_target} : process_request()",
+                f"{main_target} --> {participant} : request_processed",
+                f"{participant} -> {main_target} : update_records()",
+                f"{main_target} --> {participant} : records_updated"
+            ])
+        elif any(role in participant_lower for role in ['system', 'service', 'controller', 'manager']):
+            # Find a user-type participant to interact with
+            user_participant = next((p for p in other_participants if any(role in p.lower() for role in ['user', 'member', 'customer'])), participant)
+            if user_participant != participant:
+                interactions.extend([
+                    f"{user_participant} -> {participant} : request_action()",
+                    f"{participant} --> {user_participant} : action_result",
+                    f"{participant} -> {user_participant} : send_notification()",
+                    f"{user_participant} --> {participant} : acknowledgment"
+                ])
+        else:
+            # Generic interactions for unknown types
+            interactions.extend([
+                f"{participant} -> {main_target} : initiate_action()",
+                f"{main_target} --> {participant} : action_response",
+                f"{participant} -> {main_target} : complete_process()",
+                f"{main_target} --> {participant} : process_completed"
+            ])
+        
+        return interactions
+
+    def _generate_comprehensive_interactions(self, diagram: str, identified_actors: List[str]) -> str:
+        """Generate comprehensive interactions when the sequence diagram is sparse"""
+        lines = diagram.split('\n')
+        
+        # Find existing interactions
+        existing_interactions = set()
+        message_patterns = [
+            r'(\w+)\s*-[->]+\s*(\w+)',
+            r'(\w+)\s*<-[->]*\s*(\w+)',
+            r'(\w+)\s*\.\.[->]+\s*(\w+)',
+            r'(\w+)\s*<\.\.[->]*\s*(\w+)'
+        ]
+        
+        for line in lines:
+            for pattern in message_patterns:
+                matches = re.findall(pattern, line)
+                for match in matches:
+                    existing_interactions.add((match[0], match[1]))
+        
+        # If there are very few interactions, create a comprehensive workflow
+        if len(existing_interactions) < 3:
+            # Find insertion point (before @enduml)
+            insert_index = -1
+            for i, line in enumerate(lines):
+                if '@enduml' in line:
+                    insert_index = i
+                    break
+            
+            if insert_index > 0:
+                # Clear existing minimal interactions
+                lines = [line for line in lines if not any(pattern.match(line.strip()) for pattern in [re.compile(p) for p in message_patterns])]
+                
+                # Find the insertion point again after clearing
+                insert_index = -1
+                for i, line in enumerate(lines):
+                    if '@enduml' in line:
+                        insert_index = i
+                        break
+                
+                # Generate a complete workflow
+                workflow_lines = self._create_complete_workflow(identified_actors)
+                
+                # Insert the workflow
+                for workflow_line in workflow_lines:
+                    lines.insert(insert_index, workflow_line)
+                    insert_index += 1
+        
+        return '\n'.join(lines)
+
+    def _create_complete_workflow(self, identified_actors: List[str]) -> List[str]:
+        """Create a complete workflow with all actors participating"""
+        workflow = []
+        
+        # Convert actors to PascalCase for consistency
+        actors = [self._to_pascal_case(actor) for actor in identified_actors]
+        
+        if not actors:
+            return workflow
+        
+        # Add workflow title
+        workflow.append("")
+        workflow.append("== Main Workflow ==")
+        workflow.append("")
+        
+        # Identify different types of actors
+        user_actors = [a for a in actors if any(role in a.lower() for role in ['user', 'member', 'customer', 'client'])]
+        admin_actors = [a for a in actors if any(role in a.lower() for role in ['admin', 'administrator', 'manager'])]
+        system_actors = [a for a in actors if any(role in a.lower() for role in ['system', 'service', 'controller'])]
+        staff_actors = [a for a in actors if any(role in a.lower() for role in ['librarian', 'staff', 'employee'])]
+        
+        # Create primary workflow
+        primary_user = user_actors[0] if user_actors else actors[0]
+        primary_system = system_actors[0] if system_actors else (staff_actors[0] if staff_actors else actors[-1])
+        
+        # Authentication flow
+        workflow.extend([
+            f"{primary_user} -> {primary_system} : authenticate(credentials)",
+            f"activate {primary_system}",
+            f"{primary_system} --> {primary_user} : authentication_result",
+        ])
+        
+        # Main service flow
+        if len(actors) >= 2:
+            workflow.extend([
+                f"{primary_user} -> {primary_system} : request_service(parameters)",
+                f"{primary_system} -> {primary_system} : validate_request()",
+                f"{primary_system} -> {primary_system} : process_request()",
+            ])
+            
+            # If there are staff actors, involve them
+            if staff_actors and staff_actors[0] != primary_system:
+                staff_actor = staff_actors[0]
+                workflow.extend([
+                    f"{primary_system} -> {staff_actor} : delegate_task(task_details)",
+                    f"activate {staff_actor}",
+                    f"{staff_actor} -> {primary_system} : task_completed(result)",
+                    f"deactivate {staff_actor}",
+                ])
+            
+            # Return response
+            workflow.extend([
+                f"{primary_system} --> {primary_user} : service_response(data)",
+                f"deactivate {primary_system}",
+            ])
+        
+        # Admin workflow if admin actors exist
+        if admin_actors:
+            admin_actor = admin_actors[0]
+            workflow.extend([
+                "",
+                "== Administrative Actions ==",
+                "",
+                f"{admin_actor} -> {primary_system} : manage_system(action)",
+                f"activate {primary_system}",
+                f"{primary_system} -> {primary_system} : execute_admin_action()",
+                f"{primary_system} --> {admin_actor} : action_completed(status)",
+                f"deactivate {primary_system}",
+            ])
+        
+        # Ensure all actors participate
+        unused_actors = [a for a in actors if not any(a in line for line in workflow)]
+        if unused_actors:
+            workflow.extend([
+                "",
+                "== Additional Interactions ==",
+                ""
+            ])
+            
+            for unused_actor in unused_actors:
+                target_actor = primary_system if unused_actor != primary_system else primary_user
+                workflow.extend([
+                    f"{unused_actor} -> {target_actor} : perform_action()",
+                    f"{target_actor} --> {unused_actor} : action_result",
+                ])
+        
+        return workflow

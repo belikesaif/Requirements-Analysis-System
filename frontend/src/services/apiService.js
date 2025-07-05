@@ -124,9 +124,16 @@ export const apiService = {
 
   async finalOptimization(data) {
     try {
+      console.log('Final optimization request data:', data);
       const response = await apiClient.post('/final-optimization', data);
       return response.data;
     } catch (error) {
+      console.error('Final optimization error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        requestData: data
+      });
       throw new Error(`Final optimization failed: ${error.message}`);
     }
   },
@@ -154,5 +161,27 @@ export const apiService = {
   async clearData() {
     const response = await axios.delete(`${API_BASE_URL}/clear-data`);
     return response.data;
+  },
+
+  // Report PlantUML rendering errors to backend for analysis
+  async reportPlantUMLError(data) {
+    try {
+      const response = await apiClient.post('/report-plantuml-error', data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to report PlantUML error:', error.message);
+      // Don't throw error here as this is just reporting
+      return null;
+    }
+  },
+
+  // Validate PlantUML syntax before rendering
+  async validatePlantUMLSyntax(data) {
+    try {
+      const response = await apiClient.post('/validate-plantuml', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(`PlantUML validation failed: ${error.message}`);
+    }
   }
 };
