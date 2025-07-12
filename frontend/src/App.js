@@ -270,6 +270,7 @@ System -> User: profile updated
         return (
           <AIResultsVerifier
             aiSnlData={currentCaseStudy?.ai_snl}
+            originalText={currentCaseStudy?.original_text || currentCaseStudy?.text || ''}
             onVerificationComplete={handleVerificationComplete}
             onError={(error) => showNotification(error, 'error')}
             onContinue={handleNext}

@@ -183,5 +183,16 @@ export const apiService = {
     } catch (error) {
       throw new Error(`PlantUML validation failed: ${error.message}`);
     }
+  },
+
+  // Analyze AI vs RUPP SNL detailed comparison
+  async analyzeAIvsRUPP(data) {
+    try {
+      const response = await apiClient.post('/analyze-ai-snl-detailed', data);
+      return response.data;
+    } catch (error) {
+      console.error('AI vs RUPP analysis failed:', error);
+      throw error;
+    }
   }
 };

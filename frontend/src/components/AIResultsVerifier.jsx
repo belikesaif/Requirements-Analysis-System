@@ -11,28 +11,44 @@ import {
   CircularProgress,
   Alert,
   Button,
-  Divider
+  Divider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Grid,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
   AutoAwesome as AIIcon,
-  ArrowForward as ArrowForwardIcon
+  ArrowForward as ArrowForwardIcon,
+  ExpandMore as ExpandMoreIcon,
+  Remove as MissingIcon,
+  Add as OverspecifiedIcon,
+  Close as IncorrectIcon,
+  Assessment as StatsIcon
 } from '@mui/icons-material';
 
 import { apiService } from '../services/apiService';
 
-const AIResultsVerifier = ({ aiSnlData, onVerificationComplete, onError, onContinue }) => {
+const AIResultsVerifier = ({ aiSnlData, originalText, onVerificationComplete, onError, onContinue }) => {
   const [verificationResults, setVerificationResults] = useState([]);
+  const [comparisonStats, setComparisonStats] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [issues, setIssues] = useState({ missing: [], overspecified: [], incorrect: [] });
 
   useEffect(() => {
     if (aiSnlData?.requirements) {
       verifyRequirements();
     }
-  }, [aiSnlData]);
+    if (aiSnlData?.requirements && originalText) {
+      analyzeComparison();
+    }
+  }, [aiSnlData, originalText]);
 
   const verifyRequirements = async () => {
     setIsVerifying(true);
@@ -115,6 +131,43 @@ const AIResultsVerifier = ({ aiSnlData, onVerificationComplete, onError, onConti
     if (avgScore >= 8) return <CheckIcon color="success" />;
     if (avgScore >= 6) return <WarningIcon color="warning" />;
     return <ErrorIcon color="error" />;
+  };
+
+  const analyzeComparison = async () => {
+    if (!aiSnlData?.requirements || !originalText) {
+      console.log('Missing data for comparison:', { 
+        hasAI: !!aiSnlData?.requirements, 
+        hasOriginal: !!originalText 
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      console.log('Starting AI vs Original Case Study comparison analysis...');
+      
+      // Call the actual backend API with correct data format
+      const response = await apiService.analyzeAIvsRUPP({
+        ai_snl: aiSnlData.requirements,
+        original_text: originalText
+      });
+
+      console.log('Comparison analysis completed:', response);
+      setComparisonStats(response.detailed_analysis);
+    } catch (error) {
+      console.error('Comparison analysis failed:', error);
+      // Fallback only on error
+      setComparisonStats({
+        missing_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to API error' },
+        overspecified_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to API error' },
+        incorrect_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to API error' },
+        total_issues: 0,
+        accuracy_percentage: 0,
+        analysis_summary: 'Detailed analysis temporarily unavailable due to technical issues'
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   if (!aiSnlData) {
@@ -217,6 +270,138 @@ const AIResultsVerifier = ({ aiSnlData, onVerificationComplete, onError, onConti
                 )}
               </Alert>
             )}
+
+            {/* Comparison Stats Summary */}
+            {isAnalyzing && (
+              <Card sx={{ mt: 3, backgroundColor: '#f8f9fa' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} sx={{ mr: 2 }} />
+                    <Typography>Analyzing AI vs RUPP comparison...</Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
+            
+            {comparisonStats && !isAnalyzing && (
+              <Card sx={{ mt: 3, backgroundColor: '#f5f5f5' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <StatsIcon sx={{ mr: 1 }} color="primary" />
+                    <Typography variant="h6">AI vs Original Case Study Comparison Analysis</Typography>
+                    {comparisonStats.accuracy_percentage && (
+                      <Chip 
+                        label={`${comparisonStats.accuracy_percentage}% Accuracy`} 
+                        color={comparisonStats.accuracy_percentage >= 70 ? "success" : comparisonStats.accuracy_percentage >= 50 ? "warning" : "error"}
+                        sx={{ ml: 2 }}
+                      />
+                    )}
+                  </Box>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 2, backgroundColor: '#fff3e0' }}>
+                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <MissingIcon color="warning" sx={{ mr: 1 }} /> 
+                          Missing in AI ({comparisonStats.missing_in_ai?.count || 0})
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Requirements from original case study that AI failed to capture
+                        </Typography>
+                        <List dense>
+                          {comparisonStats.missing_in_ai?.items?.length > 0 ? (
+                            comparisonStats.missing_in_ai.items.map((item, idx) => (
+                              <ListItem key={idx} sx={{ py: 0.5 }}>
+                                <ListItemText 
+                                  primary={item.requirement || item} 
+                                  secondary={item.reason}
+                                  primaryTypographyProps={{ variant: 'body2' }}
+                                  secondaryTypographyProps={{ variant: 'caption' }}
+                                />
+                              </ListItem>
+                            ))
+                          ) : (
+                            <ListItem>
+                              <ListItemText primary="No missing requirements found" />
+                            </ListItem>
+                          )}
+                        </List>
+                      </Paper>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 2, backgroundColor: '#e3f2fd' }}>
+                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <OverspecifiedIcon color="info" sx={{ mr: 1 }} /> 
+                          Overspecified in AI ({comparisonStats.overspecified_in_ai?.count || 0})
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Requirements where AI was too detailed beyond case study scope
+                        </Typography>
+                        <List dense>
+                          {comparisonStats.overspecified_in_ai?.items?.length > 0 ? (
+                            comparisonStats.overspecified_in_ai.items.map((item, idx) => (
+                              <ListItem key={idx} sx={{ py: 0.5 }}>
+                                <ListItemText 
+                                  primary={item.requirement || item} 
+                                  secondary={item.reason}
+                                  primaryTypographyProps={{ variant: 'body2' }}
+                                  secondaryTypographyProps={{ variant: 'caption' }}
+                                />
+                              </ListItem>
+                            ))
+                          ) : (
+                            <ListItem>
+                              <ListItemText primary="No overspecified requirements found" />
+                            </ListItem>
+                          )}
+                        </List>
+                      </Paper>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 2, backgroundColor: '#ffebee' }}>
+                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <IncorrectIcon color="error" sx={{ mr: 1 }} /> 
+                          Incorrect in AI ({comparisonStats.incorrect_in_ai?.count || 0})
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Requirements where AI made factual errors or misinterpretations
+                        </Typography>
+                        <List dense>
+                          {comparisonStats.incorrect_in_ai?.items?.length > 0 ? (
+                            comparisonStats.incorrect_in_ai.items.map((item, idx) => (
+                              <ListItem key={idx} sx={{ py: 0.5 }}>
+                                <ListItemText 
+                                  primary={item.requirement || item} 
+                                  secondary={item.reason}
+                                  primaryTypographyProps={{ variant: 'body2' }}
+                                  secondaryTypographyProps={{ variant: 'caption' }}
+                                />
+                              </ListItem>
+                            ))
+                          ) : (
+                            <ListItem>
+                              <ListItemText primary="No incorrect requirements found" />
+                            </ListItem>
+                          )}
+                        </List>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                  
+                  <Divider sx={{ my: 2 }} />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Analysis Summary:</strong> {comparisonStats.analysis_summary}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      <strong>Total Issues Found:</strong> {comparisonStats.total_issues || 0}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
       </Paper>
@@ -224,4 +409,4 @@ const AIResultsVerifier = ({ aiSnlData, onVerificationComplete, onError, onConti
   );
 };
 
-export default AIResultsVerifier; 
+export default AIResultsVerifier;

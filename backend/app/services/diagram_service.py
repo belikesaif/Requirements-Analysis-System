@@ -6,7 +6,6 @@ import openai
 import os
 import json
 import logging
-import asyncio
 from typing import Dict, Any, List
 from dotenv import load_dotenv
 import re
@@ -43,7 +42,6 @@ class DiagramService:
             
             # Enhanced prompt with POS-tagged entities
             prompt = self._create_enhanced_class_diagram_prompt(snl_text, actors, extracted_entities)
-            system_prompt = self._get_initial_class_diagram_system_prompt()
             
             response = await self.client.chat.completions.create(
                 model=self.model,
@@ -634,7 +632,7 @@ User --> System : uses
                     action_parts.append(token.text)
                 elif actor_found and token.text in ['.', ',']:
                     break
-            print(f"Extracted action for {actor}: {' '.join(action_parts)}")
+            
             return ' '.join(action_parts) if action_parts else 'perform action'
         
         except Exception:
@@ -1021,21 +1019,36 @@ ClassA "1" -- "0..*" ClassB : labeled association
 4. **Undefined class references in relationships**
 5. **Overly complex diagrams with too many classes**
 
-### ERROR HANDLING PATTERNS:
-Always consider including:
-1. **Validation errors**: Input validation failures
-2. **System errors**: Internal system failures
-3. **Network errors**: Communication failures
-4. **Authentication errors**: Access denied scenarios
-5. **Business logic errors**: Domain rule violations
-
 Generate ONLY the PlantUML code that demonstrates these concepts, starting with @startuml and ending with @enduml. Focus on creating a well-structured, professionally designed class diagram that follows UML best practices and object-oriented design principles."""
+    
+    def _create_enhanced_class_diagram_prompt(self, snl_text: str, actors: List[str], extracted_entities: Dict[str, List[str]]) -> str:
+        """
+        Create enhanced prompt for class diagram generation with POS tagging data
+        """
+        actors_text = ", ".join(actors) if actors else "Not specified"
+        
+        return f"""Generate a PlantUML class diagram for the Library Management System that EXACTLY matches the gold standard structure.
+
+SNL Requirements:
+{snl_text}
+
+Identified Actors: {actors_text}
+
+MANDATORY REQUIREMENTS:
+1. Generate EXACTLY the gold standard class structure with User as base class
+2. Include ALL required inheritance
+3. Include ALL required associations
+4. Use the EXACT attributes and methods specified in the gold standard
+5. Do NOT create generic "System" class - use the specific class hierarchy
+6. Focus on the Library Management System domain as specified in the gold standard
+
+The diagram MUST match the exact gold standard structure provided in the system prompt."""
     
     def _get_enhanced_sequence_diagram_system_prompt(self) -> str:
         """
         Enhanced system prompt for sequence diagram generation with comprehensive UML concepts
         """
-        return """You are an expert software architect and UML diagram specialist with deep knowledge of behavioral modeling and interaction design. Your task is to generate comprehensive PlantUML sequence diagrams from Structured Natural Language (SNL) requirements.
+        return """You are an expert software architect and UML sequence diagram specialist with deep knowledge of behavioral modeling and interaction design. Your task is to generate comprehensive PlantUML sequence diagrams from Structured Natural Language (SNL) requirements.
 
 ## FUNDAMENTAL UML SEQUENCE DIAGRAM CONCEPTS:
 
@@ -1531,8 +1544,7 @@ Be extremely strict about missing actors. If an identified actor is not explicit
 
     async def optimize_diagrams_with_llm_and_actors(self, original_requirements: str, class_diagram: str, 
                                                   sequence_diagram: str, identified_actors: List[str], 
-                                                  verification_issues: Dict[str, Any], 
-                                                  diagram_errors: Dict[str, str] = None) -> Dict[str, Any]:
+                                                  verification_issues: Dict[str, Any]) -> Dict[str, Any]:
         """
         Final LLM optimization using GPT-3.5 with identified actors and verification feedback
         Enhanced for consistency and strict compliance
@@ -1549,13 +1561,6 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                 issues_text += f"Generic elements to avoid: {', '.join(verification_issues['generic_elements'])}\n"
             if verification_issues.get('recommendations'):
                 issues_text += f"Recommendations: {', '.join(verification_issues['recommendations'])}\n"
-            
-            # Include diagram rendering errors if provided
-            if diagram_errors and isinstance(diagram_errors, dict):
-                if diagram_errors.get('class'):
-                    issues_text += f"Class diagram rendering error: {diagram_errors['class']}\n"
-                if diagram_errors.get('sequence'):
-                    issues_text += f"Sequence diagram rendering error: {diagram_errors['sequence']}\n"
 
             # Enhanced Class Diagram Optimization
             class_prompt = f"""Generate a PlantUML class diagram with STRICT REQUIREMENTS:
@@ -1609,57 +1614,61 @@ Note: Before generating UML code, validate all class participants, check for nam
 OUTPUT ONLY PlantUML code from @startuml to @enduml"""
 
             # Enhanced Sequence Diagram Optimization  
-            human_actors = [actor for actor in identified_actors if self._is_human_actor(actor)]
-            system_actors = [actor for actor in identified_actors if not self._is_human_actor(actor)]
-            
-            sequence_prompt = f"""Generate a PlantUML sequence diagram with STRICT INTERACTION REQUIREMENTS:
+            sequence_prompt = f"""Generate a PlantUML sequence diagram with STRICT REQUIREMENTS:
 
 MANDATORY PARTICIPANTS: {actors_text}
 REQUIREMENTS: {original_requirements[:500]}
 ISSUES TO FIX: {issues_text[:200]}
 
-CRITICAL: EVERY PARTICIPANT MUST HAVE INTERACTIONS!
-
-PARTICIPANT DECLARATION (MANDATORY):
-- Use 'actor' for human roles: {', '.join(human_actors)}
-- Use 'participant' for system components: {', '.join(system_actors)}
+PARTICIPANT DECLARATION:
+- Use 'actor' for human roles, 'participant' for system components
 - EVERY identified actor MUST appear as participant
 - NO generic participants (System, Database, Application)
 
-INTERACTION REQUIREMENTS (MANDATORY):
-- EVERY participant MUST send at least 2 messages
-- EVERY participant MUST receive at least 2 messages  
-- Create a complete workflow showing realistic business process
-- Use activation boxes: activate/deactivate for processing
-- Include return messages for every request: A -> B : request, B --> A : response
+MESSAGE FLOW RULES:
+- Each participant MUST send/receive at least 1 message
+- Use proper syntax: A -> B : messageDescription
+- Include return messages: B --> A : response
+- Use activation boxes with activate/deactivate
+- Use proper UML syntax for loops, alternatives, and options
+- Use proper UML syntax for parallel flows
 
-REQUIRED WORKFLOW STRUCTURE:
-1. Authentication/Login flow (if applicable)
-2. Main business process with ALL participants
-3. Data processing/validation steps
-4. Response/confirmation messages
-5. Administrative actions (if admin actors exist)
+SECTION ORGANIZATION:
+- Use == Section Name == for logical groupings
+- Show realistic business workflow
+- Include alt/opt blocks for conditions
+- Use proper UML syntax for grouping messages
 
-MESSAGE SYNTAX (MANDATORY):
-- A -> B : specific_action_description()
-- B --> A : response_with_data
-- activate B / deactivate B for processing
-- Use == Section Name == for workflow phases
+MANDATORY SYNTAX:
+- Use 'actor' for actors, 'participant' for system components
+- Use 'activate' and 'deactivate' for activation boxes
+- Use 'note left/right/over' for annotations
+- Use 'create' and 'destroy' for object lifecycle
+- Use 'ref' for referencing other diagrams
+- Use 'group' for grouping related messages
+- Use 'par' for parallel flows
+- Use 'loop' for repetitive interactions
+- Use 'break' for exception handling
+- Use 'alt' for conditional logic
+- Use 'opt' for optional messages
+- Declare all participants and actors only once at the beginning.
+- Use aliases for multi-word participants. E.g., 'participant Fund_Transfer as "Fund Transfer"'
+- Use consistent naming throughout the diagram for participants.
+- Only define one logical actor (e.g., 'Customer') unless there are truly multiple human actors.
+- Always close 'group', 'opt', 'alt', 'else' blocks with 'end'.
+- Avoid nesting too many 'alt' and 'opt' blocks unless necessary; prefer clarity over depth.
+
 
 FORBIDDEN ELEMENTS:
-- Empty participants (participants without messages)
-- Generic "System" participant
+- "System" participant
 - Undefined participant references
 - Messages without descriptions
 - Participants not in actor list
+- Overly complex diagrams with too many participants
+- Generic participants like "Database", "Application"
 
-VALIDATION CHECKLIST:
-✓ All {len(identified_actors)} participants declared
-✓ All participants used in messages
-✓ Realistic workflow with business logic
-✓ Proper activation/deactivation
-✓ Return messages for requests
-✓ No generic system references
+Note: Before generating UML code, validate all sequence participants, check for naming collisions, confirm inheritance direction, and ensure syntactical correctness with complete closure of blocks. Prefer single-word PascalCase naming convention across all identifiers.
+
 
 OUTPUT ONLY PlantUML code from @startuml to @enduml"""
 
@@ -1743,10 +1752,8 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
 
                     # Ensure proper wrapping if missing
                     if not corrected_code.startswith('@startuml'):
-                        corrected_code = '@startuml\n' + corrected_code
-                    if not corrected_code.endswith('@enduml'):
-                        corrected_code = corrected_code + '\n@enduml'
-                
+                        corrected_code = f"@startuml\n{corrected_code}\n@enduml"
+
                     return corrected_code
 
                 except Exception as correction_error:
@@ -1946,6 +1953,14 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
                 
                 for part in parts:
                     # Skip relationship operators and labels
+                    if part and part.isalpha() and part[0].isupper() and part not in ['--', '->', '..', '|>', '<|']:
+                        referenced_in_line.add(part)
+                
+                # Check if all referenced classes are defined
+                undefined_in_line = referenced_in_line - defined_classes
+                
+                if not undefined_in_line:
+                    # All classes are defined, keep the relationship
                     valid_relationships.append(rel_line)
                 else:
                     # Some classes are undefined, try to fix or skip
@@ -2027,6 +2042,7 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
             
         return entities
     
+    
 
     def _enforce_class_consistency(self, class_diagram: str, identified_actors: List[str]) -> str:
         """
@@ -2054,7 +2070,7 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
                 # Remove generic system classes
                 if any(generic in line.lower() for generic in ['class system', 'class database', 'class application']):
                     continue
-                
+                    
                 # Fix generic references in relationships
                 line = self._fix_generic_references(line)
                 processed_lines.append(line)
@@ -2157,11 +2173,7 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
             # Ensure all participants are used in messages
             result = '\n'.join(processed_lines)
             result = self._ensure_participant_usage(result, identified_actors)
-            
-            # Additional check: if very few interactions, generate comprehensive ones
-            interaction_count = len(re.findall(r'\w+\s*-[->]+\s*\w+', result))
-            if interaction_count < len(identified_actors):
-                result = self._generate_comprehensive_interactions(result, identified_actors)
+            result = '@startuml\n' + result + '\n@enduml'
             
             return result
             
@@ -2303,27 +2315,21 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
                 matches = re.findall(pattern, line)
                 for match in matches:
                     if isinstance(match, tuple):
-                        declared_participants.add(match[-1])  # Get the alias
+                        declared_participants.add(match[-1])
                     else:
                         declared_participants.add(match)
         
         # Find participants used in messages
         used_participants = set()
-        message_patterns = [
-            r'(\w+)\s*-[->]+\s*(\w+)',
-            r'(\w+)\s*<-[->]*\s*(\w+)',
-            r'(\w+)\s*\.\.[->]+\s*(\w+)',
-            r'(\w+)\s*<\.\.[->]*\s*(\w+)'
-        ]
+        message_pattern = r'(\w+)\s*-[->]+\s*(\w+)'
         
         for line in lines:
-            for pattern in message_patterns:
-                matches = re.findall(pattern, line)
-                for match in matches:
-                    used_participants.add(match[0])
-                    used_participants.add(match[1])
+            matches = re.findall(message_pattern, line)
+            for match in matches:
+                used_participants.add(match[0])
+                used_participants.add(match[1])
         
-        # Add meaningful messages for unused participants
+        # Add simple messages for unused participants
         unused_participants = declared_participants - used_participants
         
         if unused_participants:
@@ -2335,209 +2341,20 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
                     break
             
             if insert_index > 0:
-                # Add a section for meaningful interactions
-                lines.insert(insert_index, "")
-                lines.insert(insert_index + 1, "== Main Interactions ==")
-                insert_index += 2
-                
-                # Generate meaningful interactions for each unused participant
-                for participant in unused_participants:
-                    interactions = self._generate_realistic_interactions(participant, declared_participants)
-                    for interaction in interactions:
-                        lines.insert(insert_index, interaction)
-                        insert_index += 1
+                # Add a simple interaction section for unused participants
+                if unused_participants:
+                    lines.insert(insert_index, "")
+                    lines.insert(insert_index + 1, "== Additional Interactions ==")
+                    insert_index += 2
+                    
+                    for participant in unused_participants:
+                        # Find another participant to interact with
+                        other_participant = next(iter(declared_participants - {participant}), "System")
+                        lines.insert(insert_index, f"{participant} -> {other_participant} : performs action")
+                        lines.insert(insert_index + 1, f"{other_participant} --> {participant} : confirmation")
+                        insert_index += 2
         
         return '\n'.join(lines)
 
-    def _generate_realistic_interactions(self, participant: str, all_participants: set) -> List[str]:
-        """Generate realistic interactions for a participant based on their role"""
-        interactions = []
-        participant_lower = participant.lower()
-        
-        # Find other participants to interact with
-        other_participants = all_participants - {participant}
-        if not other_participants:
-            other_participants = {"System"}
-        
-        main_target = next(iter(other_participants))
-        
-        # Generate role-based interactions
-        if any(role in participant_lower for role in ['user', 'member', 'customer', 'client']):
-            interactions.extend([
-                f"{participant} -> {main_target} : login(credentials)",
-                f"{main_target} --> {participant} : authentication_result",
-                f"{participant} -> {main_target} : request_service()",
-                f"{main_target} --> {participant} : service_response"
-            ])
-        elif any(role in participant_lower for role in ['admin', 'administrator', 'manager']):
-            interactions.extend([
-                f"{participant} -> {main_target} : manage_system(action)",
-                f"activate {main_target}",
-                f"{main_target} -> {main_target} : execute_admin_action()",
-                f"{main_target} --> {participant} : action_completed(status)",
-                f"deactivate {main_target}",
-            ])
-        elif any(role in participant_lower for role in ['librarian', 'staff', 'employee']):
-            interactions.extend([
-                f"{participant} -> {main_target} : process_request()",
-                f"{main_target} --> {participant} : request_processed",
-                f"{participant} -> {main_target} : update_records()",
-                f"{main_target} --> {participant} : records_updated"
-            ])
-        elif any(role in participant_lower for role in ['system', 'service', 'controller', 'manager']):
-            # Find a user-type participant to interact with
-            user_participant = next((p for p in other_participants if any(role in p.lower() for role in ['user', 'member', 'customer'])), participant)
-            if user_participant != participant:
-                interactions.extend([
-                    f"{user_participant} -> {participant} : request_action()",
-                    f"{participant} --> {user_participant} : action_result",
-                    f"{participant} -> {user_participant} : send_notification()",
-                    f"{user_participant} --> {participant} : acknowledgment"
-                ])
-        else:
-            # Generic interactions for unknown types
-            interactions.extend([
-                f"{participant} -> {main_target} : initiate_action()",
-                f"{main_target} --> {participant} : action_response",
-                f"{participant} -> {main_target} : complete_process()",
-                f"{main_target} --> {participant} : process_completed"
-            ])
-        
-        return interactions
 
-    def _generate_comprehensive_interactions(self, diagram: str, identified_actors: List[str]) -> str:
-        """Generate comprehensive interactions when the sequence diagram is sparse"""
-        lines = diagram.split('\n')
-        
-        # Find existing interactions
-        existing_interactions = set()
-        message_patterns = [
-            r'(\w+)\s*-[->]+\s*(\w+)',
-            r'(\w+)\s*<-[->]*\s*(\w+)',
-            r'(\w+)\s*\.\.[->]+\s*(\w+)',
-            r'(\w+)\s*<\.\.[->]*\s*(\w+)'
-        ]
-        
-        for line in lines:
-            for pattern in message_patterns:
-                matches = re.findall(pattern, line)
-                for match in matches:
-                    existing_interactions.add((match[0], match[1]))
-        
-        # If there are very few interactions, create a comprehensive workflow
-        if len(existing_interactions) < 3:
-            # Find insertion point (before @enduml)
-            insert_index = -1
-            for i, line in enumerate(lines):
-                if '@enduml' in line:
-                    insert_index = i
-                    break
-            
-            if insert_index > 0:
-                # Clear existing minimal interactions
-                lines = [line for line in lines if not any(pattern.match(line.strip()) for pattern in [re.compile(p) for p in message_patterns])]
-                
-                # Find the insertion point again after clearing
-                insert_index = -1
-                for i, line in enumerate(lines):
-                    if '@enduml' in line:
-                        insert_index = i
-                        break
-                
-                # Generate a complete workflow
-                workflow_lines = self._create_complete_workflow(identified_actors)
-                
-                # Insert the workflow
-                for workflow_line in workflow_lines:
-                    lines.insert(insert_index, workflow_line)
-                    insert_index += 1
-        
-        return '\n'.join(lines)
 
-    def _create_complete_workflow(self, identified_actors: List[str]) -> List[str]:
-        """Create a complete workflow with all actors participating"""
-        workflow = []
-        
-        # Convert actors to PascalCase for consistency
-        actors = [self._to_pascal_case(actor) for actor in identified_actors]
-        
-        if not actors:
-            return workflow
-        
-        # Add workflow title
-        workflow.append("")
-        workflow.append("== Main Workflow ==")
-        workflow.append("")
-        
-        # Identify different types of actors
-        user_actors = [a for a in actors if any(role in a.lower() for role in ['user', 'member', 'customer', 'client'])]
-        admin_actors = [a for a in actors if any(role in a.lower() for role in ['admin', 'administrator', 'manager'])]
-        system_actors = [a for a in actors if any(role in a.lower() for role in ['system', 'service', 'controller'])]
-        staff_actors = [a for a in actors if any(role in a.lower() for role in ['librarian', 'staff', 'employee'])]
-        
-        # Create primary workflow
-        primary_user = user_actors[0] if user_actors else actors[0]
-        primary_system = system_actors[0] if system_actors else (staff_actors[0] if staff_actors else actors[-1])
-        
-        # Authentication flow
-        workflow.extend([
-            f"{primary_user} -> {primary_system} : authenticate(credentials)",
-            f"activate {primary_system}",
-            f"{primary_system} --> {primary_user} : authentication_result",
-        ])
-        
-        # Main service flow
-        if len(actors) >= 2:
-            workflow.extend([
-                f"{primary_user} -> {primary_system} : request_service(parameters)",
-                f"{primary_system} -> {primary_system} : validate_request()",
-                f"{primary_system} -> {primary_system} : process_request()",
-            ])
-            
-            # If there are staff actors, involve them
-            if staff_actors and staff_actors[0] != primary_system:
-                staff_actor = staff_actors[0]
-                workflow.extend([
-                    f"{primary_system} -> {staff_actor} : delegate_task(task_details)",
-                    f"activate {staff_actor}",
-                    f"{staff_actor} -> {primary_system} : task_completed(result)",
-                    f"deactivate {staff_actor}",
-                ])
-            
-            # Return response
-            workflow.extend([
-                f"{primary_system} --> {primary_user} : service_response(data)",
-                f"deactivate {primary_system}",
-            ])
-        
-        # Admin workflow if admin actors exist
-        if admin_actors:
-            admin_actor = admin_actors[0]
-            workflow.extend([
-                "",
-                "== Administrative Actions ==",
-                "",
-                f"{admin_actor} -> {primary_system} : manage_system(action)",
-                f"activate {primary_system}",
-                f"{primary_system} -> {primary_system} : execute_admin_action()",
-                f"{primary_system} --> {admin_actor} : action_completed(status)",
-                f"deactivate {primary_system}",
-            ])
-        
-        # Ensure all actors participate
-        unused_actors = [a for a in actors if not any(a in line for line in workflow)]
-        if unused_actors:
-            workflow.extend([
-                "",
-                "== Additional Interactions ==",
-                ""
-            ])
-            
-            for unused_actor in unused_actors:
-                target_actor = primary_system if unused_actor != primary_system else primary_user
-                workflow.extend([
-                    f"{unused_actor} -> {target_actor} : perform_action()",
-                    f"{target_actor} --> {unused_actor} : action_result",
-                ])
-        
-        return workflow

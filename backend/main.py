@@ -47,6 +47,10 @@ class CaseStudyRequest(BaseModel):
     text: str
     title: Optional[str] = "Untitled Case Study"
 
+class AIAnalysisRequest(BaseModel):
+    ai_snl: List[str]
+    original_text: str
+
 class ComparisonRequest(BaseModel):
     rupp_snl: List[str]
     ai_snl: List[str]
@@ -152,11 +156,11 @@ async def process_requirements(request: CaseStudyRequest):
         # Add timing information to AI result
         ai_result['processing_time'] = round(ai_time, 2)
         
-        # Compare results
-        comparison_result = comparison_service.compare_snl(
-            rupp_result['snl_text'], 
+        # Compare results with enhanced AI analysis (AI vs Original Case Study)
+        comparison_result = await comparison_service.analyze_ai_snl_detailed(
             ai_result['snl_text'], 
-            request.text
+            request.text,
+            ai_service
         )        # Store results
         result_id = storage.store_case_study({
             'title': request.title,
@@ -478,6 +482,32 @@ async def get_plantuml_error_stats():
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get PlantUML error statistics: {str(e)}")
+
+@app.post("/api/analyze-ai-snl-detailed")
+async def analyze_ai_snl_detailed(request: AIAnalysisRequest):
+    """
+    Get detailed analysis of AI SNL vs Original Case Study with Missing, Overspecified, and Incorrect categorization
+    """
+    try:
+        detailed_analysis = await comparison_service.analyze_ai_snl_detailed(
+            request.ai_snl, 
+            request.original_text,
+            ai_service
+        )
+        
+        return {
+            "detailed_analysis": detailed_analysis.get('detailed_ai_analysis', {}),
+            "summary_stats": {
+                "total_ai_requirements": len(detailed_analysis.get('ai_requirements', [])),
+                "accuracy_score": detailed_analysis.get('detailed_ai_analysis', {}).get('accuracy_percentage', 0),
+                "issues_found": detailed_analysis.get('detailed_ai_analysis', {}).get('total_issues', 0)
+            },
+            "timestamp": datetime.now().isoformat(),
+            "status": "success"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Detailed AI SNL analysis failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
