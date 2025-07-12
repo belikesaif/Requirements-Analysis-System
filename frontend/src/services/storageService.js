@@ -235,10 +235,12 @@ class StorageService {
       this.getCaseStudies();
       this.getStatistics();
       this.getPreferences();
-      return true;
+      
+      // Return current session data if available
+      return this.getCurrentSession();
     } catch (error) {
       console.error('Failed to load from storage:', error);
-      return false;
+      return null;
     }
   }
 
@@ -269,6 +271,40 @@ class StorageService {
         caseStudiesCount: 0,
         lastUpdate: null
       };
+    }
+  }
+
+  // Session State Management
+  saveCurrentSession(sessionData) {
+    try {
+      localStorage.setItem('nlp_current_session', JSON.stringify({
+        ...sessionData,
+        timestamp: new Date().toISOString()
+      }));
+      return true;
+    } catch (error) {
+      console.error('Failed to save current session:', error);
+      return false;
+    }
+  }
+
+  getCurrentSession() {
+    try {
+      const data = localStorage.getItem('nlp_current_session');
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('Failed to load current session:', error);
+      return null;
+    }
+  }
+
+  clearCurrentSession() {
+    try {
+      localStorage.removeItem('nlp_current_session');
+      return true;
+    } catch (error) {
+      console.error('Failed to clear current session:', error);
+      return false;
     }
   }
 }

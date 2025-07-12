@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "plantuml-encoder": "^1.4.0",
+    "react-plantuml": "^0.0.8"
+  }
+}

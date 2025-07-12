@@ -13,6 +13,7 @@ class MemoryStorage:
         self.case_studies = {}
         self.comparisons = {}
         self.diagrams = {}
+        self.plantuml_errors = {}  # Store PlantUML error reports
         self.statistics = {
             'total_processed': 0,
             'average_accuracy': 0.0,
@@ -323,3 +324,81 @@ class MemoryStorage:
         
         except Exception as e:
             raise Exception(f"Search failed: {str(e)}")
+
+    def store_plantuml_error(self, error_data: Dict[str, Any]) -> str:
+        """
+        Store PlantUML error report for analysis
+        """
+        try:
+            error_id = str(uuid.uuid4())
+            timestamp = datetime.now().isoformat()
+            
+            error_record = {
+                'id': error_id,
+                'timestamp': timestamp,
+                'diagram_type': error_data.get('diagram_type', 'unknown'),
+                'error_type': error_data.get('error_type', 'unknown'),
+                'error_message': error_data.get('error_message', ''),
+                'plantuml_code': error_data.get('plantuml_code', ''),
+                'retry_count': error_data.get('retry_count', 0),
+                'validation_status': error_data.get('validation_status'),
+                'stored_date': timestamp
+            }
+            
+            self.plantuml_errors[error_id] = error_record
+            
+            # Save to file for persistence
+            self._save_plantuml_errors()
+            
+            return error_id
+            
+        except Exception as e:
+            raise Exception(f"Failed to store PlantUML error: {str(e)}")
+    
+    def get_plantuml_error_statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics about PlantUML errors for analysis
+        """
+        try:
+            if not self.plantuml_errors:
+                return {
+                    'total_errors': 0,
+                    'error_types': {},
+                    'diagram_types': {},
+                    'common_issues': []
+                }
+            
+            error_types = {}
+            diagram_types = {}
+            total_errors = len(self.plantuml_errors)
+            
+            for error in self.plantuml_errors.values():
+                error_type = error.get('error_type', 'unknown')
+                diagram_type = error.get('diagram_type', 'unknown')
+                
+                error_types[error_type] = error_types.get(error_type, 0) + 1
+                diagram_types[diagram_type] = diagram_types.get(diagram_type, 0) + 1
+            
+            # Find most common issues
+            common_issues = sorted(error_types.items(), key=lambda x: x[1], reverse=True)[:5]
+            
+            return {
+                'total_errors': total_errors,
+                'error_types': error_types,
+                'diagram_types': diagram_types,
+                'common_issues': [{'issue': issue, 'count': count} for issue, count in common_issues]
+            }
+            
+        except Exception as e:
+            raise Exception(f"Failed to get PlantUML error statistics: {str(e)}")
+    
+    def _save_plantuml_errors(self):
+        """
+        Save PlantUML errors to file for persistence
+        """
+        try:
+            errors_file = os.path.join(self.research_dir, "plantuml_errors.json")
+            with open(errors_file, 'w', encoding='utf-8') as f:
+                json.dump(self.plantuml_errors, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Warning: Failed to save PlantUML errors: {str(e)}")

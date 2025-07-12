@@ -23,7 +23,7 @@ import {
 import { apiService } from '../services/apiService';
 import { storageService } from '../services/storageService';
 
-const RequirementsInput = ({ onProcessingComplete, onError }) => {
+const RequirementsInput = ({ onProcessingComplete, onError, onSuccess }) => {
   const [inputText, setInputText] = useState('');
   const [title, setTitle] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -178,9 +178,24 @@ const RequirementsInput = ({ onProcessingComplete, onError }) => {
             />
 
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Chip label={`${wordCount} words`} size="small" />
-                <Chip label={`${sentenceCount} sentences`} size="small" />
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={`${wordCount} words`} 
+                  size="small"
+                  color={wordCount > 50 ? 'success' : 'default'}
+                />
+                <Chip 
+                  label={`${sentenceCount} sentences`} 
+                  size="small"
+                  color={sentenceCount > 3 ? 'success' : 'default'}
+                />
+                {inputText.trim() && (
+                  <Chip 
+                    label={inputText.length > 200 ? "Good length" : "Too short"} 
+                    size="small"
+                    color={inputText.length > 200 ? 'success' : 'warning'}
+                  />
+                )}
               </Box>
 
               <Button
@@ -188,11 +203,18 @@ const RequirementsInput = ({ onProcessingComplete, onError }) => {
                 size="large"
                 startIcon={<AIIcon />}
                 onClick={handleProcessRequirements}
-                disabled={isProcessing || !inputText.trim()}
+                disabled={isProcessing || !inputText.trim() || inputText.length < 50}
+                sx={{ minWidth: 180 }}
               >
                 {isProcessing ? 'Processing...' : 'Process Requirements'}
               </Button>
             </Box>
+
+            {inputText.length < 50 && inputText.length > 0 && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Requirements text should be at least 50 characters for meaningful analysis.
+              </Alert>
+            )}
 
             {isProcessing && (
               <Box sx={{ mt: 2 }}>
@@ -249,30 +271,188 @@ const RequirementsInput = ({ onProcessingComplete, onError }) => {
                 <li>Use conditional statements when appropriate</li>
               </Typography>
             </CardContent>
-          </Card>
-
-          <Card elevation={2} sx={{ mt: 2 }}>
+          </Card>          <Card elevation={2} sx={{ mt: 2 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Recent Case Studies
+                {/* Debug info */}
+                <Chip 
+                  label={`${storageService.getCaseStudies().length} stored`} 
+                  size="small" 
+                  sx={{ ml: 1 }}
+                />
               </Typography>
               <Divider sx={{ mb: 2 }} />
               
-              {storageService.getRecentCaseStudies(3).map((caseStudy, index) => (
-                <Box key={index} sx={{ mb: 1 }}>
-                  <Typography variant="body2" noWrap>
-                    {caseStudy.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(caseStudy.timestamp).toLocaleDateString()}
-                  </Typography>
+              {/* Debug controls */}
+              {process.env.NODE_ENV === 'development' && (
+                <Box sx={{ mb: 2 }}>
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    onClick={() => {
+                      console.log('Case Studies in Storage:', storageService.getCaseStudies());
+                      if (onSuccess) {
+                        onSuccess('Check console for storage data');
+                      }
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    Debug Storage
+                  </Button>
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    color="warning"
+                    onClick={() => {
+                      storageService.clearAllData();
+                      if (onSuccess) {
+                        onSuccess('Storage cleared');
+                      }
+                    }}
+                  >
+                    Clear Storage
+                  </Button>
                 </Box>
-              ))}
+              )}
+              
+              {storageService.getRecentCaseStudies(3).map((caseStudy, index) => {
+                // Handle different timestamp formats and missing timestamps
+                const timestamp = caseStudy.timestamp || caseStudy.processed_date || new Date().toISOString();
+                const date = new Date(timestamp);
+                const isValidDate = !isNaN(date.getTime());
+                
+                return (
+                  <Card 
+                    key={index} 
+                    variant="outlined" 
+                    sx={{ 
+                      mb: 2, 
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                        boxShadow: 1
+                      }
+                    }}
+                    onClick={() => {
+                      // Handle different data structures for loading case study
+                      const caseTitle = caseStudy.title || 
+                                       caseStudy.rupp_snl?.title || 
+                                       caseStudy.rupp_result?.title ||
+                                       'Untitled Case Study';
+                      
+                      const originalText = caseStudy.original_text || 
+                                         caseStudy.rupp_result?.original_text ||
+                                         caseStudy.ai_result?.original_text ||
+                                         '';
+                      
+                      // Load the case study data into the form
+                      setTitle(caseTitle);
+                      setInputText(originalText);
+                      
+                      // Transform the case study data to match expected format for processing completion
+                      const transformedCaseStudy = {
+                        id: caseStudy.id,
+                        timestamp: caseStudy.timestamp,
+                        title: caseTitle,
+                        original_text: originalText,
+                        rupp_snl: caseStudy.rupp_snl || caseStudy.rupp_result || {},
+                        ai_snl: caseStudy.ai_snl || caseStudy.ai_result || {},
+                        comparison: caseStudy.comparison || {}
+                      };
+                      
+                      // Trigger processing complete to load the case study into the app
+                      onProcessingComplete(transformedCaseStudy);
+                      
+                      // Show a brief notification that data was loaded
+                      if (onSuccess) {
+                        onSuccess(`Case study "${caseTitle}" loaded successfully!`);
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Typography variant="body2" fontWeight="medium" noWrap>
+                        {caseStudy.title || caseStudy.rupp_snl?.title || caseStudy.rupp_result?.title || 'Untitled Case Study'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {isValidDate ? date.toLocaleDateString() : 'Date not available'}
+                      </Typography>
+                      
+                      {/* Show some stats */}
+                      <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                        {/* RUPP requirements count - handle different structures */}
+                        {(() => {
+                          const ruppCount = caseStudy.rupp_snl?.sentences_count || 
+                                          caseStudy.rupp_result?.sentences_count ||
+                                          caseStudy.rupp_snl?.requirements?.length ||
+                                          caseStudy.rupp_result?.requirements?.length ||
+                                          0;
+                          return ruppCount > 0 ? (
+                            <Chip 
+                              label={`${ruppCount} RUPP`} 
+                              size="small" 
+                              variant="outlined"
+                              color="primary"
+                            />
+                          ) : null;
+                        })()}
+                        
+                        {/* AI requirements count - handle different structures */}
+                        {(() => {
+                          const aiCount = caseStudy.ai_snl?.requirements?.length || 
+                                        caseStudy.ai_result?.requirements?.length ||
+                                        0;
+                          return aiCount > 0 ? (
+                            <Chip 
+                              label={`${aiCount} AI`} 
+                              size="small" 
+                              variant="outlined"
+                              color="secondary"
+                            />
+                          ) : null;
+                        })()}
+                        
+                        {/* Accuracy - handle different structures */}
+                        {(() => {
+                          const accuracy = caseStudy.comparison?.metrics?.accuracy || 0;
+                          return accuracy > 0 ? (
+                            <Chip 
+                              label={`${Math.round(accuracy * 100)}% acc`} 
+                              size="small" 
+                              variant="outlined"
+                              color="success"
+                            />
+                          ) : null;
+                        })()}
+                        
+                        {/* Original text indicator */}
+                        {(() => {
+                          const hasText = caseStudy.original_text || 
+                                        caseStudy.rupp_result?.original_text ||
+                                        caseStudy.ai_result?.original_text;
+                          return hasText ? (
+                            <Chip 
+                              label="Has text" 
+                              size="small" 
+                              variant="outlined"
+                            />
+                          ) : null;
+                        })()}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                );
+              })}
               
               {storageService.getRecentCaseStudies(3).length === 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  No case studies processed yet.
-                </Typography>
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No case studies processed yet.
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Process your first case study to see it here!
+                  </Typography>
+                </Box>
               )}
             </CardContent>
           </Card>
