@@ -66,13 +66,69 @@ const PlantUMLViewer = ({
         diagram_type: diagramType
       });
       setValidationStatus(result);
+      
+      // Auto-retry logic when backend suggests it can be retried
+      if (!result.is_valid && result.can_retry && result.fixed_code && retryCount < MAX_RETRY_ATTEMPTS) {
+        console.log('Auto-retrying with fixed code from backend');
+        // We'll handle this in the useEffect below
+        return false;
+      }
+      
       return result.is_valid;
     } catch (err) {
       console.error('PlantUML validation failed:', err);
       setValidationStatus({ is_valid: false, errors: [err.message] });
       return false;
     }
-  }, [plantUMLCode, diagramType]);
+  }, [plantUMLCode, diagramType, retryCount]);
+
+  // State for storing fixed code from backend
+  const [fixedCodeFromBackend, setFixedCodeFromBackend] = useState(null);
+
+  // Effect to handle auto-retry when validation returns fixable errors
+  useEffect(() => {
+    if (validationStatus && !validationStatus.is_valid && validationStatus.can_retry && 
+        validationStatus.fixed_code && retryCount < MAX_RETRY_ATTEMPTS) {
+      // Increment retry count
+      setRetryCount(prev => prev + 1);
+      // Store the fixed code for display
+      setFixedCodeFromBackend(validationStatus.fixed_code);
+      
+      // Use the fixed code provided by the backend
+      if (onError) onError('Auto-retrying with fixed PlantUML code');
+      
+      console.log('Using fixed code from backend:', validationStatus.fixed_code);
+      
+      // Use the fixed code for rendering
+      const fixedCode = validationStatus.fixed_code;
+      setIsLoading(true);
+      setError('');
+      
+      try {
+        // Encode the fixed PlantUML code
+        const encoded = encode(fixedCode.trim());
+        
+        // Use the PlantUML server to generate the diagram
+        const url = `https://www.plantuml.com/plantuml/svg/${encoded}`;
+        setImageUrl(url);
+        setImageLoadAttempts(0);
+        
+        // Report the auto-retry
+        reportErrorToBackend({
+          type: 'auto_retry',
+          message: `Auto-retry attempt ${retryCount + 1} with fixed code`
+        });
+      } catch (err) {
+        console.error('Error generating diagram with fixed code:', err);
+        const errorMessage = 'Failed to generate diagram with fixed code.';
+        setError(errorMessage);
+        
+        if (onError) onError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, [validationStatus, retryCount, onError, reportErrorToBackend]);
 
   useEffect(() => {
     if (plantUMLCode && activeTab === 0) {
@@ -206,6 +262,14 @@ const PlantUMLViewer = ({
               variant="outlined"
             />
           )}
+          {fixedCodeFromBackend && (
+            <Chip
+              size="small"
+              label="Auto-fixed"
+              color="info"
+              variant="outlined"
+            />
+          )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {error && retryCount < MAX_RETRY_ATTEMPTS && (
@@ -253,15 +317,57 @@ const PlantUMLViewer = ({
             overflow: 'auto'
           }}
         >
-          <pre style={{ 
-            margin: 0, 
+          {validationStatus && !validationStatus.is_valid && validationStatus.line_errors && 
+           Object.keys(validationStatus.line_errors).length > 0 && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="caption">
+                The highlighted lines contain errors. Hover over the line numbers to see details.
+              </Typography>
+            </Alert>
+          )}
+          
+          <div style={{ 
             fontFamily: 'monospace',
             fontSize: '12px',
             whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
+            wordBreak: 'break-word',
+            position: 'relative'
           }}>
-            {plantUMLCode}
-          </pre>
+            {plantUMLCode.split('\n').map((line, index) => {
+              const lineNumber = index + 1;
+              const hasError = validationStatus?.line_errors && 
+                              validationStatus.line_errors[lineNumber];
+              
+              return (
+                <div 
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    backgroundColor: hasError ? 'rgba(255, 0, 0, 0.1)' : 'transparent',
+                    padding: '2px 0'
+                  }}
+                >
+                  <span 
+                    style={{
+                      width: '30px', 
+                      color: 'gray', 
+                      textAlign: 'right',
+                      marginRight: '10px',
+                      userSelect: 'none',
+                      position: 'relative'
+                    }}
+                    title={hasError ? validationStatus.line_errors[lineNumber] : ''}
+                  >
+                    {lineNumber}
+                    {hasError && (
+                      <span style={{ color: 'red', marginLeft: '2px' }}>*</span>
+                    )}
+                  </span>
+                  <span>{line}</span>
+                </div>
+              );
+            })}
+          </div>
         </Box>
       ) : (
         // Diagram View
@@ -306,9 +412,28 @@ const PlantUMLViewer = ({
                   {error}
                 </Typography>
                 {validationStatus && !validationStatus.is_valid && (
-                  <Typography variant="caption" color="textSecondary">
-                    Validation errors: {validationStatus.errors?.join(', ')}
-                  </Typography>
+                  <>
+                    <Typography variant="caption" color="textSecondary">
+                      Validation errors: {validationStatus.errors?.join(', ')}
+                    </Typography>
+                    
+                    {validationStatus.retry_suggestions && validationStatus.retry_suggestions.length > 0 && (
+                      <Box sx={{ mt: 1, textAlign: 'left' }}>
+                        <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'bold' }}>
+                          Suggestions to fix:
+                        </Typography>
+                        <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+                          {validationStatus.retry_suggestions.slice(0, 3).map((suggestion, index) => (
+                            <li key={index}>
+                              <Typography variant="caption" color="textSecondary">
+                                {suggestion}
+                              </Typography>
+                            </li>
+                          ))}
+                        </ul>
+                      </Box>
+                    )}
+                  </>
                 )}
                 {retryCount >= MAX_RETRY_ATTEMPTS && (
                   <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 1 }}>

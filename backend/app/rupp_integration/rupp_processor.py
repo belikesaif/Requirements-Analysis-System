@@ -62,35 +62,79 @@ class FixedRUPPProcessor:
         return text
 
     def identify_actors_enhanced(self, description: str) -> List[str]:
-        """Enhanced actor identification - ONLY valid human actors"""
+        """Enhanced actor identification for diverse case studies - ONLY valid human actors and system"""
         actors = set()
-        
-        # STRICT list of valid actors only
-        valid_actors = {'system', 'user', 'administrator', 'librarian', 'member', 'guest'}
-        
-        # Extract words and check against valid actors only
-        words = description.lower().split()
-        for word in words:
-            clean_word = re.sub(r'[^a-z]', '', word)
-            if clean_word in valid_actors:
-                actors.add(clean_word)
-        
-        # Direct keyword mapping
         text_lower = description.lower()
-        if 'system' in text_lower:
-            actors.add('system')
-        if 'user' in text_lower:
+        
+        # Domain-specific valid actors based on case study type
+        # Digital Home System actors
+        home_actors = ['user', 'homeowner', 'resident', 'system']
+        
+        # Monitoring System actors  
+        monitoring_actors = ['operator', 'monitoring-operator', 'system']
+        
+        # Library System actors
+        library_actors = ['user', 'member', 'librarian', 'administrator', 'guest', 'system']
+        
+        # General valid actors
+        general_actors = ['user', 'system', 'administrator', 'admin']
+        
+        # Detect domain and use appropriate actors
+        if any(word in text_lower for word in ['temperature', 'thermostat', 'humidity', 'home', 'appliance']):
+            # Digital Home System
+            valid_actors = set(home_actors + general_actors)
+        elif any(word in text_lower for word in ['operator', 'monitoring', 'sensor', 'alarm', 'emergency']):
+            # Monitoring System
+            valid_actors = set(monitoring_actors + general_actors)
+        elif any(word in text_lower for word in ['book', 'library', 'member', 'librarian']):
+            # Library System
+            valid_actors = set(library_actors)
+        else:
+            # Default/General
+            valid_actors = set(general_actors)
+        
+        # Extract actors using pattern matching - avoid false positives
+        for actor in valid_actors:
+            # Use word boundaries to avoid partial matches
+            pattern = r'\b' + re.escape(actor) + r'\b'
+            if re.search(pattern, text_lower):
+                actors.add(actor)
+        
+        # Special handling for compound actors like "monitoring-operator"
+        if 'monitoring-operator' in text_lower or 'monitoring operator' in text_lower:
+            actors.add('monitoring-operator')
+        
+        # Remove invalid actors that might have been picked up
+        invalid_patterns = [
+            r'.*society.*', r'.*heating.*', r'.*air.*conditioning.*', r'.*engineers.*',
+            r'.*interface.*', r'.*web.*', r'.*american.*', r'.*refrigerating.*',
+            r'.*monitor\s+and.*', r'.*user\s+read.*', r'.*user\s+set.*'
+        ]
+        
+        actors_to_remove = set()
+        for actor in actors:
+            for pattern in invalid_patterns:
+                if re.match(pattern, actor, re.IGNORECASE):
+                    actors_to_remove.add(actor)
+                    break
+        
+        actors = actors - actors_to_remove
+        
+        # Ensure we always have 'system' and at least one human actor
+        actors.add('system')
+        if not any(actor in actors for actor in ['user', 'operator', 'member', 'librarian']):
             actors.add('user')
-        if 'member' in text_lower:
-            actors.add('member')
-        if 'librarian' in text_lower:
-            actors.add('librarian')
-        if 'administrator' in text_lower or 'admin' in text_lower:
-            actors.add('administrator')
-        if 'guest' in text_lower:
-            actors.add('guest')
-            
-        return sorted(list(actors))
+        
+        # Clean and validate final actor list
+        final_actors = []
+        for actor in actors:
+            # Remove actors that are too long or contain invalid characters
+            if (len(actor) <= 20 and 
+                not any(invalid in actor.lower() for invalid in ['society', 'heating', 'air-conditioning', 'engineers', 'american', 'refrigerating']) and
+                re.match(r'^[a-z\-]+$', actor)):
+                final_actors.append(actor)
+        
+        return sorted(final_actors)
 
     def extract_sentences_comprehensive(self, text: str) -> List[str]:
         """Extract all meaningful sentences from text with maximum coverage"""

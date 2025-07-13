@@ -6,7 +6,8 @@ import openai
 import os
 import json
 import logging
-from typing import Dict, Any, List
+import asyncio
+from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
 import re
 
@@ -39,6 +40,9 @@ class DiagramService:
             
             # Extract nouns/classes using POS tagging for optimizer enhancement
             extracted_entities = self._extract_entities_with_pos(snl_text) if self.nlp else {}
+            
+            # Get system prompt for enhanced class diagram generation
+            system_prompt = self._get_enhanced_class_diagram_system_prompt()
             
             # Enhanced prompt with POS-tagged entities
             prompt = self._create_enhanced_class_diagram_prompt(snl_text, actors, extracted_entities)
@@ -993,188 +997,7 @@ ClassA ..|> InterfaceB : realization
 ClassA "1" -- "0..*" ClassB : labeled association
 ```
 
-### QUALITY CRITERIA:
-
-1. **Completeness**: All major entities from requirements are represented
-2. **Correctness**: Relationships accurately reflect the domain
-3. **Consistency**: Naming and notation follow conventions
-4. **Clarity**: Diagram is readable and understandable
-5. **Maintainability**: Structure supports future changes
-
-### MANDATORY REQUIREMENTS:
-
-1. **EVERY class MUST have meaningful attributes and methods**
-2. **EVERY class MUST have at least one relationship (no orphaned classes)**
-3. **USE specific, domain-relevant class names (avoid generic terms)**
-4. **INCLUDE proper visibility modifiers for all attributes and methods**
-5. **SHOW multiplicities for associations where relevant**
-6. **VALIDATE that all referenced classes in relationships are defined**
-7. **BALANCE complexity - include essential elements without overcomplication**
-
-### FORBIDDEN PRACTICES:
-
-1. **Generic class names** like "System", "Manager", "Handler"
-2. **Classes without attributes or methods**
-3. **Relationships without labels**
-4. **Undefined class references in relationships**
-5. **Overly complex diagrams with too many classes**
-
-Generate ONLY the PlantUML code that demonstrates these concepts, starting with @startuml and ending with @enduml. Focus on creating a well-structured, professionally designed class diagram that follows UML best practices and object-oriented design principles."""
-    
-    def _create_enhanced_class_diagram_prompt(self, snl_text: str, actors: List[str], extracted_entities: Dict[str, List[str]]) -> str:
-        """
-        Create enhanced prompt for class diagram generation with POS tagging data
-        """
-        actors_text = ", ".join(actors) if actors else "Not specified"
-        
-        return f"""Generate a PlantUML class diagram for the Library Management System that EXACTLY matches the gold standard structure.
-
-SNL Requirements:
-{snl_text}
-
-Identified Actors: {actors_text}
-
-MANDATORY REQUIREMENTS:
-1. Generate EXACTLY the gold standard class structure with User as base class
-2. Include ALL required inheritance
-3. Include ALL required associations
-4. Use the EXACT attributes and methods specified in the gold standard
-5. Do NOT create generic "System" class - use the specific class hierarchy
-6. Focus on the Library Management System domain as specified in the gold standard
-
-The diagram MUST match the exact gold standard structure provided in the system prompt."""
-    
-    def _get_enhanced_sequence_diagram_system_prompt(self) -> str:
-        """
-        Enhanced system prompt for sequence diagram generation with comprehensive UML concepts
-        """
-        return """You are an expert software architect and UML sequence diagram specialist with deep knowledge of behavioral modeling and interaction design. Your task is to generate comprehensive PlantUML sequence diagrams from Structured Natural Language (SNL) requirements.
-
-## FUNDAMENTAL UML SEQUENCE DIAGRAM CONCEPTS:
-
-### BASIC ELEMENTS:
-
-1. **Participants**: Objects or actors that participate in the interaction
-   - **Actors**: External entities (users, systems)
-     - Syntax: actor ActorName
-     - Example: actor User, actor Administrator
-   
-   - **Participants**: System components, classes, or services
-     - Syntax: participant ParticipantName
-     - Example: participant LoginService, participant Database
-
-2. **Lifelines**: Vertical dashed lines representing object existence over time
-   - Automatically created for each participant
-   - Show the lifespan of objects during the interaction
-
-3. **Messages**: Communications between participants
-   - **Synchronous**: --> (waits for response)
-   - **Asynchronous**: ->> (doesn't wait for response)
-   - **Return**: <-- (response message)
-   - **Self-call**: --> (to self)
-
-### ADVANCED CONCEPTS:
-
-#### MESSAGE TYPES:
-
-1. **Synchronous Messages (-->)**:
-   - Sender waits for the receiver to process
-   - Used for method calls, API requests
-   - Example: User --> LoginService : authenticate(username, password)
-
-2. **Asynchronous Messages (->>)**:
-   - Sender doesn't wait for completion
-   - Used for events, notifications
-   - Example: PaymentService ->> NotificationService : sendPaymentConfirmation()
-
-3. **Return Messages (<--)**:
-   - Show the response or result
-   - Can be explicit or implicit
-   - Example: LoginService <-- Database : userDetails
-
-4. **Create Messages**:
-   - Show object creation
-   - Syntax: create ObjectName
-   - Example: LoginService -> create UserSession
-
-5. **Destroy Messages**:
-   - Show object destruction
-   - Syntax: destroy ObjectName
-   - Shows when objects are no longer needed
-
-#### ACTIVATION BOXES:
-- Show when an object is active (processing)
-- Syntax: activate/deactivate ParticipantName
-- Visual representation of method execution time
-
-#### INTERACTION FRAGMENTS:
-
-1. **Alternative (alt)**:
-   - Conditional logic, if-else statements
-   ```
-   alt condition
-       Message if true
-   else
-       Message if false
-   end
-   ```
-
-2. **Optional (opt)**:
-   - Optional execution based on condition
-   ```
-   opt condition
-       Optional message
-   end
-   ```
-
-3. **Loop**:
-   - Repetitive interactions
-   ```
-   loop condition
-       Repeated messages
-   end
-   ```
-
-4. **Parallel (par)**:
-   - Concurrent execution
-   ```
-   par
-       First parallel flow
-   and
-       Second parallel flow
-   end
-   ```
-
-5. **Break**:
-   - Exception handling or early termination
-   ```
-   break condition
-       Exception handling
-   end
-   ```
-
-#### NOTES AND ANNOTATIONS:
-- **note left/right/over**: Add explanatory notes
-- **ref**: Reference to another sequence diagram
-- **group**: Group related messages
-
-### DESIGN PRINCIPLES:
-
-#### INTERACTION DESIGN:
-1. **Clear Flow**: Show logical sequence of operations
-2. **Proper Abstraction**: Right level of detail for the audience
-3. **Error Handling**: Include exception scenarios
-4. **Timing**: Show time-dependent interactions
-
-#### MESSAGE DESIGN:
-1. **Meaningful Names**: Descriptive message labels
-2. **Parameters**: Include relevant parameters
-3. **Return Values**: Show important return values
-4. **State Changes**: Reflect state modifications
-
-### PLANTUML SYNTAX RULES:
-
-#### BASIC SYNTAX:
+#### SEQUENCE DIAGRAM SYNTAX:
 ```
 @startuml
 actor User
@@ -1315,94 +1138,338 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
     
     async def extract_actors_from_requirements(self, original_requirements: str, class_diagram: str, sequence_diagram: str) -> List[str]:
         """
-        Extract actors from original requirements and verify against generated diagrams
+        Extract actors from original requirements with enhanced filtering for new case studies
         """
         try:
-            # Use NLP to extract potential actors from requirements
-            extracted_actors = []
+            # Define valid actor patterns for different domains
+            valid_actor_patterns = {
+                'human_roles': [
+                    'user', 'admin', 'administrator', 'customer', 'member', 'librarian', 
+                    'student', 'teacher', 'manager', 'employee', 'staff', 'supervisor', 
+                    'owner', 'guest', 'visitor', 'operator', 'monitoring-operator', 'resident', 'occupant'
+                ],
+                'external_systems': [
+                    'remote sensor', 'remotesensor', 'external sensor', 'monitoring system',
+                    'external system', 'remote system', 'sensor', 'helpfacility', 'help facility'
+                ],
+                'digital_home_devices': [
+                    'humidistat', 'thermostat', 'alarm', 'sensor', 'planner', 'powerswitch', 
+                    'appliance', 'controller', 'detector', 'actuator', 'switch', 'device'
+                ],
+                'smart_components': [
+                    'hvac system', 'security system', 'lighting system', 'climate control',
+                    'energy management', 'home automation'
+                ],
+                'digital_home_specific': [
+                    'humidstat', 'humidistat', 'thermostat', 'alarm', 'sensor', 'planner', 'powerswitch', 
+                    'appliance', 'smokedetector', 'motionsensor', 'temperaturesensor',
+                    'humiditysensor', 'pressuresensor', 'energymeter'
+                ],
+                'monitoring_system_specific': [
+                    'operator', 'remotesensor', 'remote sensor', 'monitoringsystem', 'monitoring system',
+                    'alarm', 'helpfacility', 'help facility', 'notification', 'monitoringlocation', 
+                    'monitoring location', 'sensor'
+                ],
+                'library_system_specific': [
+                    'user', 'member', 'guest', 'librarian', 'administrator', 'admin', 'book', 
+                    'library', 'catalog', 'collection', 'staff'
+                ]
+            }
             
-            if self.nlp:
-                doc = self.nlp(original_requirements)
-                
-                # Extract actors using NER and POS tagging
-                for ent in doc.ents:
-                    if ent.label_ in ['PERSON', 'ORG', 'GPE']:
-                        extracted_actors.append(ent.text)
-                
-                # Extract actors from nouns that might represent roles or domain entities
-                role_keywords = ['user', 'admin', 'administrator', 'customer', 'member', 'librarian', 'student', 'teacher', 'manager', 'employee', 'staff', 'operator', 'supervisor', 'owner', 'guest', 'visitor']
-                domain_entities = ['book', 'library', 'document', 'article', 'journal', 'magazine', 'publication', 'author', 'publisher', 'reader', 'patron', 'borrower']
-                
-                # Words that should not be considered actors even if capitalized
-                excluded_words = ['view','system', 'click', 'enter', 'select', 'login', 'issue', 'return', 'home', 'page', 'button', 'id', 'details', 'books', 'members', 'users']
-                
-                for token in doc:
-                    # Skip if it's an excluded word
-                    if token.text.lower() in excluded_words:
-                        continue
-                        
-                    # Check for role-based actors
-                    if token.pos_ == 'NOUN' and token.text.lower() in role_keywords:
-                        extracted_actors.append(token.text.capitalize())
-                    # Check for domain-specific entities that could be actors
-                    elif token.pos_ == 'NOUN' and token.text.lower() in domain_entities:
-                        extracted_actors.append(token.text.capitalize())
-                    # Check for capitalized nouns that might be proper nouns (entities/systems)
-                    elif token.pos_ in ['NOUN', 'PROPN'] and token.text[0].isupper() and len(token.text) > 2:
-                        # Avoid common words that are capitalized due to sentence start
-                        if token.i > 0 or token.text.lower() not in ['the', 'a', 'an', 'this', 'that']:
-                            # Additional check: don't include if it's actually a verb being used as noun
-                            if not (token.lemma_.lower() in ['view', 'click', 'enter', 'select', 'login']):
-                                extracted_actors.append(token.text)
+            # Comprehensive exclusion list for things that are NOT actors
+            excluded_patterns = [
+                # Technical components/interfaces (but not for Digital Home System)
+                'webinterface', 'web interface', 'interface', 'database', 'application',
+                # Organizations and standards (not actors)
+                'american society', 'society of heating', 'heating', 'refrigerating', 'air-conditioning engineers',
+                'ashrae', 'engineers', 'society', 'organization', 'association',
+                # State values and technical terms
+                'on', 'off', 'true', 'false', 'high', 'medium', 'low', 'status', 'value', 'limit',
+                # Abbreviations and acronyms (but keep device-specific ones for Digital Home)
+                'pda', 'dh', 'api', 'ui', 'gui',
+                # Generic terms
+                'data', 'information', 'details', 'management', 'view', 'click', 'enter', 
+                'select', 'login', 'home', 'page', 'button', 'id', 'monitor',
+                # Articles and common words
+                'the', 'a', 'an', 'and', 'or', 'but', 'with', 'for', 'to', 'from',
+                # Common phrases that get misidentified
+                'user monitor', 'user read', 'user set', 'user override'
+            ]
             
-            # Also use LLM to extract actors from requirements text
-            prompt = f"""Analyze the following requirements and identify all actors (users, roles, external systems):
+            # Use LLM with strict rules for actor extraction
+            prompt = f"""Analyze the following requirements and identify ONLY valid actors. Be extremely strict.
 
 Requirements:
 {original_requirements}
 
-Also consider the entities mentioned in these diagrams:
-Class Diagram: {class_diagram[:500]}...
-Sequence Diagram: {sequence_diagram[:500]}...
+STRICT ACTOR IDENTIFICATION RULES:
 
-List all actors as a comma-separated list. Focus on:
-1. User roles (Admin, User, Customer, etc.)
-2. External systems
-3. Stakeholders mentioned in requirements
-4. Entities that perform actions
+VALID ACTORS (only include these types):
+1. Human roles who interact with the system: User, Administrator, Operator, Librarian, Member, etc.
+2. External systems that send data: RemoteSensor, ExternalSystem, MonitoringSystem
+3. Specific user roles mentioned: Homeowner, Resident, Monitoring-Operator
+4. Digital Home System device actors: HumidStat, Thermostat, Alarm, Sensor, Planner, PowerSwitch, Appliance
+5. Monitoring System actors: Operator, RemoteSensor, MonitoringSystem, Alarm, HelpFacility, Notification, MonitoringLocation, Sensor
+6. Library System actors: User, Member, Guest, Librarian, Administrator, Book
 
-Return only the actor names separated by commas."""
+INVALID ACTORS (NEVER include these):
+1. Organizations: "American Society of Heating", "Refrigerating and Air-Conditioning Engineers"
+2. Technical interfaces: "WebInterface", "UserInterface", "Database"
+3. Abbreviations: "PDA", "DH", "HVAC" (unless they're specific device names)
+4. State values: "ON", "OFF", "High", "Medium", "Low"
+5. Generic terms: "System", "Application", "Data", "Information"
+6. Phrases: "The user", "A user", "User monitor", "User read"
+7. Standards/specifications: ASHRAE 2010, engineering standards
+
+EXAMPLES FOR THIS CASE STUDY:
+Digital Home System → Valid actors: User, Homeowner, HumidStat, Thermostat, Alarm, Sensor, Planner, PowerSwitch, Appliance
+Monitoring System → Valid actors: Operator, RemoteSensor, MonitoringSystem, Alarm, HelpFacility, Notification, MonitoringLocation, Sensor
+Library System → Valid actors: User, Member, Guest, Librarian, Administrator, Book
+
+SPECIAL RULES:
+- If requirements mention "user" multiple times, include "User"
+- If it's a home system, consider "Homeowner" as a potential actor
+- If it mentions "remote sensor" or "external sensor", include "RemoteSensor"
+- If it mentions specific operator roles like "Monitoring-Operator", include them
+- For Digital Home Systems, include device actors: HumidStat, Thermostat, Alarm, Sensor, Planner, PowerSwitch, Appliance
+- For Monitoring Systems, include: Operator, RemoteSensor, MonitoringSystem, Alarm, HelpFacility, Notification, MonitoringLocation, Sensor
+- For Library Systems, include: User, Member, Guest, Librarian, Administrator, Book
+- Always be more inclusive of domain-specific human roles, external systems, and device actors
+
+RETURN FORMAT: Only list valid actor names separated by commas. Maximum 8 actors.
+
+If you find phrases like "The user" or "A user", just return "User".
+If you find "Monitoring-Operator", that's valid.
+If you find "WebInterface" or "American Society of Heating", DO NOT include them.
+For Digital Home System, include: User, HumidStat, Thermostat, Alarm, Sensor, Planner, PowerSwitch, Appliance
+For Monitoring System, include: Operator, RemoteSensor, MonitoringSystem, Alarm, HelpFacility, Notification, MonitoringLocation, Sensor
+For Library System, include: User, Member, Guest, Librarian, Administrator, Book
+
+Valid actors for this requirements text:"""
 
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert requirements analyst. Extract actors from requirements text."},
+                    {"role": "system", "content": "You are a strict UML actor identification expert. Only identify true actors - human roles and external systems that interact with the main system. Be extremely conservative and exclude anything that is not clearly an actor."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.2,
-                max_tokens=200
+                temperature=0.1,
+                max_tokens=150
             )
             
-            llm_actors = [actor.strip() for actor in response.choices[0].message.content.split(',')]
+            # Parse LLM response
+            llm_response = response.choices[0].message.content.strip()
+            potential_actors = [actor.strip() for actor in llm_response.split(',') if actor.strip()]
             
-            # Combine and deduplicate actors
-            all_actors = list(set(extracted_actors + llm_actors))
+            # Apply additional filtering
+            filtered_actors = []
+            for actor in potential_actors:
+                actor_clean = actor.lower().strip()
+                
+                # Skip if empty or too short
+                if not actor_clean or len(actor_clean) <= 1:
+                    continue
+                
+                # Skip if in exclusion list
+                if any(excluded in actor_clean for excluded in excluded_patterns):
+                    continue
+                
+                # Skip if it's a phrase rather than a role
+                if actor_clean.startswith(('the ', 'a ', 'an ')):
+                    # Extract the role part
+                    role = actor_clean.split(' ', 1)[1] if ' ' in actor_clean else actor_clean
+                    if role in valid_actor_patterns['human_roles']:
+                        filtered_actors.append(role.capitalize())
+                    continue
+                
+                # Check if it's a valid human role
+                if actor_clean in valid_actor_patterns['human_roles']:
+                    filtered_actors.append(actor.capitalize())
+                
+                # Check if it's a valid external system
+                elif any(ext_sys in actor_clean for ext_sys in valid_actor_patterns['external_systems']):
+                    if 'remote' in actor_clean and 'sensor' in actor_clean:
+                        filtered_actors.append('RemoteSensor')
+                    elif 'monitoring' in actor_clean and 'system' in actor_clean:
+                        filtered_actors.append('MonitoringSystem')
+                
+                # Check for Digital Home System specific device actors
+                elif actor_clean in valid_actor_patterns['digital_home_specific']:
+                    # Map to proper case
+                    device_name_mapping = {
+                        'humidstat': 'HumidStat',
+                        'humidistat': 'HumidStat',  # Alternative spelling
+                        'thermostat': 'Thermostat', 
+                        'alarm': 'Alarm',
+                        'sensor': 'Sensor',
+                        'planner': 'Planner',
+                        'powerswitch': 'PowerSwitch',
+                        'appliance': 'Appliance',
+                        'smokedetector': 'SmokeDetector',
+                        'motionsensor': 'MotionSensor',
+                        'temperaturesensor': 'TemperatureSensor',
+                        'humiditysensor': 'HumiditySensor',
+                        'pressuresensor': 'PressureSensor',
+                        'energymeter': 'EnergyMeter'
+                    }
+                    if actor_clean in device_name_mapping:
+                        filtered_actors.append(device_name_mapping[actor_clean])
+                
+                # Check for Monitoring System specific actors
+                elif actor_clean in valid_actor_patterns['monitoring_system_specific']:
+                    # Map to proper case
+                    monitoring_name_mapping = {
+                        'operator': 'Operator',
+                        'remotesensor': 'RemoteSensor',
+                        'remote sensor': 'RemoteSensor',
+                        'monitoringsystem': 'MonitoringSystem',
+                        'monitoring system': 'MonitoringSystem',
+                        'alarm': 'Alarm',
+                        'helpfacility': 'HelpFacility',
+                        'help facility': 'HelpFacility',
+                        'notification': 'Notification',
+                        'monitoringlocation': 'MonitoringLocation',
+                        'monitoring location': 'MonitoringLocation',
+                        'sensor': 'Sensor'
+                    }
+                    if actor_clean in monitoring_name_mapping:
+                        filtered_actors.append(monitoring_name_mapping[actor_clean])
+                
+                # Check for Library System specific actors
+                elif actor_clean in valid_actor_patterns['library_system_specific']:
+                    # Map to proper case
+                    library_name_mapping = {
+                        'user': 'User',
+                        'member': 'Member',
+                        'guest': 'Guest',
+                        'librarian': 'Librarian',
+                        'administrator': 'Administrator',
+                        'admin': 'Administrator',
+                        'book': 'Book',
+                        'library': 'Library',
+                        'catalog': 'Catalog',
+                        'collection': 'Collection',
+                        'staff': 'Staff'
+                    }
+                    if actor_clean in library_name_mapping:
+                        filtered_actors.append(library_name_mapping[actor_clean])
+                
+                # Check for compound roles like "Monitoring-Operator"
+                elif '-' in actor_clean and any(role in actor_clean for role in valid_actor_patterns['human_roles']):
+                    filtered_actors.append(actor.title())
             
-            # Filter out empty strings and overly generic terms
-            excluded_terms = ['system', 'database', 'application', 'data', 'information', 'details', 'management', 'view', 'click', 'enter', 'select', 'login', 'home', 'page', 'button', 'id', 'books', 'members', 'users']
-            filtered_actors = [
-                actor for actor in all_actors 
-                if actor and len(actor) > 1 and actor.lower() not in excluded_terms and not actor.endswith('.')
-            ]
+            # Domain-specific actor detection - be more inclusive
+            requirements_lower = original_requirements.lower()
             
-            # Resolve semantic conflicts between similar actors (e.g., User vs Member)
-            resolved_actors = self._resolve_actor_conflicts(filtered_actors, original_requirements)
+            # Always add User if mentioned multiple times in requirements
+            user_mentions = requirements_lower.count('user')
+            if user_mentions >= 3 and 'User' not in filtered_actors:
+                filtered_actors.append('User')
             
-            return resolved_actors[:10]  # Limit to 10 actors for manageable processing
+            # Digital Home System actors - prioritize core device actors
+            if any(term in requirements_lower for term in ['temperature', 'humidity', 'thermostat', 'home', 'appliance']):
+                # Core Digital Home System device actors (prioritize these)
+                digital_home_actors = [
+                    ('humidstat', 'HumidStat'),
+                    ('humidistat', 'HumidStat'),
+                    ('thermostat', 'Thermostat'),
+                    ('alarm', 'Alarm'),
+                    ('planner', 'Planner'),
+                    ('powerswitch', 'PowerSwitch'),
+                    ('appliance', 'Appliance'),
+                    ('sensor', 'Sensor'),
+                    ('sensors', 'Sensor')
+                ]
+                
+                for term, actor_name in digital_home_actors:
+                    if term in requirements_lower and actor_name not in filtered_actors:
+                        filtered_actors.append(actor_name)
+                
+                # For home systems, consider homeowner as a distinct actor
+                if any(term in requirements_lower for term in ['home', 'house', 'residence']):
+                    if 'Homeowner' not in filtered_actors:
+                        filtered_actors.append('Homeowner')
+            
+            # Monitoring System actors - include specific monitoring actors  
+            if any(term in requirements_lower for term in ['operator', 'monitoring', 'alarm', 'emergency', 'facility', 'notification']):
+                # Core Monitoring System actors (prioritize these)
+                monitoring_actors = [
+                    ('operator', 'Operator'),
+                    ('remote sensor', 'RemoteSensor'),
+                    ('remotesensor', 'RemoteSensor'),
+                    ('monitoring system', 'MonitoringSystem'),
+                    ('monitoringsystem', 'MonitoringSystem'),
+                    ('alarm', 'Alarm'),
+                    ('help facility', 'HelpFacility'),
+                    ('helpfacility', 'HelpFacility'),
+                    ('notification', 'Notification'),
+                    ('monitoring location', 'MonitoringLocation'),
+                    ('monitoringlocation', 'MonitoringLocation'),
+                    ('sensor', 'Sensor'),
+                    ('sensors', 'Sensor')
+                ]
+                
+                for term, actor_name in monitoring_actors:
+                    if term in requirements_lower and actor_name not in filtered_actors:
+                        filtered_actors.append(actor_name)
+                
+                # Special handling for compound terms
+                if 'monitoring-operator' in requirements_lower and 'Monitoring-Operator' not in filtered_actors:
+                    filtered_actors.append('Monitoring-Operator')
+                if any(term in requirements_lower for term in ['remote sensor', 'external sensor']):
+                    if 'RemoteSensor' not in filtered_actors:
+                        filtered_actors.append('RemoteSensor')
+            
+            # Library System actors - include specific library actors
+            if any(term in requirements_lower for term in ['library', 'book', 'librarian', 'member', 'guest', 'catalog', 'collection']):
+                # Core Library System actors (prioritize these)
+                library_actors = [
+                    ('user', 'User'),
+                    ('member', 'Member'),
+                    ('guest', 'Guest'),
+                    ('librarian', 'Librarian'),
+                    ('administrator', 'Administrator'),
+                    ('admin', 'Administrator'),
+                    ('book', 'Book'),
+                    ('library', 'Library'),
+                    ('catalog', 'Catalog'),
+                    ('collection', 'Collection')
+                ]
+                
+                for term, actor_name in library_actors:
+                    if term in requirements_lower and actor_name not in filtered_actors:
+                        filtered_actors.append(actor_name)
+            
+            # Remove duplicates and limit
+            final_actors = list(dict.fromkeys(filtered_actors))  # Preserve order while removing duplicates
+            
+            # Ensure we always have at least basic actors but prefer domain-specific ones
+            if not final_actors:
+                final_actors = ['User']
+            elif len(final_actors) == 1 and final_actors[0] == 'User':
+                # If we only have User, try to add domain-specific actors
+                requirements_lower = original_requirements.lower()
+                if any(term in requirements_lower for term in ['home', 'house', 'residence']):
+                    final_actors.append('Homeowner')
+                if any(term in requirements_lower for term in ['sensor', 'remote', 'external']):
+                    final_actors.append('ExternalSystem')
+            
+            # Add System if not present but only for non-specific domain systems
+            is_digital_home = any(term in requirements_lower for term in ['temperature', 'humidity', 'thermostat', 'home', 'appliance'])
+            is_monitoring_system = any(term in requirements_lower for term in ['operator', 'monitoring', 'alarm', 'emergency', 'facility', 'notification'])
+            is_library_system = any(term in requirements_lower for term in ['library', 'book', 'librarian', 'member', 'guest', 'catalog', 'collection'])
+            
+            if not is_digital_home and not is_monitoring_system and not is_library_system and len(final_actors) > 1 and 'System' not in final_actors:
+                final_actors.append('System')
+            elif not is_digital_home and not is_monitoring_system and not is_library_system and len(final_actors) == 1:
+                # Don't add System if we only have one actor to avoid being too generic
+                pass
+            
+            return final_actors[:10]  # Increased limit to 10 actors to ensure all Digital Home System actors are included
             
         except Exception as e:
             print(f"Error extracting actors: {str(e)}")
-            return ['User', 'System', 'Admin']  # Fallback actors
+            return ['User', 'System']  # Minimal fallback actors
 
     async def verify_diagrams_with_actors(self, class_diagram: str, sequence_diagram: str, identified_actors: List[str]) -> Dict[str, Any]:
         """
@@ -1414,6 +1481,13 @@ Return only the actor names separated by commas."""
             prompt = f"""Strictly verify the following diagrams against the identified actors. Be thorough in checking for missing actors.
 
 Identified Actors (ALL must be present): {actors_text}
+
+IMPORTANT VERIFICATION RULES:
+1. Each identified actor MUST be represented in the diagrams
+2. For class diagrams: Each actor must be a class with appropriate attributes and methods
+3. For sequence diagrams: Each actor must be a participant with meaningful interactions
+4. Actors should be represented consistently across both diagrams
+5. Actors must be nouns representing people, organizations, or external systems that interact with the main system
 
 Class Diagram:
 {class_diagram}
@@ -1544,7 +1618,8 @@ Be extremely strict about missing actors. If an identified actor is not explicit
 
     async def optimize_diagrams_with_llm_and_actors(self, original_requirements: str, class_diagram: str, 
                                                   sequence_diagram: str, identified_actors: List[str], 
-                                                  verification_issues: Dict[str, Any]) -> Dict[str, Any]:
+                                                  verification_issues: Dict[str, Any], 
+                                                  diagram_errors: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         Final LLM optimization using GPT-3.5 with identified actors and verification feedback
         Enhanced for consistency and strict compliance
@@ -1561,6 +1636,22 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                 issues_text += f"Generic elements to avoid: {', '.join(verification_issues['generic_elements'])}\n"
             if verification_issues.get('recommendations'):
                 issues_text += f"Recommendations: {', '.join(verification_issues['recommendations'])}\n"
+            
+            # Add diagram errors if provided
+            if diagram_errors:
+                error_messages = []
+                if isinstance(diagram_errors, dict):
+                    # Handle frontend format: {class: str, sequence: str}
+                    if diagram_errors.get('class'):
+                        error_messages.append(f"Class diagram error: {diagram_errors['class']}")
+                    if diagram_errors.get('sequence'):
+                        error_messages.append(f"Sequence diagram error: {diagram_errors['sequence']}")
+                elif isinstance(diagram_errors, list):
+                    # Handle list format
+                    error_messages = diagram_errors
+                
+                if error_messages:
+                    issues_text += f"Diagram errors to fix: {', '.join(error_messages)}\n"
 
             # Enhanced Class Diagram Optimization
             class_prompt = f"""Generate a PlantUML class diagram with STRICT REQUIREMENTS:
@@ -1568,6 +1659,11 @@ Be extremely strict about missing actors. If an identified actor is not explicit
 ACTORS TO IMPLEMENT AS CLASSES: {actors_text}
 REQUIREMENTS: {original_requirements[:500]}
 ISSUES TO FIX: {issues_text[:200]}
+
+ACTOR CLASSIFICATION RULES:
+- Human actors: Users, Operators, Administrators, etc. (represent as classes with user-related attributes/methods)
+- External systems: RemoteSensor, ExternalSystem, etc. (represent as classes with system-related attributes/methods)
+- DO NOT treat these as actors: System components, states (ON/OFF), abbreviations (PDA/HVAC), technical terms (Database)
 
 MANDATORY CLASS STRUCTURE:
 - Create class for EACH actor: {actors_text}
@@ -1581,11 +1677,15 @@ MANDATORY CLASS STRUCTURE:
 
 REQUIRED ATTRIBUTES FORMAT:
 - visibility name: Type
-- Examples: -userId: string, +name: string, -isAvailable: boolean
+- Examples: -userId: string, +name: string, -isActive: boolean
+- For human actors: attributes like name, id, role, permissions
+- For system actors: attributes like status, configuration, connectionState
 
 REQUIRED METHODS FORMAT:
 - visibility methodName(params): ReturnType
-- Examples: +login(): boolean, +addBook(book: Book): void
+- Examples: +login(): boolean, +performAction(action: string): void
+- For human actors: methods like login(), viewStatus(), setPreference()
+- For system actors: methods like sendData(), receiveCommand(), updateStatus()
 
 INHERITANCE RULES:
 - If User is an actor, other user types inherit from User
@@ -1597,16 +1697,22 @@ INHERITANCE RULES:
 ASSOCIATION RULES:
 - EVERY class needs relationships
 - Use proper UML syntax with multiplicity
-- Examples: Librarian --> "0..*" Book : manages
+- Examples: Operator --> "0..*" Alarm : monitors
+- Human actors should have associations with the entities they interact with
+- System actors should have associations with the systems they connect to
+
+CASE STUDY SPECIFIC GUIDANCE:
+- For Digital Home System: Focus on User interactions with sensors, controllers, and appliances
+- For Monitoring System: Focus on Operator interactions with sensors, alarms, and monitoring data
+- For Library System: Focus on User/Librarian interactions with books and library resources
 
 SYNTAX RULES:
-- Use PascalCase for all class names without spaces. E.g., 'FundTransfer', not 'Fund Transfer'.
-- Define only one version of each class. Avoid duplicate definitions (e.g., 'Service' vs. 'Services').
+- Use PascalCase for all class names without spaces. E.g., 'RemoteSensor', not 'Remote Sensor'.
+- Define only one version of each class. Avoid duplicate definitions.
 - Inherit from parent classes using the correct direction. E.g., 'Child <|-- Parent' is invalid.
 - All attributes must follow the format: +attributeName: Type
 - All methods must follow the format: +methodName(param: Type): ReturnType
 - Use meaningful relationship labels; ensure association direction reflects real ownership or access.
-- If a class contains another (e.g., Services contains many Service), model it with the correct aggregation.
 
 Note: Before generating UML code, validate all class participants, check for naming collisions, confirm inheritance direction, and ensure syntactical correctness with complete closure of blocks. Prefer single-word PascalCase naming convention across all identifiers.
 
@@ -1620,10 +1726,17 @@ MANDATORY PARTICIPANTS: {actors_text}
 REQUIREMENTS: {original_requirements[:500]}
 ISSUES TO FIX: {issues_text[:200]}
 
+ACTOR CLASSIFICATION RULES:
+- Human actors: Users, Operators, Administrators, etc. (represent as actors initiating actions)
+- External systems: RemoteSensor, ExternalSystem, etc. (represent as participants responding to or sending data)
+- DO NOT treat these as actors: System components, states (ON/OFF), abbreviations (PDA/HVAC), technical terms (Database)
+
 PARTICIPANT DECLARATION:
 - Use 'actor' for human roles, 'participant' for system components
 - EVERY identified actor MUST appear as participant
 - NO generic participants (System, Database, Application)
+- For human actors: use actor "User" or "Operator"
+- For system actors: use participant "ExternalSystem"
 
 MESSAGE FLOW RULES:
 - Each participant MUST send/receive at least 1 message
@@ -1632,12 +1745,19 @@ MESSAGE FLOW RULES:
 - Use activation boxes with activate/deactivate
 - Use proper UML syntax for loops, alternatives, and options
 - Use proper UML syntax for parallel flows
+- Human actors typically initiate sequences with actions
+- System actors typically respond with data or notifications
 
 SECTION ORGANIZATION:
 - Use == Section Name == for logical groupings
 - Show realistic business workflow
 - Include alt/opt blocks for conditions
 - Use proper UML syntax for grouping messages
+
+CASE STUDY SPECIFIC GUIDANCE:
+- For Digital Home System: Show User interactions with sensors, controllers, and appliances
+- For Monitoring System: Show Operator interactions with sensors, alarms, and monitoring data
+- For Library System: Show User/Librarian interactions with books and library resources
 
 MANDATORY SYNTAX:
 - Use 'actor' for actors, 'participant' for system components
@@ -1652,9 +1772,9 @@ MANDATORY SYNTAX:
 - Use 'alt' for conditional logic
 - Use 'opt' for optional messages
 - Declare all participants and actors only once at the beginning.
-- Use aliases for multi-word participants. E.g., 'participant Fund_Transfer as "Fund Transfer"'
+- Use aliases for multi-word participants. E.g., 'participant Remote_Sensor as "Remote Sensor"'
 - Use consistent naming throughout the diagram for participants.
-- Only define one logical actor (e.g., 'Customer') unless there are truly multiple human actors.
+- Only define one logical actor (e.g., 'User') unless there are truly multiple human actors.
 - Always close 'group', 'opt', 'alt', 'else' blocks with 'end'.
 - Avoid nesting too many 'alt' and 'opt' blocks unless necessary; prefer clarity over depth.
 
@@ -1666,6 +1786,9 @@ FORBIDDEN ELEMENTS:
 - Participants not in actor list
 - Overly complex diagrams with too many participants
 - Generic participants like "Database", "Application"
+- DO NOT treat abbreviations (PDA, HVAC) as participants
+- DO NOT treat states or values (ON, OFF) as participants
+- DO NOT treat technical components (Database, API) as participants unless they are external systems
 
 Note: Before generating UML code, validate all sequence participants, check for naming collisions, confirm inheritance direction, and ensure syntactical correctness with complete closure of blocks. Prefer single-word PascalCase naming convention across all identifiers.
 
@@ -1826,6 +1949,312 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
             return False
 
         return True
+        
+    async def validate_plantuml_syntax(self, plantuml_code: str, diagram_type: str, max_retries: int = 3) -> Dict[str, Any]:
+        """
+        Validates PlantUML syntax and returns detailed validation results with retry mechanism.
+        
+        Args:
+            plantuml_code: The PlantUML code to validate
+            diagram_type: The type of diagram ('class' or 'sequence')
+            max_retries: Maximum number of automatic fix attempts (default: 3)
+            
+        Returns:
+            Dictionary with validation results including:
+            - is_valid: Boolean indicating if the syntax is valid
+            - errors: List of error messages if any
+            - warnings: List of warning messages if any
+            - line_errors: Dictionary mapping line numbers to specific errors
+            - fixed_code: Corrected PlantUML code if automatic fixes were applied
+            - retry_count: Number of retry attempts made
+            - retry_suggestions: Suggestions for manual fixes if automatic fixes failed
+        """
+        logging.info(f"Validating {diagram_type} diagram syntax")
+        
+        result = {
+            "is_valid": False,
+            "errors": [],
+            "warnings": [],
+            "line_errors": {},
+            "fixed_code": None,
+            "retry_count": 0,
+            "retry_suggestions": [],
+            "can_retry": False
+        }
+        
+        # Store original code for comparison after fixes
+        original_code = plantuml_code
+        current_code = plantuml_code
+        
+        # Basic validation
+        if not current_code or len(current_code.strip()) < 10:
+            result["errors"].append("Empty or too short PlantUML code")
+            return result
+        
+        # Attempt automatic fixes with retry mechanism
+        for retry in range(max_retries):
+            # Reset error lists for this attempt
+            errors = []
+            warnings = []
+            line_errors = {}
+            fixed = False
+            
+            # Check for required delimiters and fix if missing
+            if not current_code.strip().startswith('@startuml'):
+                errors.append("Missing @startuml at the beginning")
+                line_errors["1"] = "Missing @startuml tag"
+                current_code = '@startuml\n' + current_code.strip()
+                fixed = True
+                
+            if not current_code.strip().endswith('@enduml'):
+                errors.append("Missing @enduml at the end")
+                last_line = len(current_code.split('\n'))
+                line_errors[str(last_line)] = "Missing @enduml tag"
+                current_code = current_code.strip() + '\n@enduml'
+                fixed = True
+            
+            # Check for balanced brackets
+            open_count = current_code.count('{')
+            close_count = current_code.count('}')
+            if open_count != close_count:
+                errors.append(f"Unbalanced brackets: {open_count} opening vs {close_count} closing")
+                # Try to fix unbalanced brackets
+                if open_count > close_count:
+                    # Add missing closing brackets
+                    current_code = current_code.rstrip() + '\n' + ('}' * (open_count - close_count)) + '\n@enduml'
+                    fixed = True
+                elif close_count > open_count:
+                    # Try to remove extra closing brackets (more complex, just flag for manual fix)
+                    errors.append("Too many closing brackets - requires manual fix")
+                    result["retry_suggestions"].append("Check for and remove extra closing brackets '}'")
+            
+            # Check for balanced parentheses
+            open_count = current_code.count('(')
+            close_count = current_code.count(')')
+            if open_count != close_count:
+                errors.append(f"Unbalanced parentheses: {open_count} opening vs {close_count} closing")
+                # Try to fix unbalanced parentheses
+                if open_count > close_count:
+                    # Add missing closing parentheses before @enduml
+                    end_index = current_code.rfind('@enduml')
+                    if end_index > 0:
+                        # Extract participant names from activate statements to add deactivate for them
+                        activate_pattern = re.compile(r'activate\s+(\w+)', re.IGNORECASE)
+                        activate_matches = activate_pattern.findall(current_code)
+                        
+                        # Get unique participant names that need deactivation
+                        if activate_matches:
+                            deactivate_lines = '\n'.join([f"deactivate {participant}" for participant in activate_matches[-(open_count - close_count):]])
+                            current_code = current_code[:end_index] + '\n' + deactivate_lines + '\n' + current_code[end_index:]
+                            fixed = True
+                elif close_count > open_count:
+                    # Try to remove extra closing parentheses (more complex, just flag for manual fix)
+                    errors.append("Too many closing parentheses - requires manual fix")
+                    result["retry_suggestions"].append("Check for and remove extra closing parentheses ')'")
+            
+            # Check for diagram-specific keywords and try to fix
+            if diagram_type.lower() == 'class':
+                if 'class' not in current_code.lower():
+                    errors.append("No class definition found in class diagram")
+                    result["retry_suggestions"].append("Add at least one class definition using 'class ClassName' syntax")
+                    
+                # Check for common class diagram syntax errors
+                lines = current_code.split('\n')
+                fixed_lines = []
+                for i, line in enumerate(lines):
+                    fixed_line = line
+                    
+                    # Check for invalid inheritance syntax
+                    if '<|--' in line and not re.search(r'\w+\s*<\|--\s*\w+', line):
+                        line_errors[str(i+1)] = "Invalid inheritance syntax"
+                        errors.append(f"Line {i+1}: Invalid inheritance syntax")
+                        # Don't try to auto-fix inheritance syntax as it's too complex
+                        result["retry_suggestions"].append(f"Fix inheritance syntax on line {i+1} to follow format 'ChildClass <|-- ParentClass'")
+                    
+                    # Check for invalid relationship syntax with labels
+                    if '--' in line and ':' in line and not re.search(r'\w+\s*(["\d\.\*]+)?\s*--+\s*(["\d\.\*]+)?\s*\w+', line):
+                        line_errors[str(i+1)] = "Invalid relationship syntax"
+                        errors.append(f"Line {i+1}: Invalid relationship syntax")
+                        result["retry_suggestions"].append(f"Fix relationship syntax on line {i+1} to follow format 'ClassA -- ClassB' or 'ClassA \"1\" -- \"0..*\" ClassB : relationship >'")
+                    
+                    # Check for invalid relationship labels (missing spaces around colon)
+                    if '--' in line and ':' in line and re.search(r'\w+.*--.*\w+:[^\s]', line):
+                        line_errors[str(i+1)] = "Invalid relationship label format"
+                        errors.append(f"Line {i+1}: Invalid relationship label format - missing space after colon")
+                        # Try to fix by adding a space after colon if missing
+                        if re.search(r':(\S)', line):
+                            fixed_line = re.sub(r':(\S)', r': \1', line)
+                            fixed = True
+                    
+                    # Check for invalid directional arrow syntax in relationships
+                    if '--' in line and ('>' in line or '<' in line):
+                        # Check for missing space before directional arrow
+                        if re.search(r'\S>', line) and not re.search(r'->|--|<-', line):
+                            line_errors[str(i+1)] = "Missing space before directional arrow"
+                            errors.append(f"Line {i+1}: Missing space before directional arrow in relationship")
+                            # Try to fix by adding space before >
+                            fixed_line = re.sub(r'(\S)>', r'\1 >', fixed_line)
+                            fixed = True
+                        
+                        # Check for invalid directional arrow placement (should be at end of relationship label)
+                        if ':' in line and '>' in line and not re.search(r':\s+[^>]+\s*>', line):
+                            line_errors[str(i+1)] = "Invalid directional arrow placement"
+                            errors.append(f"Line {i+1}: Invalid directional arrow placement - should be at end of relationship label")
+                            result["retry_suggestions"].append(f"Fix directional arrow on line {i+1} - it should be at the end of the relationship label, e.g., 'ClassA -- ClassB : controls >'")
+                    
+                    # Check for common relationship syntax errors with class names
+                    if '--' in line:
+                        # Check if class names are missing or incomplete on either side of relationship
+                        if re.search(r'^\s*--', line) or re.search(r'--\s*$', line) or re.search(r'^\s*"', line):
+                            line_errors[str(i+1)] = "Incomplete relationship definition"
+                            errors.append(f"Line {i+1}: Incomplete relationship definition - missing class name")
+                            result["retry_suggestions"].append(f"Fix relationship on line {i+1} - ensure both class names are specified, e.g., 'ClassA -- ClassB'")
+                        
+                        # Check for missing space between class name and relationship symbol
+                        if re.search(r'\w--', line) or re.search(r'--\w', line):
+                            line_errors[str(i+1)] = "Missing space in relationship syntax"
+                            errors.append(f"Line {i+1}: Missing space between class name and relationship symbol")
+                            # Try to fix by adding space
+                            fixed_line = re.sub(r'(\w)--', r'\1 --', fixed_line)
+                            fixed_line = re.sub(r'--(\w)', r'-- \1', fixed_line)
+                            fixed = True
+                    
+                    # Check for invalid multiplicity format
+                    if '--' in line and '"' in line:
+                        # Check for unbalanced quotes in multiplicity
+                        quote_count = line.count('"')
+                        if quote_count % 2 != 0:
+                            line_errors[str(i+1)] = "Unbalanced quotes in multiplicity"
+                            errors.append(f"Line {i+1}: Unbalanced quotes in multiplicity")
+                            # Try to fix by adding missing quote
+                            fixed_line = fixed_line + '"'
+                            fixed = True
+                    
+                    # Check for invalid attribute syntax and try to fix
+                    if ':' in line and re.search(r'[+\-#~]\s*\w+\s*:\s*$', line):
+                        line_errors[str(i+1)] = "Incomplete attribute definition, missing type"
+                        errors.append(f"Line {i+1}: Incomplete attribute definition")
+                        # Try to fix by adding a generic type
+                        fixed_line = line.rstrip() + " String"
+                        fixed = True
+                    
+                    fixed_lines.append(fixed_line)
+                
+                if fixed:
+                    current_code = '\n'.join(fixed_lines)
+                    
+            elif diagram_type.lower() == 'sequence':
+                if not any(keyword in current_code.lower() for keyword in ['participant', 'actor', '->', '-->']):
+                    errors.append("No participants or messages found in sequence diagram")
+                    result["retry_suggestions"].append("Add at least one participant using 'participant Name' or 'actor Name' syntax")
+                    result["retry_suggestions"].append("Add at least one message using 'ParticipantA -> ParticipantB: Message' syntax")
+                
+                # Check for common sequence diagram syntax errors
+                lines = current_code.split('\n')
+                fixed_lines = []
+                activate_count = 0
+                deactivate_count = 0
+                
+                for i, line in enumerate(lines):
+                    fixed_line = line
+                    
+                    # Track activation/deactivation balance
+                    if re.search(r'\bactivate\b', line, re.IGNORECASE):
+                        activate_count += 1
+                    if re.search(r'\bdeactivate\b', line, re.IGNORECASE):
+                        deactivate_count += 1
+                    
+                    # Check for invalid message syntax
+                    if '->' in line and not re.search(r'\w+\s*->\s*\w+', line):
+                        line_errors[str(i+1)] = "Invalid message syntax"
+                        errors.append(f"Line {i+1}: Invalid message syntax")
+                        # Don't try to auto-fix message syntax as it's too complex
+                        result["retry_suggestions"].append(f"Fix message syntax on line {i+1} to follow format 'Sender -> Receiver: Message'")
+                    
+                    fixed_lines.append(fixed_line)
+                
+                # Check activation balance and try to fix
+                if activate_count != deactivate_count:
+                    warnings.append(f"Unbalanced activate/deactivate: {activate_count} activations vs {deactivate_count} deactivations")
+                    
+                    # Try to fix unbalanced activations
+                    if activate_count > deactivate_count:
+                        # Add missing deactivate statements before @enduml
+                        end_index = current_code.rfind('@enduml')
+                        if end_index > 0:
+                            # Extract participant names from activate statements to add deactivate for them
+                            activate_pattern = re.compile(r'activate\s+(\w+)', re.IGNORECASE)
+                            activate_matches = activate_pattern.findall(current_code)
+                            
+                            # Get unique participant names that need deactivation
+                            if activate_matches:
+                                deactivate_lines = '\n'.join([f"deactivate {participant}" for participant in activate_matches[-(activate_count - deactivate_count):]])
+                                current_code = current_code[:end_index] + '\n' + deactivate_lines + '\n' + current_code[end_index:]
+                                fixed = True
+                    elif deactivate_count > activate_count:
+                        # Try to remove extra deactivate statements (more complex, just flag for manual fix)
+                        warnings.append("Too many deactivate statements - requires manual fix")
+                        result["retry_suggestions"].append("Check for and remove extra 'deactivate' statements or add missing 'activate' statements")
+            
+            # Check for common syntax errors in any diagram type
+            lines = current_code.split('\n')
+            fixed_lines = []
+            
+            for i, line in enumerate(lines):
+                fixed_line = line
+                
+                # Check for unclosed quotes
+                if line.count('"') % 2 != 0:
+                    line_errors[str(i+1)] = "Unclosed quotes"
+                    errors.append(f"Line {i+1}: Unclosed quotes")
+                    # Try to fix unclosed quotes
+                    fixed_line = fixed_line + '"'
+                    fixed = True
+                
+                # Check for invalid color syntax
+                if '#' in line and re.search(r'#[^A-Fa-f0-9]', line):
+                    line_errors[str(i+1)] = "Invalid color code"
+                    warnings.append(f"Line {i+1}: Possible invalid color code")
+                    # Don't try to auto-fix color codes as it's too complex
+                    result["retry_suggestions"].append(f"Check color code on line {i+1}, ensure it's a valid hex color like #RRGGBB")
+                
+                fixed_lines.append(fixed_line)
+            
+            if fixed:
+                current_code = '\n'.join(fixed_lines)
+            
+            # Update result with current validation state
+            result["errors"] = errors
+            result["warnings"] = warnings
+            result["line_errors"] = line_errors
+            result["retry_count"] = retry + 1
+            
+            # Check if we've fixed all errors
+            if len(errors) == 0:
+                result["is_valid"] = True
+                if fixed:  # Only set fixed_code if we actually made changes
+                    result["fixed_code"] = current_code
+                break
+            
+            # If we couldn't fix anything but there are still errors, don't retry
+            if not fixed and retry < max_retries - 1:
+                result["can_retry"] = True
+                continue
+        
+        # If we still have errors after all retries, provide final suggestions
+        if not result["is_valid"]:
+            result["can_retry"] = True
+            if not result["retry_suggestions"]:
+                result["retry_suggestions"] = [
+                    "Ensure all opening and closing tags are balanced",
+                    "Check for proper syntax in all relationships and messages",
+                    "Verify that all required elements are present for your diagram type"
+                ]
+        
+        # Log validation results
+        logging.info(f"PlantUML validation completed: valid={result['is_valid']}, errors={len(result['errors'])}, warnings={len(result['warnings'])}, retries={result['retry_count']}")
+        
+        return result
     
     def _resolve_actor_conflicts(self, actors: List[str], requirements_text: str) -> List[str]:
         """
@@ -1840,11 +2269,20 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
             
             # Define conflict groups - actors that might represent the same role
             conflict_groups = [
-                ['member', 'customer', 'client'],
-                ['admin', 'administrator', 'manager'],
+                # Library system roles
+                ['member', 'customer', 'client', 'patron', 'borrower'],
+                ['admin', 'administrator', 'manager', 'supervisor'],
                 ['librarian', 'staff', 'employee'],
                 ['student', 'pupil', 'learner'],
-                ['guest', 'visitor', 'anonymous']
+                ['guest', 'visitor', 'anonymous'],
+                # Digital home system roles
+                ['user', 'homeowner', 'resident'],
+                # Monitoring system roles
+                ['operator', 'monitoring-operator', 'monitor'],
+                # System components that might be treated as actors
+                ['sensor', 'remote sensor', 'external sensor'],
+                ['thermostat', 'temperature controller'],
+                ['humidistat', 'humidity controller']
             ]
             
             resolved_actors = []
@@ -2042,319 +2480,368 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
             
         return entities
     
-    
-
-    def _enforce_class_consistency(self, class_diagram: str, identified_actors: List[str]) -> str:
+    async def retry_diagram_with_feedback(self, 
+                                         original_requirements: str,
+                                         current_class_diagram: str,
+                                         current_sequence_diagram: str,
+                                         issue_type: str,
+                                         issue_prompt: str,
+                                         identified_actors: List[str] = [],
+                                         retry_count: int = 0) -> Dict[str, Any]:
         """
-        Post-process class diagram to ensure consistency with identified actors
+        Retry diagram generation with specific feedback and targeted improvements
+        
+        Args:
+            original_requirements: Original user requirements
+            current_class_diagram: Current class diagram PlantUML code
+            current_sequence_diagram: Current sequence diagram PlantUML code
+            issue_type: Type of issue to fix (syntax_class, syntax_sequence, missing_interactions, etc.)
+            issue_prompt: Specific prompt for the issue
+            identified_actors: List of identified actors
+            retry_count: Current retry attempt number
+            
+        Returns:
+            Dict containing improved diagrams and details
         """
+        logger = logging.getLogger(__name__)
+        
         try:
-            lines = class_diagram.split('\n')
-            processed_lines = []
-            existing_classes = set()
+            logger.info(f"Retrying diagrams with issue type: {issue_type}, retry count: {retry_count}")
             
-            # Extract existing class names from the diagram
-            class_pattern = r'class\s+(\w+)'
-            for line in lines:
-                match = re.search(class_pattern, line)
-                if match:
-                    existing_classes.add(match.group(1))
-            
-            # Process each line
-            for line in lines:
-                # Skip empty lines and comments
-                if not line.strip() or line.strip().startswith("'"):
-                    processed_lines.append(line)
-                    continue
-                    
-                # Remove generic system classes
-                if any(generic in line.lower() for generic in ['class system', 'class database', 'class application']):
-                    continue
-                    
-                # Fix generic references in relationships
-                line = self._fix_generic_references(line)
-                processed_lines.append(line)
-            
-            # Add missing actor classes
-            missing_actors = []
-            for actor in identified_actors:
-                actor_class = self._to_pascal_case(actor)
-                if actor_class not in existing_classes:
-                    missing_actors.append(actor_class)
-            
-            # Insert missing classes before @enduml
-            if missing_actors:
-                insert_index = -1
-                for i, line in enumerate(processed_lines):
-                    if '@enduml' in line:
-                        insert_index = i
-                        break
-                
-                if insert_index > 0:
-                    for actor_class in missing_actors:
-                        class_definition = self._generate_class_definition(actor_class)
-                        processed_lines.insert(insert_index, class_definition)
-                        processed_lines.insert(insert_index + 1, "")
-                        insert_index += 2
-            
-            # Ensure all classes have proper structure
-            result = '\n'.join(processed_lines)
-            result = self._ensure_class_structure(result, identified_actors)
-            
-            return result
-            
-        except Exception as e:
-            print(f"Error in _enforce_class_consistency: {str(e)}")
-            return class_diagram
-
-    def _enforce_sequence_consistency(self, sequence_diagram: str, identified_actors: List[str]) -> str:
-        """
-        Post-process sequence diagram to ensure consistency with identified actors
-        """
-        try:
-            lines = sequence_diagram.split('\n')
-            processed_lines = []
-            declared_participants = set()
-            
-            # Extract existing participants
-            participant_patterns = [
-                r'actor\s+(\w+)',
-                r'participant\s+(\w+)',
-                r'participant\s+"([^"]+)"\s+as\s+(\w+)',
-                r'actor\s+"([^"]+)"\s+as\s+(\w+)'
-            ]
-            
-            for line in lines:
-                for pattern in participant_patterns:
-                    matches = re.findall(pattern, line)
-                    for match in matches:
-                        if isinstance(match, tuple):
-                            declared_participants.add(match[-1])  # Get the alias
-                        else:
-                            declared_participants.add(match)
-            
-            # Process each line
-            for line in lines:
-                # Skip empty lines and comments
-                if not line.strip() or line.strip().startswith("'"):
-                    processed_lines.append(line)
-                    continue
-                
-                # Remove generic system participants
-                if any(generic in line.lower() for generic in ['participant system', 'actor system']):
-                    continue
-                
-                # Fix generic references in messages
-                line = self._fix_generic_message_references(line)
-                processed_lines.append(line)
-            
-            # Add missing actor participants
-            missing_participants = []
-            for actor in identified_actors:
-                actor_participant = self._to_pascal_case(actor)
-                if actor_participant not in declared_participants:
-                    missing_participants.append((actor, actor_participant))
-            
-            # Insert missing participants after @startuml
-            if missing_participants:
-                insert_index = 0
-                for i, line in enumerate(processed_lines):
-                    if '@startuml' in line:
-                        insert_index = i + 1
-                        break
-                
-                for original_actor, participant_name in missing_participants:
-                    # Determine if it should be actor or participant
-                    participant_type = "actor" if self._is_human_actor(original_actor) else "participant"
-                    participant_line = f'{participant_type} {participant_name}'
-                    processed_lines.insert(insert_index, participant_line)
-                    insert_index += 1
-            
-            # Ensure all participants are used in messages
-            result = '\n'.join(processed_lines)
-            result = self._ensure_participant_usage(result, identified_actors)
-            result = '@startuml\n' + result + '\n@enduml'
-            
-            return result
-            
-        except Exception as e:
-            print(f"Error in _enforce_sequence_consistency: {str(e)}")
-            return sequence_diagram
-
-    
-
-    def _fix_generic_references(self, line: str) -> str:
-        """Fix generic references in class diagram relationships"""
-        # Replace generic system references
-        replacements = {
-            'System': 'MainSystem',
-            'Database': 'DataStore',
-            'Application': 'AppCore'
-        }
-        
-        for generic, replacement in replacements.items():
-            line = re.sub(r'\b' + generic + r'\b', replacement, line)
-        
-        return line
-
-    def _fix_generic_message_references(self, line: str) -> str:
-        """Fix generic references in sequence diagram messages"""
-        # Replace generic system references in messages
-        replacements = {
-            'System': 'MainSystem',
-            'Database': 'DataStore',
-            'Application': 'AppCore'
-        }
-        
-        for generic, replacement in replacements.items():
-            line = re.sub(r'\b' + generic + r'\s*->', replacement + ' ->', line)
-            line = re.sub(r'->\s*' + generic + r'\b', '-> ' + replacement, line)
-        
-        return line
-
-    def _to_pascal_case(self, text: str) -> str:
-        """Convert text to PascalCase"""
-        # Handle common actor names
-        words = re.split(r'[\s_-]+', text.strip())
-        return ''.join(word.capitalize() for word in words if word)
-
-    def _generate_class_definition(self, class_name: str) -> str:
-        """Generate a complete class definition with attributes and methods"""
-        # Generate realistic attributes and methods based on class name
-        attributes, methods = self._get_class_members(class_name)
-        
-        definition = f"class {class_name} {{\n"
-        
-        # Add attributes
-        for attr in attributes:
-            definition += f"  {attr}\n"
-        
-        # Add separator
-        definition += "  --\n"
-        
-        # Add methods
-        for method in methods:
-            definition += f"  {method}\n"
-        
-        definition += "}"
-        
-        return definition
-
-    def _get_class_members(self, class_name: str) -> tuple:
-        """Get appropriate attributes and methods for a class based on its name"""
-        name_lower = class_name.lower()
-        
-        # Default attributes and methods
-        attributes = [
-            f"-{name_lower}Id: string",
-            f"+name: string",
-            f"-isActive: boolean"
-        ]
-        
-        methods = [
-            f"+get{class_name}Id(): string",
-            f"+setName(name: string): void",
-            f"+isValid(): boolean"
-        ]
-        
-        # Customize based on class name
-        if 'user' in name_lower:
-            attributes.extend(["-email: string", "-password: string"])
-            methods.extend(["+login(): boolean", "+logout(): void"])
-        elif 'book' in name_lower:
-            attributes.extend(["-isbn: string", "-author: string"])
-            methods.extend(["+getAuthor(): string", "+isAvailable(): boolean"])
-        elif 'librarian' in name_lower:
-            attributes.extend(["-employeeId: string", "-department: string"])
-            methods.extend(["+addBook(book: Book): void", "+removeBook(bookId: string): boolean"])
-        
-        return attributes[:5], methods[:5]  # Limit to 5 each
-
-    def _ensure_class_structure(self, diagram: str, identified_actors: List[str]) -> str:
-        """Ensure all classes have proper structure with attributes and methods"""
-        lines = diagram.split('\n')
-        processed_lines = []
-        
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            
-            # Check if this is a simple class declaration without body
-            if re.match(r'^\s*class\s+\w+\s*$', line):
-                class_name = re.search(r'class\s+(\w+)', line).group(1)
-                # Replace with full class definition
-                full_definition = self._generate_class_definition(class_name)
-                processed_lines.append(full_definition)
+            # Generate targeted improvements based on issue type
+            if issue_type in ["syntax_class", "syntax_both"]:
+                # Fix class diagram syntax issues
+                improved_class_diagram = await self._fix_diagram_syntax(
+                    current_class_diagram, 
+                    "class", 
+                    original_requirements,
+                    issue_prompt,
+                    identified_actors
+                )
             else:
-                processed_lines.append(line)
+                improved_class_diagram = current_class_diagram
+                
+            if issue_type in ["syntax_sequence", "syntax_both"]:
+                # Fix sequence diagram syntax issues  
+                improved_sequence_diagram = await self._fix_diagram_syntax(
+                    current_sequence_diagram,
+                    "sequence", 
+                    original_requirements,
+                    issue_prompt,
+                    identified_actors
+                )
+            else:
+                improved_sequence_diagram = current_sequence_diagram
+                
+            # Handle content-specific improvements
+            if issue_type == "missing_interactions":
+                improved_sequence_diagram = await self._add_missing_interactions(
+                    current_sequence_diagram,
+                    original_requirements,
+                    identified_actors,
+                    issue_prompt
+                )
+                
+            elif issue_type == "missing_classes":
+                improved_class_diagram = await self._add_missing_classes(
+                    current_class_diagram,
+                    original_requirements,
+                    identified_actors,
+                    issue_prompt
+                )
+                
+            elif issue_type == "wrong_relationships":
+                improved_class_diagram = await self._fix_relationships(
+                    current_class_diagram,
+                    original_requirements,
+                    identified_actors,
+                    issue_prompt
+                )
+                
+            elif issue_type == "general_improvement":
+                # Comprehensive improvement of both diagrams
+                improved_class_diagram = await self._improve_diagram_quality(
+                    current_class_diagram,
+                    "class",
+                    original_requirements,
+                    identified_actors,
+                    issue_prompt
+                )
+                improved_sequence_diagram = await self._improve_diagram_quality(
+                    current_sequence_diagram,
+                    "sequence", 
+                    original_requirements,
+                    identified_actors,
+                    issue_prompt
+                )
             
-            i += 1
-        
-        return '\n'.join(processed_lines)
-
-    def _is_human_actor(self, actor: str) -> bool:
-        """Determine if an actor represents a human role"""
-        human_indicators = ['user', 'admin', 'customer', 'client', 'manager', 'staff', 'librarian', 'student']
-        return any(indicator in actor.lower() for indicator in human_indicators)
-
-    def _ensure_participant_usage(self, diagram: str, identified_actors: List[str]) -> str:
-        """Ensure all participants are used in at least one message"""
-        lines = diagram.split('\n')
-        
-        # Find all declared participants
-        declared_participants = set()
-        participant_patterns = [
-            r'actor\s+(\w+)',
-            r'participant\s+(\w+)',
-            r'participant\s+"([^"]+)"\s+as\s+(\w+)',
-            r'actor\s+"([^"]+)"\s+as\s+(\w+)'
-        ]
-        
-        for line in lines:
-            for pattern in participant_patterns:
-                matches = re.findall(pattern, line)
-                for match in matches:
-                    if isinstance(match, tuple):
-                        declared_participants.add(match[-1])
-                    else:
-                        declared_participants.add(match)
-        
-        # Find participants used in messages
-        used_participants = set()
-        message_pattern = r'(\w+)\s*-[->]+\s*(\w+)'
-        
-        for line in lines:
-            matches = re.findall(message_pattern, line)
-            for match in matches:
-                used_participants.add(match[0])
-                used_participants.add(match[1])
-        
-        # Add simple messages for unused participants
-        unused_participants = declared_participants - used_participants
-        
-        if unused_participants:
-            # Find insertion point (before @enduml)
-            insert_index = -1
-            for i, line in enumerate(lines):
-                if '@enduml' in line:
-                    insert_index = i
-                    break
+            # Clean and validate the improved diagrams
+            improved_class_diagram = self._clean_plantuml_code(improved_class_diagram)
+            improved_sequence_diagram = self._clean_plantuml_code(improved_sequence_diagram)
             
-            if insert_index > 0:
-                # Add a simple interaction section for unused participants
-                if unused_participants:
-                    lines.insert(insert_index, "")
-                    lines.insert(insert_index + 1, "== Additional Interactions ==")
-                    insert_index += 2
-                    
-                    for participant in unused_participants:
-                        # Find another participant to interact with
-                        other_participant = next(iter(declared_participants - {participant}), "System")
-                        lines.insert(insert_index, f"{participant} -> {other_participant} : performs action")
-                        lines.insert(insert_index + 1, f"{other_participant} --> {participant} : confirmation")
-                        insert_index += 2
+            # Generate improvement summary
+            improvements_made = self._generate_improvement_summary(
+                issue_type, 
+                current_class_diagram, 
+                current_sequence_diagram,
+                improved_class_diagram,
+                improved_sequence_diagram
+            )
+            
+            return {
+                "class_diagram": improved_class_diagram,
+                "sequence_diagram": improved_sequence_diagram,
+                "improvements_made": improvements_made,
+                "retry_count": retry_count + 1,
+                "issue_type": issue_type,
+                "status": "success"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in retry_diagram_with_feedback: {str(e)}")
+            return {
+                "class_diagram": current_class_diagram,
+                "sequence_diagram": current_sequence_diagram,
+                "improvements_made": [f"Error during retry: {str(e)}"],
+                "retry_count": retry_count + 1,
+                "issue_type": issue_type,
+                "status": "error"
+            }
+    
+    async def _fix_diagram_syntax(self, diagram_code: str, diagram_type: str, 
+                                 requirements: str, issue_prompt: str, 
+                                 actors: List[str]) -> str:
+        """Fix syntax issues in PlantUML diagrams"""
+        system_prompt = f"""You are a PlantUML syntax expert. Your task is to fix syntax errors in {diagram_type} diagrams.
+
+Rules:
+1. Fix all PlantUML syntax errors
+2. Ensure proper @startuml and @enduml tags
+3. Use correct PlantUML syntax for {diagram_type} diagrams
+4. Maintain the original intent and structure
+5. Include all actors: {', '.join(actors)}
+6. Generate only valid PlantUML code
+
+{issue_prompt}"""
+
+        user_prompt = f"""Fix the syntax errors in this {diagram_type} diagram:
+
+Original Requirements:
+{requirements}
+
+Current Diagram (with syntax issues):
+{diagram_code}
+
+Please provide the corrected PlantUML code with proper syntax."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3
+            )
+            
+            return self._clean_plantuml_code(response.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Error fixing {diagram_type} syntax: {str(e)}")
+            return diagram_code
+    
+    async def _add_missing_interactions(self, sequence_diagram: str, requirements: str, 
+                                       actors: List[str], issue_prompt: str) -> str:
+        """Add missing interactions to sequence diagram"""
+        system_prompt = f"""You are a UML sequence diagram expert. Add missing interactions and message flows.
+
+Rules:
+1. Analyze the requirements to identify missing user interactions
+2. Add missing message flows between participants
+3. Include all actors: {', '.join(actors)}
+4. Maintain existing valid interactions
+5. Use proper PlantUML sequence diagram syntax
+6. Focus on user workflows and system responses
+
+{issue_prompt}"""
+
+        user_prompt = f"""Add missing interactions to this sequence diagram based on the requirements:
+
+Requirements:
+{requirements}
+
+Current Sequence Diagram:
+{sequence_diagram}
+
+Add missing interactions while keeping existing valid ones."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.4
+            )
+            
+            return self._clean_plantuml_code(response.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Error adding missing interactions: {str(e)}")
+            return sequence_diagram
+    
+    async def _add_missing_classes(self, class_diagram: str, requirements: str,
+                                  actors: List[str], issue_prompt: str) -> str:
+        """Add missing classes to class diagram"""
+        system_prompt = f"""You are a UML class diagram expert. Add missing classes and entities.
+
+Rules:
+1. Analyze requirements to identify missing domain objects
+2. Add missing classes with appropriate attributes and methods
+3. Include all actors as classes: {', '.join(actors)}
+4. Maintain existing valid classes and relationships
+5. Use proper PlantUML class diagram syntax
+6. Focus on domain entities mentioned in requirements
+
+{issue_prompt}"""
+
+        user_prompt = f"""Add missing classes to this class diagram based on the requirements:
+
+Requirements:
+{requirements}
+
+Current Class Diagram:
+{class_diagram}
+
+Add missing classes while keeping existing valid ones."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.4
+            )
+            
+            return self._clean_plantuml_code(response.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Error adding missing classes: {str(e)}")
+            return class_diagram
+    
+    async def _fix_relationships(self, class_diagram: str, requirements: str,
+                                actors: List[str], issue_prompt: str) -> str:
+        """Fix incorrect relationships in class diagram"""
+        system_prompt = f"""You are a UML class diagram expert. Fix incorrect relationships between classes.
+
+Rules:
+1. Analyze requirements to determine correct relationships
+2. Fix association, dependency, and inheritance relationships
+3. Ensure relationships reflect the actual requirements
+4. Include all actors: {', '.join(actors)}
+5. Use proper PlantUML relationship syntax (-->, --|>, etc.)
+6. Maintain class definitions while fixing relationships
+
+{issue_prompt}"""
+
+        user_prompt = f"""Fix incorrect relationships in this class diagram:
+
+Requirements:
+{requirements}
+
+Current Class Diagram:
+{class_diagram}
+
+Correct the relationships to match the requirements."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3
+            )
+            
+            return self._clean_plantuml_code(response.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Error fixing relationships: {str(e)}")
+            return class_diagram
+    
+    async def _improve_diagram_quality(self, diagram_code: str, diagram_type: str,
+                                      requirements: str, actors: List[str], 
+                                      issue_prompt: str) -> str:
+        """General quality improvement for diagrams"""
+        system_prompt = f"""You are a UML {diagram_type} diagram expert. Improve the overall quality and completeness.
+
+Rules:
+1. Enhance diagram completeness and accuracy
+2. Improve naming conventions and structure
+3. Add missing elements based on requirements
+4. Include all actors: {', '.join(actors)}
+5. Ensure proper PlantUML syntax
+6. Focus on clarity and professional appearance
+
+{issue_prompt}"""
+
+        user_prompt = f"""Improve the quality of this {diagram_type} diagram:
+
+Requirements:
+{requirements}
+
+Current Diagram:
+{diagram_code}
+
+Provide an improved version with better quality and completeness."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.4
+            )
+            
+            return self._clean_plantuml_code(response.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Error improving {diagram_type} quality: {str(e)}")
+            return diagram_code
+    
+    def _generate_improvement_summary(self, issue_type: str, 
+                                     old_class: str, old_sequence: str,
+                                     new_class: str, new_sequence: str) -> List[str]:
+        """Generate summary of improvements made"""
+        improvements = []
         
-        return '\n'.join(lines)
+        # Count changes
+        class_changes = len(new_class.split('\n')) - len(old_class.split('\n'))
+        sequence_changes = len(new_sequence.split('\n')) - len(old_sequence.split('\n'))
+        
+        if issue_type == "syntax_class":
+            improvements.append("Fixed PlantUML syntax errors in class diagram")
+        elif issue_type == "syntax_sequence":
+            improvements.append("Fixed PlantUML syntax errors in sequence diagram")
+        elif issue_type == "syntax_both":
+            improvements.append("Fixed PlantUML syntax errors in both diagrams")
+        elif issue_type == "missing_interactions":
+            improvements.append(f"Added missing interactions to sequence diagram ({abs(sequence_changes)} lines changed)")
+        elif issue_type == "missing_classes":
+            improvements.append(f"Added missing classes to class diagram ({abs(class_changes)} lines changed)")
+        elif issue_type == "wrong_relationships":
+            improvements.append("Corrected relationships between classes")
+        elif issue_type == "general_improvement":
+            improvements.append("Applied general quality improvements to both diagrams")
+        
+        # Add specific change counts if significant
+        if abs(class_changes) > 5:
+            improvements.append(f"Class diagram: {abs(class_changes)} lines {'added' if class_changes > 0 else 'removed'}")
+        if abs(sequence_changes) > 5:
+            improvements.append(f"Sequence diagram: {abs(sequence_changes)} lines {'added' if sequence_changes > 0 else 'removed'}")
+        
+        return improvements if improvements else ["Diagram optimized with targeted improvements"]
 
 
 

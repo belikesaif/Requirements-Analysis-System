@@ -35,6 +35,7 @@ import {
   CompareArrows as CompareIcon
 } from '@mui/icons-material';
 import PlantUMLViewer from './PlantUMLViewer';
+import DiagramRetryControls from './DiagramRetryControls';
 import { apiService } from '../services/apiService';
 
 const FinalLLMOptimizer = ({ 
@@ -53,6 +54,35 @@ const FinalLLMOptimizer = ({
     class: null,
     sequence: null
   });
+
+  const handleRetryComplete = (retryResult) => {
+    console.log('Final optimizer retry completed:', retryResult);
+    
+    // Update the diagrams with retry results
+    const updatedDiagrams = {
+      optimized_class_diagram: retryResult.classDiagram,
+      optimized_sequence_diagram: retryResult.sequenceDiagram,
+      improvements: retryResult.improvements || [],
+      final_actors: identifiedActors,
+      retry_info: {
+        issue_type: retryResult.issueType,
+        retry_count: retryResult.retryCount
+      }
+    };
+    
+    setOptimizedDiagrams(updatedDiagrams);
+    
+    // Clear any diagram errors since retry was successful
+    setDiagramErrors({ class: null, sequence: null });
+    
+    // Notify parent
+    onOptimizationComplete?.(updatedDiagrams);
+  };
+
+  const handleRetryError = (error) => {
+    console.error('Final optimizer retry error:', error);
+    onError?.(error);
+  };
 
   const handleFinalOptimization = async () => {
     if (!originalRequirements || !classDiagram || !sequenceDiagram) {
@@ -301,7 +331,19 @@ const FinalLLMOptimizer = ({
     if (!optimizedDiagrams) return null;
 
     return (
-      <Grid container spacing={3}>
+      <>
+        {/* Retry Controls for Optimized Diagrams */}
+        <DiagramRetryControls
+          originalRequirements={originalRequirements}
+          classDiagram={optimizedDiagrams.optimized_class_diagram}
+          sequenceDiagram={optimizedDiagrams.optimized_sequence_diagram}
+          identifiedActors={identifiedActors}
+          onRetryComplete={handleRetryComplete}
+          onError={handleRetryError}
+          disabled={loading}
+        />
+
+        <Grid container spacing={3}>
         {/* Optimized Class Diagram */}
         <Grid item xs={12} md={6}>
           <Card elevation={2}>
@@ -401,6 +443,7 @@ const FinalLLMOptimizer = ({
           </Alert>
         </Grid>
       </Grid>
+      </>
     );
   };
 

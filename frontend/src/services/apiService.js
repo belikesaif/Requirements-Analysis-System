@@ -194,5 +194,22 @@ export const apiService = {
       console.error('AI vs RUPP analysis failed:', error);
       throw error;
     }
-  }
+  },
+
+  // Retry diagram generation with specific feedback
+  async retryDiagramGeneration(data) {
+    try {
+      console.log('Retry diagram generation request:', data);
+      const response = await apiClient.post('/retry-diagram-generation', data);
+      return response.data;
+    } catch (error) {
+      console.error('Retry diagram generation error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        requestData: data
+      });
+      throw new Error(`Retry diagram generation failed: ${error.message}`);
+    }
+  },
 };

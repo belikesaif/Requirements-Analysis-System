@@ -34,6 +34,7 @@ import {
   VerifiedUser as VerifyIcon
 } from '@mui/icons-material';
 import PlantUMLViewer from './PlantUMLViewer';
+import DiagramRetryControls from './DiagramRetryControls';
 import { apiService } from '../services/apiService';
 
 const ActorIdentificationVerifier = ({ 
@@ -47,6 +48,28 @@ const ActorIdentificationVerifier = ({
   const [identifiedActors, setIdentifiedActors] = useState([]);
   const [verificationResults, setVerificationResults] = useState(null);
   const [expandedDiagram, setExpandedDiagram] = useState(null);
+
+  const handleRetryComplete = (retryResult) => {
+    console.log('Actor verification retry completed:', retryResult);
+    
+    // Update diagrams and re-run actor identification if needed
+    // For now, we'll just update the diagrams
+    setVerificationResults(prev => ({
+      ...prev,
+      updated_class_diagram: retryResult.classDiagram,
+      updated_sequence_diagram: retryResult.sequenceDiagram,
+      retry_info: {
+        issue_type: retryResult.issueType,
+        retry_count: retryResult.retryCount,
+        improvements: retryResult.improvements
+      }
+    }));
+  };
+
+  const handleRetryError = (error) => {
+    console.error('Actor verification retry error:', error);
+    onError?.(error);
+  };
 
   const handleIdentifyActors = async () => {
     if (!originalRequirements) {
@@ -340,7 +363,21 @@ const ActorIdentificationVerifier = ({
 
       {/* Diagram Review Section */}
       {(classDiagram || sequenceDiagram) && (
-        <Card elevation={1}>
+        <>
+          {/* Retry Controls for Diagrams */}
+          {identifiedActors.length > 0 && (
+            <DiagramRetryControls
+              originalRequirements={originalRequirements}
+              classDiagram={classDiagram}
+              sequenceDiagram={sequenceDiagram}
+              identifiedActors={identifiedActors}
+              onRetryComplete={handleRetryComplete}
+              onError={handleRetryError}
+              disabled={loading}
+            />
+          )}
+
+          <Card elevation={1}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2 }}>Diagram Review</Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
@@ -386,6 +423,7 @@ const ActorIdentificationVerifier = ({
             </Grid>
           </CardContent>
         </Card>
+        </>
       )}
 
       {!identifiedActors.length && !loading && (

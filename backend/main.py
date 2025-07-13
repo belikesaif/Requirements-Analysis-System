@@ -108,6 +108,15 @@ class PlantUMLValidationRequest(BaseModel):
     plantuml_code: str
     diagram_type: str
 
+class DiagramRetryRequest(BaseModel):
+    original_requirements: str
+    current_class_diagram: str
+    current_sequence_diagram: str
+    issue_type: str  # "syntax_class", "syntax_sequence", "syntax_both", "missing_interactions", "missing_classes", "wrong_relationships", "general_improvement"
+    specific_feedback: Optional[str] = None
+    retry_count: Optional[int] = 0
+    identified_actors: Optional[List[str]] = []
+
 @app.get("/api/health")
 async def health_check():
     """Enhanced health check with PlantUML error handling status"""
@@ -458,19 +467,96 @@ async def report_plantuml_error(request: PlantUMLErrorReport):
 @app.post("/api/validate-plantuml")
 async def validate_plantuml(request: PlantUMLValidationRequest):
     """
-    Validate PlantUML syntax before rendering
+    Validate PlantUML syntax before rendering with automatic retry mechanism
     """
     try:
+        # Default to 3 retries, can be adjusted based on requirements
+        max_retries = 3
+        
         validation_result = await diagram_service.validate_plantuml_syntax(
             request.plantuml_code,
-            request.diagram_type
+            request.diagram_type,
+            max_retries=max_retries
         )
         
         validation_result["timestamp"] = datetime.now().isoformat()
+        
+        # If validation failed but we have fixed code, store the error report
+        if not validation_result["is_valid"] and validation_result.get("retry_count", 0) > 0:
+            try:
+                # Create error report for tracking
+                error_report = PlantUMLErrorReport(
+                    diagram_type=request.diagram_type,
+                    error_type="syntax_error",
+                    error_message="Syntax validation failed with automatic retry attempts",
+                    plantuml_code=request.plantuml_code,
+                    retry_count=validation_result.get("retry_count", 0),
+                    timestamp=datetime.now().isoformat(),
+                    validation_status=validation_result
+                )
+                
+                # Store the error report asynchronously
+                await report_plantuml_error(error_report)
+            except Exception as report_error:
+                print(f"Warning: Failed to store PlantUML validation error: {str(report_error)}")
+        
         return validation_result
         
     except Exception as e:
+        # Log the exception for debugging
+        print(f"Error in PlantUML validation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"PlantUML validation failed: {str(e)}")
+
+@app.post("/api/retry-diagram-generation")
+async def retry_diagram_generation(request: DiagramRetryRequest):
+    """
+    Retry diagram generation with specific issue feedback
+    """
+    try:
+        # Generate targeted prompts based on issue type
+        issue_prompts = {
+            "syntax_class": "Fix the PlantUML syntax errors in the class diagram. Ensure proper class definitions, relationships, and PlantUML syntax compliance.",
+            "syntax_sequence": "Fix the PlantUML syntax errors in the sequence diagram. Ensure proper participant definitions, message flows, and PlantUML syntax compliance.",
+            "syntax_both": "Fix the PlantUML syntax errors in both diagrams. Focus on proper syntax, valid relationships, and PlantUML compliance.",
+            "missing_interactions": "Add missing interactions and message flows to the sequence diagram based on the requirements. Ensure all user flows are captured.",
+            "missing_classes": "Add missing classes and entities to the class diagram based on the requirements. Include all relevant domain objects.",
+            "wrong_relationships": "Correct the relationships between classes and interactions. Ensure they accurately reflect the requirements.",
+            "general_improvement": "Improve the overall quality and completeness of both diagrams based on the requirements and user feedback."
+        }
+        
+        # Get the specific prompt for the issue type
+        issue_prompt = issue_prompts.get(request.issue_type, issue_prompts["general_improvement"])
+        
+        # Add specific feedback if provided
+        if request.specific_feedback:
+            issue_prompt += f"\n\nSpecific user feedback: {request.specific_feedback}"
+        
+        # Use the diagram service's retry method with targeted optimization
+        retry_result = await diagram_service.retry_diagram_with_feedback(
+            original_requirements=request.original_requirements,
+            current_class_diagram=request.current_class_diagram,
+            current_sequence_diagram=request.current_sequence_diagram,
+            issue_type=request.issue_type,
+            issue_prompt=issue_prompt,
+            identified_actors=request.identified_actors or [],
+            retry_count=request.retry_count or 0
+        )
+        
+        return {
+            "class_diagram": retry_result["class_diagram"],
+            "sequence_diagram": retry_result["sequence_diagram"],
+            "improvements_made": retry_result["improvements_made"],
+            "issue_type": request.issue_type,
+            "retry_count": (request.retry_count or 0) + 1,
+            "timestamp": datetime.now().isoformat(),
+            "status": "success"
+        }
+        
+    except Exception as e:
+        print(f"Error in diagram retry: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Diagram retry failed: {str(e)}")
 
 @app.get("/api/plantuml-error-stats")
 async def get_plantuml_error_stats():

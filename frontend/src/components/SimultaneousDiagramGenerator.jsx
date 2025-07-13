@@ -19,6 +19,7 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 import PlantUMLViewer from './PlantUMLViewer';
+import DiagramRetryControls from './DiagramRetryControls';
 import { apiService } from '../services/apiService';
 
 const SimultaneousDiagramGenerator = ({ 
@@ -30,6 +31,33 @@ const SimultaneousDiagramGenerator = ({
   const [loading, setLoading] = useState(false);
   const [diagrams, setDiagrams] = useState(null);
   const [generationInfo, setGenerationInfo] = useState(null);
+  const [retryLoading, setRetryLoading] = useState(false);
+
+  const handleRetryComplete = (retryResult) => {
+    console.log('Retry completed:', retryResult);
+    
+    const updatedDiagrams = {
+      class_diagram: retryResult.classDiagram,
+      sequence_diagram: retryResult.sequenceDiagram,
+      generation_info: {
+        method: 'GPT-3.5 (Retry)',
+        retry_count: retryResult.retryCount,
+        issue_type: retryResult.issueType,
+        improvements: retryResult.improvements
+      }
+    };
+    
+    setDiagrams(updatedDiagrams);
+    setGenerationInfo(updatedDiagrams.generation_info);
+    
+    // Notify parent component
+    onDiagramsGenerated?.(updatedDiagrams);
+  };
+
+  const handleRetryError = (error) => {
+    console.error('Retry error:', error);
+    onError?.(error);
+  };
 
   const handleGenerateDiagrams = async () => {
     if (!ruppSnlData?.snl_text) {
@@ -137,7 +165,19 @@ const SimultaneousDiagramGenerator = ({
       </Card>
 
       {diagrams && (
-        <Grid container spacing={3}>
+        <>
+          {/* Retry Controls */}
+          <DiagramRetryControls
+            originalRequirements={originalRequirements}
+            classDiagram={diagrams.class_diagram}
+            sequenceDiagram={diagrams.sequence_diagram}
+            identifiedActors={[]} // Will be populated when actors are identified
+            onRetryComplete={handleRetryComplete}
+            onError={handleRetryError}
+            disabled={retryLoading}
+          />
+
+          <Grid container spacing={3}>
           {/* Class Diagram */}
           <Grid item xs={12} md={6}>
             <Card elevation={1}>
@@ -233,6 +273,7 @@ const SimultaneousDiagramGenerator = ({
             </Card>
           </Grid>
         </Grid>
+        </>
       )}
 
       {!diagrams && !loading && (
