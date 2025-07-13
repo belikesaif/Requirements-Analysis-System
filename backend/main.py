@@ -294,7 +294,6 @@ async def final_optimization(request: FinalOptimizationRequest):
             sequence_diagram=request.sequence_diagram,
             identified_actors=request.identified_actors,
             verification_issues=request.verification_issues,
-            diagram_errors=getattr(request, 'diagram_errors', None)
         )
         
         return {
