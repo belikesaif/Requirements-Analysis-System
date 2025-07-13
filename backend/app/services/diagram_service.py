@@ -1315,63 +1315,64 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
     
     async def extract_actors_from_requirements(self, original_requirements: str, class_diagram: str, sequence_diagram: str) -> List[str]:
         """
-        Extract actors from original requirements and verify against generated diagrams
+        Extract actors from original requirements and verify against generated diagrams.
+        Adjusted to support Digital Home System and Monitoring Operator System.
         """
         try:
-            # Use NLP to extract potential actors from requirements
             extracted_actors = []
-            
+
             if self.nlp:
                 doc = self.nlp(original_requirements)
-                
-                # Extract actors using NER and POS tagging
-                for ent in doc.ents:
-                    if ent.label_ in ['PERSON', 'ORG', 'GPE']:
-                        extracted_actors.append(ent.text)
-                
-                # Extract actors from nouns that might represent roles or domain entities
-                role_keywords = ['user', 'admin', 'administrator', 'customer', 'member', 'librarian', 'student', 'teacher', 'manager', 'employee', 'staff', 'operator', 'supervisor', 'owner', 'guest', 'visitor']
-                domain_entities = ['book', 'library', 'document', 'article', 'journal', 'magazine', 'publication', 'author', 'publisher', 'reader', 'patron', 'borrower']
-                
-                # Words that should not be considered actors even if capitalized
-                excluded_words = ['view','system', 'click', 'enter', 'select', 'login', 'issue', 'return', 'home', 'page', 'button', 'id', 'details', 'books', 'members', 'users', "dh", "pda", "PDA", "DH", "D.H.", "D.H","American Society of Heating", "OFF", "ON", "OFFICE", "OFFICER", "OFFICERS", "OFFICERS'","OFFICER'S", "OFFICER'S'","OFFICER'S'"]
-                
+
+                role_keywords = [
+                    'user', 'admin', 'administrator', 'customer', 'member',
+                    'librarian', 'student', 'teacher', 'manager', 'employee',
+                    'staff', 'operator', 'supervisor', 'owner', 'guest',
+                    'visitor', 'monitoring-operator'
+                ]
+
+                domain_entities = [
+                    'book', 'library', 'document', 'sensor', 'alarm', 'thermostat',
+                    'humidistat', 'controller', 'system', 'unit', 'module',
+                    'planner', 'power switch', 'switch', 'hvac', 'control unit',
+                    'device', 'help facility', 
+                ]
+
+                excluded_words = [
+                    'system', 'click', 'enter', 'select', 'login', 'issue', 'return',
+                    'home', 'page', 'button', 'id', 'details', 'books', 'members', 'users',
+                    'view', 'temperature', 'humidity', 'lights', 'security', 'appliance',
+                    'pda', 'dh', 'on', 'off', 'database', 'status', 'value', 'data',
+                    'location', 'message', 'signal', 'warning', 'information',
+                    'american society of heating', 'ashrae', "american",
+                ]
+
                 for token in doc:
-                    # Skip if it's an excluded word
                     if token.text.lower() in excluded_words:
                         continue
-                        
-                    # Check for role-based actors
+
                     if token.pos_ == 'NOUN' and token.text.lower() in role_keywords:
                         extracted_actors.append(token.text.capitalize())
-                    # Check for domain-specific entities that could be actors
+
                     elif token.pos_ == 'NOUN' and token.text.lower() in domain_entities:
                         extracted_actors.append(token.text.capitalize())
-                    # Check for capitalized nouns that might be proper nouns (entities/systems)
+
                     elif token.pos_ in ['NOUN', 'PROPN'] and token.text[0].isupper() and len(token.text) > 2:
-                        # Avoid common words that are capitalized due to sentence start
-                        if token.i > 0 or token.text.lower() not in ['the', 'a', 'an', 'this', 'that']:
-                            # Additional check: don't include if it's actually a verb being used as noun
-                            if not (token.lemma_.lower() in ['view', 'click', 'enter', 'select', 'login']):
+                        if token.i > 0 or token.text.lower() not in ['the', 'a', 'an']:
+                            if not token.lemma_.lower() in ['view', 'click', 'enter', 'select', 'login']:
                                 extracted_actors.append(token.text)
-            
-            # Also use LLM to extract actors from requirements text
-            prompt = f"""Analyze the following requirements and identify all actors (users, roles, external systems):
 
-Requirements:
-{original_requirements}
+            # Use LLM to supplement extraction
+            prompt = f"""Analyze the following requirements and identify all actors (users, roles, external systems, or subsystems) involved in performing actions, initiating workflows, or receiving notifications.
 
-Also consider the entities mentioned in these diagrams:
-Class Diagram: {class_diagram[:500]}...
-Sequence Diagram: {sequence_diagram[:500]}...
+    Requirements:
+    {original_requirements}
 
-List all actors as a comma-separated list. Focus on:
-1. User roles (Admin, User, Customer, etc.)
-2. External systems
-3. Stakeholders mentioned in requirements
-4. Entities that perform actions
+    Also include classes or components mentioned in the following:
+    Class Diagram: {class_diagram[:500]}...
+    Sequence Diagram: {sequence_diagram[:500]}...
 
-Return only the actor names separated by commas."""
+    Return a **comma-separated list** of actor names only. Exclude verbs, UI elements, and internal methods."""
 
             response = await self.client.chat.completions.create(
                 model=self.model,
@@ -1382,27 +1383,69 @@ Return only the actor names separated by commas."""
                 temperature=0.2,
                 max_tokens=200
             )
-            
+
             llm_actors = [actor.strip() for actor in response.choices[0].message.content.split(',')]
-            
-            # Combine and deduplicate actors
+
+            # Combine and deduplicate
             all_actors = list(set(extracted_actors + llm_actors))
-            
-            # Filter out empty strings and overly generic terms
-            excluded_terms = ['system', 'database', 'application', 'data', 'information', 'details', 'management', 'view', 'click', 'enter', 'select', 'login', 'home', 'page', 'button', 'id', 'books', 'members', 'users']
+
+            excluded_terms = excluded_words + ['data', 'information', 'details', 'management']
             filtered_actors = [
-                actor for actor in all_actors 
+                actor for actor in all_actors
                 if actor and len(actor) > 1 and actor.lower() not in excluded_terms and not actor.endswith('.')
             ]
-            
-            # Resolve semantic conflicts between similar actors (e.g., User vs Member)
-            resolved_actors = self._resolve_actor_conflicts(filtered_actors, original_requirements)
-            
-            return resolved_actors[:10]  # Limit to 10 actors for manageable processing
-            
+
+                    # Step 4: Normalize noisy terms
+            normalization_map = {
+                'SoundAlarmSubsystem': 'AlarmSystem',
+                'LightAlarmSubsystem': 'AlarmSystem',
+                'WebDevice': 'WebInterface',
+                'Device': None,
+                'SecurityManager': None,
+                'Heating': 'HVAC',
+                'Engineers': None,
+
+                'MonitoringOperator': 'Operator',
+                'Monitoring-Operator': 'Operator',
+                'RemoteSystem': 'RemoteSensorSystem',
+                'ExternalSensor': 'RemoteSensor',
+                'AlarmSubsystem': 'AlarmSystem',
+                'EmergencyModule': 'EmergencyAlertSystem',
+                'HelpFacility': 'HelpSystem',
+                'EmergencyDisplay': 'EmergencyAlertSystem',
+                'EmergencyMessage': None,  # Message is not an actor
+                'AlarmMessage': None,
+                'SensorStatus': 'Sensor',
+                'MonitoringStatus': None,  # Represents data, not an actor
+                'OutstandingAlarms': 'AlarmSystem',
+                'StatusUpdateService': 'NotificationService',
+                'AlarmData': None,
+                'EmergencySituation': None,
+                'Screen': None,
+                'Display': None,
+                'Conditioning': 'HVAC',
+                'Air': 'HVAC',
+                'Society': 'User',
+                'Hvac': 'HVAC',
+                'SensorManager': None,
+                'American': None,
+                'Unit': 'MasterControlUnit',
+                'Planner': 'Planner',  # Retain as-is
+            }
+
+
+            def normalize_actor(actor: str) -> str | None:
+                return normalization_map.get(actor, actor)
+
+            normalized_actors = filter(None, map(normalize_actor, filtered_actors))
+            resolved_actors = self._resolve_actor_conflicts(list(normalized_actors), original_requirements)
+
+            return resolved_actors[:10]  # Limit to 10 for simplicity
+
         except Exception as e:
             print(f"Error extracting actors: {str(e)}")
-            return ['User', 'System', 'Admin']  # Fallback actors
+            return ['User', 'System', 'Admin']
+
 
     async def verify_diagrams_with_actors(self, class_diagram: str, sequence_diagram: str, identified_actors: List[str]) -> Dict[str, Any]:
         """
