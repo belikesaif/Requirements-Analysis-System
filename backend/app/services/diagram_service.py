@@ -1668,6 +1668,7 @@ FORBIDDEN ELEMENTS:
 - Generic participants like "Database", "Application"
 
 Note: Before generating UML code, validate all sequence participants, check for naming collisions, confirm inheritance direction, and ensure syntactical correctness with complete closure of blocks. Prefer single-word PascalCase naming convention across all identifiers.
+Important: *Make sure to create proper relationships and avoid plantuml syntax errors*
 
 
 OUTPUT ONLY PlantUML code from @startuml to @enduml"""
@@ -1714,7 +1715,7 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
             optimized_sequence = self._enforce_sequence_consistency(optimized_sequence, identified_actors)
 
             # Validate and fix sequence diagram
-            optimized_sequence = self._validate_and_fix_class_diagram(optimized_sequence)
+            optimized_sequence = self._validate_and_fix_sequence_diagram(optimized_sequence)
             optimized_class = self._validate_and_fix_class_diagram(optimized_class)
 
             # I'm having issues with wrong plantuml code being generated, so let's ensure we have the right format
@@ -2355,6 +2356,96 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
                         insert_index += 2
         
         return '\n'.join(lines)
+    
+
+    def _validate_and_fix_sequence_diagram(self, plantuml_code: str) -> str:
+        """
+        Validate sequence diagram and fix undefined references or syntax issues
+        """
+        try:
+            lines = plantuml_code.split('\n')
+            declared_participants = set()
+            referenced_participants = set()
+            valid_lines = []
+            
+            # First pass: identify declared participants
+            participant_patterns = [
+                r'actor\s+(\w+)',
+                r'participant\s+(\w+)',
+                r'participant\s+"([^"]+)"\s+as\s+(\w+)',
+                r'actor\s+"([^"]+)"\s+as\s+(\w+)'
+            ]
+            
+            for line in lines:
+                for pattern in participant_patterns:
+                    matches = re.findall(pattern, line)
+                    for match in matches:
+                        if isinstance(match, tuple):
+                            declared_participants.add(match[-1])  # Get the alias
+                        else:
+                            declared_participants.add(match)
+            
+            # Second pass: identify referenced participants and validate messages
+            message_pattern = r'(\w+)\s*-[->]+\s*(\w+)'
+            for line in lines:
+                if '->' in line or '-->' in line:
+                    matches = re.findall(message_pattern, line)
+                    for match in matches:
+                        referenced_participants.add(match[0])
+                        referenced_participants.add(match[1])
+            
+            # Third pass: validate lines and fix issues
+            for line in lines:
+                line_stripped = line.strip()
+                
+                # Skip empty lines and comments
+                if not line_stripped or line_stripped.startswith("'"):
+                    valid_lines.append(line)
+                    continue
+                
+                # Check if the line has references to undeclared participants
+                has_undeclared = False
+                if '->' in line or '-->' in line:
+                    matches = re.findall(message_pattern, line)
+                    for match in matches:
+                        if match[0] not in declared_participants or match[1] not in declared_participants:
+                            print(f"Removing message with undeclared participant: {line}")
+                            has_undeclared = True
+                            break
+                
+                # Add the line if it's valid
+                if not has_undeclared:
+                    # Remove System references
+                    if 'System' not in line or any(p in line for p in declared_participants):
+                        valid_lines.append(line)
+            
+            # Fourth pass: ensure all declared participants are used
+            unused_participants = declared_participants - referenced_participants
+            if unused_participants and len(declared_participants) > 1:
+                # Add simple interactions for unused participants
+                end_index = next((i for i, line in enumerate(valid_lines) if '@enduml' in line), len(valid_lines))
+                
+                valid_lines.insert(end_index, "== Additional Interactions ==")
+                
+                for unused in unused_participants:
+                    # Pick another participant to interact with
+                    other = next((p for p in declared_participants if p != unused), None)
+                    if other:
+                        valid_lines.insert(end_index + 1, f"{unused} -> {other}: interacts")
+                        valid_lines.insert(end_index + 2, f"{other} --> {unused}: responds")
+            
+            # Reconstruct with proper PlantUML structure
+            result = "@startuml\n"
+            for line in valid_lines:
+                if '@startuml' not in line and '@enduml' not in line:
+                    result += line + "\n"
+            result += "@enduml"
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error validating sequence diagram: {str(e)}")
+            return plantuml_code
 
 
 
