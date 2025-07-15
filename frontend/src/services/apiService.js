@@ -194,5 +194,22 @@ export const apiService = {
       console.error('AI vs RUPP analysis failed:', error);
       throw error;
     }
+  },
+
+  // Generate Java code from PlantUML class diagram (Stage 7)
+  async generateCode(data) {
+    try {
+      console.log('Code generation request data:', data);
+      const response = await apiClient.post('/generate-code', data);
+      return response.data;
+    } catch (error) {
+      console.error('Code generation error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        requestData: data
+      });
+      throw new Error(`Code generation failed: ${error.message}`);
+    }
   }
 };
