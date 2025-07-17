@@ -1383,7 +1383,23 @@ SYNTAX RULES:
 Note: Before generating UML code, validate all class participants, check for naming collisions, confirm inheritance direction, and ensure syntactical correctness with complete closure of blocks. Prefer single-word PascalCase naming convention across all identifiers.
 
 
-OUTPUT ONLY PlantUML code from @startuml to @enduml"""
+OUTPUT ONLY PlantUML code from @startuml to @enduml and make sure classes are well-structured, with proper attributes and methods defined. Avoid any generic classes or participants. Ensure all actors are represented as classes with meaningful relationships.
+
+And the 
+
++[memberfunctions] Must be well defined inside class not outside or without class definition.
+
+For E.g:
+
+class ClassName 
+{{
++variable: String
++function(date: Date): void
+}}
+
+In class diagram code, there are member functions defined outside the class definition, which is incorrect. Make sure to define member functions inside the class definition with proper syntax.
+
+"""
 
             # Enhanced Sequence Diagram Optimization  
             sequence_prompt = f"""Generate a PlantUML sequence diagram with STRICT REQUIREMENTS:
