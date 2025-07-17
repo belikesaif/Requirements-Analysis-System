@@ -22,6 +22,7 @@ import {
   Assessment as AssessmentIcon,
   AutoAwesome as OptimizeIcon,
   VerifiedUser as VerifyIcon,
+  Code as CodeIcon,
   KeyboardArrowLeft,
   KeyboardArrowRight
 } from '@mui/icons-material';
@@ -33,6 +34,7 @@ import OptimizationRequest from './components/OptimizationRequest';
 import SimultaneousDiagramGenerator from './components/SimultaneousDiagramGenerator';
 import ActorIdentificationVerifier from './components/ActorIdentificationVerifier';
 import FinalLLMOptimizer from './components/FinalLLMOptimizer';
+import CodeGenerator from './components/CodeGenerator';
 
 // Import services
 import { storageService } from './services/storageService';
@@ -48,6 +50,7 @@ function App() {
   const [identifiedActors, setIdentifiedActors] = useState([]);
   const [actorVerification, setActorVerification] = useState(null);
   const [finalOptimizedDiagrams, setFinalOptimizedDiagrams] = useState(null);
+  const [generatedCode, setGeneratedCode] = useState(null);
 
   const steps = [
     'Input Requirements',
@@ -55,7 +58,8 @@ function App() {
     'RUPP Optimization',
     'Initial Diagram Generation',
     'Actor Identification & Verification',
-    'Final LLM Optimization'
+    'Final LLM Optimization',
+    'Skeletal Code Generation'
   ];
 
   useEffect(() => {
@@ -68,6 +72,7 @@ function App() {
       setIdentifiedActors(sessionData.identifiedActors || []);
       setActorVerification(sessionData.actorVerification || null);
       setFinalOptimizedDiagrams(sessionData.finalOptimizedDiagrams || null);
+      setGeneratedCode(sessionData.generatedCode || null);
       setVerificationResults(sessionData.verificationResults || null);
       setOptimizationResults(sessionData.optimizationResults || null);
       
@@ -84,6 +89,7 @@ function App() {
       identifiedActors,
       actorVerification,
       finalOptimizedDiagrams,
+      generatedCode,
       verificationResults,
       optimizationResults
     };
@@ -95,7 +101,7 @@ function App() {
     if (currentCaseStudy || initialDiagrams || identifiedActors.length > 0) {
       saveCurrentSession();
     }
-  }, [currentCaseStudy, initialDiagrams, identifiedActors, actorVerification, finalOptimizedDiagrams, verificationResults, optimizationResults]);
+  }, [currentCaseStudy, initialDiagrams, identifiedActors, actorVerification, finalOptimizedDiagrams, generatedCode, verificationResults, optimizationResults]);
 
   const showNotification = (message, severity = 'info') => {
     setNotification({ open: true, message, severity });
@@ -132,6 +138,11 @@ function App() {
   const handleFinalOptimizationComplete = (result) => {
     setFinalOptimizedDiagrams(result);
     showNotification('Final optimization complete!', 'success');
+  };
+
+  const handleCodeGenerationComplete = (result) => {
+    setGeneratedCode(result);
+    showNotification(`Java code generated! ${result.classes_generated} classes created.`, 'success');
   };
 
   const handleVerificationComplete = (results) => {
@@ -251,6 +262,8 @@ System -> User: profile updated
         return identifiedActors.length > 0;
       case 5: // Final LLM Optimization
         return finalOptimizedDiagrams !== null;
+      case 6: // Skeletal Code Generation
+        return generatedCode !== null;
       default:
         return false;
     }
@@ -326,6 +339,14 @@ System -> User: profile updated
             onError={(error) => showNotification(error, 'error')}
           />
         );
+      case 6: // Skeletal Code Generation
+        return (
+          <CodeGenerator
+            classDiagram={finalOptimizedDiagrams?.optimized_class_diagram}
+            onCodeGenerated={handleCodeGenerationComplete}
+            onError={(error) => showNotification(error, 'error')}
+          />
+        );
       default:
         return null;
     }
@@ -339,6 +360,7 @@ System -> User: profile updated
     setIdentifiedActors([]);
     setActorVerification(null);
     setFinalOptimizedDiagrams(null);
+    setGeneratedCode(null);
     setVerificationResults(null);
     setOptimizationResults(null);
     showNotification('Session cleared. Starting fresh.', 'info');
@@ -360,7 +382,8 @@ System -> User: profile updated
             <Typography variant="caption" sx={{ opacity: 0.7 }}>
               Case: {currentCaseStudy ? '✓' : '✗'} | 
               Diagrams: {initialDiagrams ? '✓' : '✗'} | 
-              Actors: {identifiedActors.length}
+              Actors: {identifiedActors.length} |
+              Code: {generatedCode ? '✓' : '✗'}
             </Typography>
             <Button 
               size="small" 

@@ -16,6 +16,9 @@ from app.services.ai_service import AIService
 from app.services.comparison_service import ComparisonService
 from app.services.diagram_service import DiagramService
 from app.storage.memory_storage import MemoryStorage
+from app.services.actor_Identification import ActorIdentificationService
+from app.services.codegeneration import CodeGenerationService
+from app.services.codegeneration import CodeGenerationService
 
 # Load environment variables
 load_dotenv()
@@ -41,6 +44,9 @@ ai_service = AIService()
 comparison_service = ComparisonService()
 diagram_service = DiagramService()
 storage = MemoryStorage()
+actor_identification_service = ActorIdentificationService()
+code_generation_service = CodeGenerationService()
+code_generation_service = CodeGenerationService()
 
 # Pydantic models
 class CaseStudyRequest(BaseModel):
@@ -107,6 +113,12 @@ class PlantUMLErrorReport(BaseModel):
 class PlantUMLValidationRequest(BaseModel):
     plantuml_code: str
     diagram_type: str
+
+class CodeGenerationRequest(BaseModel):
+    class_diagram: str
+    project_name: Optional[str] = "GeneratedProject"
+    package_name: Optional[str] = "com.generated"
+    additional_dependencies: Optional[List[str]] = None
 
 @app.get("/api/health")
 async def health_check():
@@ -254,14 +266,14 @@ async def identify_actors(request: ActorIdentificationRequest):
         print("Identifying actors from requirements and diagrams...")
         
         # Extract actors using POS tagging and NER
-        identified_actors = await diagram_service.extract_actors_from_requirements(
+        identified_actors = await actor_identification_service.extract_actors_from_requirements(
             request.original_requirements,
             request.class_diagram,
             request.sequence_diagram
         )
         
         # Verify diagrams against identified actors
-        verification_results = await diagram_service.verify_diagrams_with_actors(
+        verification_results = await actor_identification_service.verify_diagrams_with_actors(
             request.class_diagram,
             request.sequence_diagram,
             identified_actors
@@ -507,6 +519,37 @@ async def analyze_ai_snl_detailed(request: AIAnalysisRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Detailed AI SNL analysis failed: {str(e)}")
+
+@app.post("/api/generate-code")
+async def generate_code(request: CodeGenerationRequest):
+    """
+    Generate Java code templates from PlantUML class diagram (Stage 7)
+    """
+    try:
+        print(f"Generating Java code from class diagram...")
+        print(f"Class diagram length: {len(request.class_diagram)} characters")
+        
+        # Generate Java code using the code generation service
+        result = code_generation_service.generate_java_code(request.class_diagram)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result.get("error", "Code generation failed"))
+        
+        # Add project metadata
+        result["project_metadata"] = {
+            "project_name": request.project_name,
+            "package_name": request.package_name,
+            "generation_timestamp": datetime.now().isoformat(),
+            "source_diagram_type": "plantuml_class_diagram"
+        }
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error generating code: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Code generation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

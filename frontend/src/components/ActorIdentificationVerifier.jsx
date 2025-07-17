@@ -140,7 +140,7 @@ const ActorIdentificationVerifier = ({
     return (
       <Grid container spacing={3}>
         {/* Overall Score */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card elevation={1}>
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h6" gutterBottom>
@@ -176,13 +176,33 @@ const ActorIdentificationVerifier = ({
           </Card>
         </Grid>
 
+        {/* Statistics Summary */}
+        <Grid item xs={12} md={3}>
+          <Card elevation={1}>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" gutterBottom>
+                Coverage Statistics
+              </Typography>
+              <Typography variant="h4" color="primary.main" gutterBottom>
+                {verificationResults.statistics?.coverage_percentage?.toFixed(1) || 0}%
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                Actor Coverage
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                {verificationResults.statistics?.present_count || 0} of {verificationResults.statistics?.total_identified_actors || 0} actors present
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Missing Actors */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card elevation={1}>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <WarningIcon sx={{ mr: 1, color: 'warning.main' }} />
-                Missing Actors
+                Missing Actors ({verificationResults.missing_actors?.length || 0})
               </Typography>
               {verificationResults.missing_actors?.length > 0 ? (
                 <List dense>
@@ -204,25 +224,83 @@ const ActorIdentificationVerifier = ({
           </Card>
         </Grid>
 
+        {/* Overspecified Classes */}
+        <Grid item xs={12} md={3}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <InfoIcon sx={{ mr: 1, color: 'info.main' }} />
+                Overspecified Classes ({verificationResults.overspecified_classes?.length || 0})
+              </Typography>
+              {verificationResults.overspecified_classes?.length > 0 ? (
+                <List dense>
+                  {verificationResults.overspecified_classes.map((cls, index) => (
+                    <ListItem key={index} sx={{ py: 0.5 }}>
+                      <ListItemIcon sx={{ minWidth: 32 }}>
+                        <InfoIcon fontSize="small" color="info" />
+                      </ListItemIcon>
+                      <ListItemText primary={cls} />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="success.main">
+                  ✓ No overspecified classes detected
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Incorrect Classes */}
+        <Grid item xs={12} md={3}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <ErrorIcon sx={{ mr: 1, color: 'error.main' }} />
+                Incorrect Actors ({verificationResults.incorrect_classes?.length || 0})
+              </Typography>
+              {verificationResults.incorrect_classes?.length > 0 ? (
+                <List dense>
+                  {verificationResults.incorrect_classes.map((cls, index) => (
+                    <ListItem key={index} sx={{ py: 0.5 }}>
+                      <ListItemIcon sx={{ minWidth: 32 }}>
+                        <ErrorIcon fontSize="small" color="error" />
+                      </ListItemIcon>
+                      <ListItemText primary={cls} secondary="Generic or inappropriate" />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="success.main">
+                  ✓ No incorrect actors detected
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Present Actors */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={9}>
           <Card elevation={1}>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <SuccessIcon sx={{ mr: 1, color: 'success.main' }} />
-                Present Actors
+                Present Actors ({verificationResults.present_actors?.length || 0})
               </Typography>
               {verificationResults.present_actors?.length > 0 ? (
-                <List dense>
+                <Grid container spacing={1}>
                   {verificationResults.present_actors.map((actor, index) => (
-                    <ListItem key={index} sx={{ py: 0.5 }}>
-                      <ListItemIcon sx={{ minWidth: 32 }}>
-                        <SuccessIcon fontSize="small" color="success" />
-                      </ListItemIcon>
-                      <ListItemText primary={actor} />
-                    </ListItem>
+                    <Grid item key={index}>
+                      <Chip 
+                        label={actor}
+                        color="success"
+                        size="small"
+                        icon={<SuccessIcon />}
+                      />
+                    </Grid>
                   ))}
-                </List>
+                </Grid>
               ) : (
                 <Typography variant="body2" color="textSecondary">
                   No actors found in diagrams
@@ -232,6 +310,49 @@ const ActorIdentificationVerifier = ({
           </Card>
         </Grid>
 
+        {/* Detailed Statistics */}
+        {verificationResults.statistics && (
+          <Grid item xs={12}>
+            <Card elevation={1}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>Detailed Analysis Statistics</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                      <Typography variant="h4">{verificationResults.statistics.total_identified_actors}</Typography>
+                      <Typography variant="body2">Identified Actors</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'success.contrastText' }}>
+                      <Typography variant="h4">{verificationResults.statistics.present_count}</Typography>
+                      <Typography variant="body2">Present in Diagrams</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+                      <Typography variant="h4">{verificationResults.statistics.missing_count}</Typography>
+                      <Typography variant="body2">Missing from Diagrams</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.light', color: 'info.contrastText' }}>
+                      <Typography variant="h4">{verificationResults.statistics.overspecified_count}</Typography>
+                      <Typography variant="body2">Overspecified Classes</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.light', color: 'error.contrastText' }}>
+                      <Typography variant="h4">{verificationResults.incorrect_classes?.length || 0}</Typography>
+                      <Typography variant="body2">Incorrect Actors</Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
         {/* Inconsistencies */}
         {verificationResults.inconsistencies?.length > 0 && (
           <Grid item xs={12}>
@@ -239,6 +360,71 @@ const ActorIdentificationVerifier = ({
               <Typography variant="h6" gutterBottom>Identified Issues:</Typography>
               <List dense>
                 {verificationResults.inconsistencies.map((issue, index) => (
+                  <ListItem key={index} sx={{ py: 0.5 }}>
+                    <ListItemText primary={issue} />
+                  </ListItem>
+                ))}
+              </List>
+            </Alert>
+          </Grid>
+        )}
+
+        {/* Incorrect Actors Alert */}
+        {verificationResults.incorrect_classes?.length > 0 && (
+          <Grid item xs={12}>
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="h6" gutterBottom>Incorrect Actors Detected:</Typography>
+              <Typography variant="body2" gutterBottom>
+                The following actors in your diagrams are considered incorrect or too generic. 
+                They should be replaced with more specific, domain-relevant actors:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                {verificationResults.incorrect_classes.map((cls, index) => (
+                  <Chip 
+                    key={index}
+                    label={cls}
+                    color="error"
+                    size="small"
+                    variant="outlined"
+                    icon={<ErrorIcon />}
+                  />
+                ))}
+              </Box>
+            </Alert>
+          </Grid>
+        )}
+
+        {/* Overspecification Alert */}
+        {verificationResults.overspecified_classes?.length > 0 && (
+          <Grid item xs={12}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="h6" gutterBottom>Overspecified Classes Detected:</Typography>
+              <Typography variant="body2" gutterBottom>
+                The following classes appear in your diagrams but were not identified from the requirements. 
+                Consider if they are necessary or if they add unnecessary complexity:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                {verificationResults.overspecified_classes.map((cls, index) => (
+                  <Chip 
+                    key={index}
+                    label={cls}
+                    color="info"
+                    size="small"
+                    variant="outlined"
+                  />
+                ))}
+              </Box>
+            </Alert>
+          </Grid>
+        )}
+
+        {/* Specification Issues */}
+        {verificationResults.specification_issues?.length > 0 && (
+          <Grid item xs={12}>
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="h6" gutterBottom>Specification Issues:</Typography>
+              <List dense>
+                {verificationResults.specification_issues.map((issue, index) => (
                   <ListItem key={index} sx={{ py: 0.5 }}>
                     <ListItemText primary={issue} />
                   </ListItem>
@@ -286,7 +472,8 @@ const ActorIdentificationVerifier = ({
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
               <strong>Analysis Method:</strong> Using spaCy NER + POS tagging + GPT-3.5 for comprehensive actor extraction.<br/>
-              <strong>Verification:</strong> Cross-referencing identified actors with diagram elements.<br/>
+              <strong>Verification:</strong> Cross-referencing identified actors with diagram elements + overspecification detection.<br/>
+              <strong>Detection:</strong> Missing actors, overspecified classes, incorrect classes, and specification issues.<br/>
               <strong>Status:</strong> 
               {originalRequirements ? `✓ Requirements available (${originalRequirements.length} chars)` : '✗ Requirements missing'} | 
               {classDiagram ? `✓ Class diagram available (${classDiagram.length} chars)` : '✗ Class diagram missing'} | 
@@ -307,7 +494,7 @@ const ActorIdentificationVerifier = ({
             disabled={loading || !originalRequirements || (!classDiagram && !sequenceDiagram)}
             sx={{ mb: 2 }}
           >
-            {loading ? 'Identifying Actors...' : 'Identify Actors & Verify'}
+            {loading ? 'Analyzing Actors & Diagrams...' : 'Identify Actors & Verify Diagrams'}
           </Button>
 
           {(!classDiagram || !sequenceDiagram) && (

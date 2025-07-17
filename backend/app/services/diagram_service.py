@@ -1313,235 +1313,7 @@ MANDATORY REQUIREMENTS:
 
 The diagram MUST match the exact and accurate sequnce diagram rules."""
     
-    async def extract_actors_from_requirements(self, original_requirements: str, class_diagram: str, sequence_diagram: str) -> List[str]:
-        """
-        Extract actors from original requirements and verify against generated diagrams
-        """
-        try:
-            # Use NLP to extract potential actors from requirements
-            extracted_actors = []
-            
-            if self.nlp:
-                doc = self.nlp(original_requirements)
-                
-                # Extract actors using NER and POS tagging
-                for ent in doc.ents:
-                    if ent.label_ in ['PERSON', 'ORG', 'GPE']:
-                        extracted_actors.append(ent.text)
-                
-                # Extract actors from nouns that might represent roles or domain entities
-                role_keywords = ['user', 'admin', 'administrator', 'customer', 'member', 'librarian', 'student', 'teacher', 'manager', 'employee', 'staff', 'operator', 'supervisor', 'owner', 'guest', 'visitor']
-                domain_entities = ['book', 'library', 'document', 'article', 'journal', 'magazine', 'publication', 'author', 'publisher', 'reader', 'patron', 'borrower']
-                
-                # Words that should not be considered actors even if capitalized
-                excluded_words = ['view','system', 'click', 'enter', 'select', 'login', 'issue', 'return', 'home', 'page', 'button', 'id', 'details', 'books', 'members', 'users']
-                
-                for token in doc:
-                    # Skip if it's an excluded word
-                    if token.text.lower() in excluded_words:
-                        continue
-                        
-                    # Check for role-based actors
-                    if token.pos_ == 'NOUN' and token.text.lower() in role_keywords:
-                        extracted_actors.append(token.text.capitalize())
-                    # Check for domain-specific entities that could be actors
-                    elif token.pos_ == 'NOUN' and token.text.lower() in domain_entities:
-                        extracted_actors.append(token.text.capitalize())
-                    # Check for capitalized nouns that might be proper nouns (entities/systems)
-                    elif token.pos_ in ['NOUN', 'PROPN'] and token.text[0].isupper() and len(token.text) > 2:
-                        # Avoid common words that are capitalized due to sentence start
-                        if token.i > 0 or token.text.lower() not in ['the', 'a', 'an', 'this', 'that']:
-                            # Additional check: don't include if it's actually a verb being used as noun
-                            if not (token.lemma_.lower() in ['view', 'click', 'enter', 'select', 'login']):
-                                extracted_actors.append(token.text)
-            
-            # Also use LLM to extract actors from requirements text
-            prompt = f"""Analyze the following requirements and identify all actors (users, roles, external systems):
-
-Requirements:
-{original_requirements}
-
-Also consider the entities mentioned in these diagrams:
-Class Diagram: {class_diagram[:500]}...
-Sequence Diagram: {sequence_diagram[:500]}...
-
-List all actors as a comma-separated list. Focus on:
-1. User roles (Admin, User, Customer, etc.)
-2. External systems
-3. Stakeholders mentioned in requirements
-4. Entities that perform actions
-
-Return only the actor names separated by commas."""
-
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert requirements analyst. Extract actors from requirements text."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2,
-                max_tokens=200
-            )
-            
-            llm_actors = [actor.strip() for actor in response.choices[0].message.content.split(',')]
-            
-            # Combine and deduplicate actors
-            all_actors = list(set(extracted_actors + llm_actors))
-            
-            # Filter out empty strings and overly generic terms
-            excluded_terms = ['system', 'database', 'application', 'data', 'information', 'details', 'management', 'view', 'click', 'enter', 'select', 'login', 'home', 'page', 'button', 'id', 'books', 'members', 'users']
-            filtered_actors = [
-                actor for actor in all_actors 
-                if actor and len(actor) > 1 and actor.lower() not in excluded_terms and not actor.endswith('.')
-            ]
-            
-            # Resolve semantic conflicts between similar actors (e.g., User vs Member)
-            resolved_actors = self._resolve_actor_conflicts(filtered_actors, original_requirements)
-            
-            return resolved_actors[:10]  # Limit to 10 actors for manageable processing
-            
-        except Exception as e:
-            print(f"Error extracting actors: {str(e)}")
-            return ['User', 'System', 'Admin']  # Fallback actors
-
-    async def verify_diagrams_with_actors(self, class_diagram: str, sequence_diagram: str, identified_actors: List[str]) -> Dict[str, Any]:
-        """
-        Verify diagrams against identified actors with enhanced missing actor detection
-        """
-        try:
-            actors_text = ", ".join(identified_actors)
-            
-            prompt = f"""Strictly verify the following diagrams against the identified actors. Be thorough in checking for missing actors.
-
-Identified Actors (ALL must be present): {actors_text}
-
-Class Diagram:
-{class_diagram}
-
-Sequence Diagram:
-{sequence_diagram}
-
-IMPORTANT VERIFICATION RULES:
-1. Check if EACH identified actor appears as a class in the class diagram
-2. Check if EACH identified actor appears as a participant in the sequence diagram  
-3. Do NOT consider "System" as a valid actor - it's too generic
-4. An actor is MISSING if it's in the identified list but not found in the diagrams
-5. Be strict about actor presence - partial matches don't count
-
-Analyze and return JSON with:
-{{
-    "missing_actors": [actors from identified list that are completely absent from diagrams],
-    "present_actors": [actors that are properly represented in both diagrams],
-    "class_diagram_actors": [actors found in class diagram],
-    "sequence_diagram_actors": [actors found in sequence diagram],
-    "inconsistencies": [specific issues between class and sequence diagrams],
-    "generic_elements": [any overly generic elements like "System" that should be avoided],
-    "recommendations": [specific improvement suggestions],
-    "overall_score": float (0.0 to 1.0 based on actor coverage)
-}}
-
-Be extremely strict about missing actors. If an identified actor is not explicitly present in the diagrams, it MUST be listed as missing."""
-
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are a strict UML diagram analyst. Thoroughly verify that ALL identified actors are present in diagrams. Do not be lenient - missing actors must be flagged."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,  # Lower temperature for more consistent analysis
-                max_tokens=1000
-            )
-            
-            try:
-                import json
-                verification_result = json.loads(response.choices[0].message.content)
-                
-                # Additional verification check - ensure we're not missing obvious actors
-                class_diagram_lower = class_diagram.lower()
-                sequence_diagram_lower = sequence_diagram.lower()
-                
-                detected_missing = []
-                detected_present = []
-                
-                for actor in identified_actors:
-                    actor_lower = actor.lower()
-                    
-                    # Check if actor appears in class diagram (as a class)
-                    class_present = (f"class {actor_lower}" in class_diagram_lower or 
-                                   f"class {actor}" in class_diagram)
-                    
-                    # Check if actor appears in sequence diagram (as participant/actor)
-                    sequence_present = (f"participant {actor_lower}" in sequence_diagram_lower or 
-                                      f"actor {actor_lower}" in sequence_diagram_lower or
-                                      f"participant {actor}" in sequence_diagram or
-                                      f"actor {actor}" in sequence_diagram)
-                    
-                    if class_present and sequence_present:
-                        detected_present.append(actor)
-                    else:
-                        detected_missing.append(actor)
-                        print(f"DETECTED MISSING: '{actor}' - Class present: {class_present}, Sequence present: {sequence_present}")
-                
-                # Override LLM results with our more accurate detection
-                verification_result['missing_actors'] = detected_missing
-                verification_result['present_actors'] = detected_present
-                
-                # Recalculate score based on actual actor coverage
-                total_actors = len(identified_actors)
-                missing_actors = len(detected_missing)
-                actor_coverage = (total_actors - missing_actors) / total_actors if total_actors > 0 else 0
-                verification_result['overall_score'] = actor_coverage
-                
-                print(f"Verification Summary:")
-                print(f"  Total identified actors: {total_actors}")
-                print(f"  Present actors: {detected_present}")
-                print(f"  Missing actors: {detected_missing}")
-                print(f"  Actor coverage: {actor_coverage:.2%}")
-                
-                return verification_result
-                
-            except json.JSONDecodeError:
-                # Fallback - manually check all actors
-                detected_missing = []
-                detected_present = []
-                
-                for actor in identified_actors:
-                    actor_lower = actor.lower()
-                    class_present = f"class {actor_lower}" in class_diagram.lower() or f"class {actor}" in class_diagram
-                    sequence_present = (f"participant {actor_lower}" in sequence_diagram.lower() or 
-                                      f"actor {actor_lower}" in sequence_diagram.lower() or
-                                      f"participant {actor}" in sequence_diagram or
-                                      f"actor {actor}" in sequence_diagram)
-                    
-                    if class_present and sequence_present:
-                        detected_present.append(actor)
-                    else:
-                        detected_missing.append(actor)
-                
-                return {
-                    "missing_actors": detected_missing,
-                    "present_actors": detected_present,
-                    "class_diagram_actors": [],
-                    "sequence_diagram_actors": [],
-                    "inconsistencies": ["Unable to parse verification results"],
-                    "generic_elements": ["System"],
-                    "recommendations": ["Manual review recommended", "Regenerate diagrams with all actors"],
-                    "overall_score": len(detected_present) / len(identified_actors) if identified_actors else 0.0
-                }
-                
-        except Exception as e:
-            print(f"Error verifying diagrams: {str(e)}")
-            return {
-                "missing_actors": identified_actors,
-                "present_actors": [],
-                "class_diagram_actors": [],
-                "sequence_diagram_actors": [],
-                "inconsistencies": [f"Verification failed: {str(e)}"],
-                "generic_elements": ["System"],
-                "recommendations": ["Manual review required", "Regenerate diagrams"],
-                "overall_score": 0.0
-            }
-
+    
     async def optimize_diagrams_with_llm_and_actors(self, original_requirements: str, class_diagram: str, 
                                                   sequence_diagram: str, identified_actors: List[str], 
                                                   verification_issues: Dict[str, Any]) -> Dict[str, Any]:
@@ -1611,12 +1383,28 @@ SYNTAX RULES:
 Note: Before generating UML code, validate all class participants, check for naming collisions, confirm inheritance direction, and ensure syntactical correctness with complete closure of blocks. Prefer single-word PascalCase naming convention across all identifiers.
 
 
-OUTPUT ONLY PlantUML code from @startuml to @enduml"""
+OUTPUT ONLY PlantUML code from @startuml to @enduml and make sure classes are well-structured, with proper attributes and methods defined. Avoid any generic classes or participants. Ensure all actors are represented as classes with meaningful relationships.
+
+And the 
+
++[memberfunctions] Must be well defined inside class not outside or without class definition.
+
+For E.g:
+
+class ClassName 
+{{
++variable: String
++function(date: Date): void
+}}
+
+In class diagram code, there are member functions defined outside the class definition, which is incorrect. Make sure to define member functions inside the class definition with proper syntax.
+
+"""
 
             # Enhanced Sequence Diagram Optimization  
             sequence_prompt = f"""Generate a PlantUML sequence diagram with STRICT REQUIREMENTS:
 
-MANDATORY PARTICIPANTS: {actors_text}
+MANDATORY PARTICIPANTS (And Make sure you do not add anything other than these): {actors_text}
 REQUIREMENTS: {original_requirements[:500]}
 ISSUES TO FIX: {issues_text[:200]}
 
@@ -1827,96 +1615,6 @@ OUTPUT ONLY PlantUML code from @startuml to @enduml"""
             return False
 
         return True
-    
-    def _resolve_actor_conflicts(self, actors: List[str], requirements_text: str) -> List[str]:
-        """
-        Resolve semantic conflicts between similar actors using NLP analysis
-        e.g., User vs Member, Customer vs Client, etc.
-        """
-        if not self.nlp:
-            return actors
-            
-        try:
-            doc = self.nlp(requirements_text.lower())
-            
-            # Define conflict groups - actors that might represent the same role
-            conflict_groups = [
-                ['member', 'customer', 'client'],
-                ['admin', 'administrator', 'manager'],
-                ['librarian', 'staff', 'employee'],
-                ['student', 'pupil', 'learner'],
-                ['guest', 'visitor', 'anonymous']
-            ]
-            
-            resolved_actors = []
-            used_groups = set()
-            
-            actors_lower = [actor.lower() for actor in actors]
-            
-            for actor in actors:
-                actor_lower = actor.lower()
-                
-                # Check if this actor belongs to any conflict group
-                conflict_group_index = None
-                for i, group in enumerate(conflict_groups):
-                    if actor_lower in group:
-                        conflict_group_index = i
-                        break
-                
-                if conflict_group_index is not None:
-                    # If we haven't processed this conflict group yet
-                    if conflict_group_index not in used_groups:
-                        used_groups.add(conflict_group_index)
-                        
-                        # Find which actors from this group are present
-                        present_actors = [a for a in actors if a.lower() in conflict_groups[conflict_group_index]]
-                        
-                        if len(present_actors) > 1:
-                            # Choose the most appropriate actor based on context frequency
-                            chosen_actor = self._choose_primary_actor(present_actors, requirements_text)
-                            resolved_actors.append(chosen_actor)
-                        else:
-                            resolved_actors.append(actor)
-                else:
-                    # No conflict, add as-is
-                    resolved_actors.append(actor)
-            
-            return resolved_actors
-            
-        except Exception as e:
-            print(f"Error resolving actor conflicts: {str(e)}")
-            return actors
-    
-    def _choose_primary_actor(self, conflicting_actors: List[str], requirements_text: str) -> str:
-        """
-        Choose the primary actor from a group of semantically similar actors
-        based on frequency and context in requirements
-        """
-        try:
-            doc = self.nlp(requirements_text.lower())
-            actor_counts = {}
-            
-            # Count occurrences of each actor
-            for actor in conflicting_actors:
-                count = 0
-                actor_lower = actor.lower()
-                
-                for token in doc:
-                    if token.text == actor_lower:
-                        count += 1
-                
-                actor_counts[actor] = count
-            
-            # Return the most frequently mentioned actor
-            if actor_counts:
-                primary_actor = max(actor_counts, key=actor_counts.get)
-                print(f"Resolved conflict between {conflicting_actors} -> chose '{primary_actor}' (mentioned {actor_counts[primary_actor]} times)")
-                return primary_actor
-            else:
-                return conflicting_actors[0]
-                
-        except Exception:
-            return conflicting_actors[0]
     
     def _validate_and_fix_class_diagram(self, plantuml_code: str) -> str:
         """
