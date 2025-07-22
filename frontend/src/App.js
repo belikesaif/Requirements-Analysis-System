@@ -56,7 +56,7 @@ function App() {
     'Input Requirements',
     'AI Results & Verification',
     'RUPP\'s Optimizer',
-    'AI Design Generatorn',
+    'AI Design Generator',
     'Design Verifier',
     'Design Optimizer',
     'Skeletal Code Generation'
