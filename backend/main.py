@@ -150,6 +150,22 @@ async def root():
     """Health check endpoint"""
     return {"message": "NLP Requirements Analysis System API", "status": "active"}
 
+@app.get("/api")
+async def api_root():
+    """API root endpoint"""
+    return {
+        "message": "NLP Requirements Analysis System API",
+        "status": "healthy",
+        "version": "1.0.0",
+        "endpoints": [
+            "/api/health",
+            "/api/process-requirements",
+            "/api/generate-diagrams",
+            "/api/identify-actors",
+            "/api/final-optimization"
+        ]
+    }
+
 @app.post("/api/process-requirements", response_model=SNLResponse)
 async def process_requirements(request: CaseStudyRequest):
     """
