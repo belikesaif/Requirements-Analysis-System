@@ -14,6 +14,7 @@ openai==1.3.5
 
 # Pre-built scientific computing (Python 3.13 compatible)
 numpy>=2.1.0,<3.0.0
+scikit-learn>=1.3.0,<2.0.0
 
 # SpaCy WITHOUT compilation (latest compatible versions)
 spacy>=3.7.0,<4.0.0
