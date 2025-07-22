@@ -4,9 +4,8 @@ services:
     env: python
     buildCommand: |
       pip install --upgrade pip setuptools wheel
-      pip install --only-binary=:all: --no-compile --force-reinstall -r requirements.txt
-      python -c "import spacy; print('SpaCy installed successfully')" || echo "SpaCy will be handled at runtime"
-      python -m spacy download en_core_web_sm --quiet || echo "Model will download at runtime"
+      pip install --only-binary=:all: --no-compile -r requirements.txt
+      python -c "import fastapi, uvicorn, numpy; print('Core packages OK')"
     startCommand: chmod +x start.sh && ./start.sh
     envVars:
       - key: OPENAI_API_KEY
