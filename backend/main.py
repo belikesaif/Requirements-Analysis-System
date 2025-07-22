@@ -33,7 +33,10 @@ frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 allowed_origins = [
     "http://localhost:3000", 
     "http://localhost:5173",  # React/Vite dev servers
-    frontend_url  # Production frontend URL
+    frontend_url,  # Production frontend URL from environment
+    "https://*.vercel.app",  # Allow all Vercel deployments
+    "https://requirements-analysis-system-frontend.vercel.app",  # Specific Vercel URL
+    "*"  # Temporary - allow all origins for debugging
 ]
 
 app.add_middleware(
