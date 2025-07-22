@@ -13,7 +13,8 @@ python-dotenv==1.0.0
 openai==1.3.5
 
 # Basic utilities
-aiofiles==0.24.0
+# File handling
+aiofiles==24.1.0
 requests>=2.31.0
 
 # Document processing (lightweight)
