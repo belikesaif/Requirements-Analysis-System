@@ -160,7 +160,7 @@ const SimultaneousDiagramGenerator = ({
                 
                 <PlantUMLViewer 
                   plantUMLCode={diagrams.class_diagram}
-                  title="Initial Class Diagram"
+                  title="Class Diagram"
                 />
               </CardContent>
             </Card>
@@ -188,7 +188,7 @@ const SimultaneousDiagramGenerator = ({
                 
                 <PlantUMLViewer 
                   plantUMLCode={diagrams.sequence_diagram}
-                  title="Initial Sequence Diagram"
+                  title="Sequence Diagram"
                 />
               </CardContent>
             </Card>

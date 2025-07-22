@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -192,6 +192,17 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error('AI vs RUPP analysis failed:', error);
+      throw error;
+    }
+  },
+
+  // Compare AI Generated SNL with RUPP Optimized SNL
+  async compareAIvsRUPP(data) {
+    try {
+      const response = await apiClient.post('/compare-ai-vs-rupp', data);
+      return response.data;
+    } catch (error) {
+      console.error('AI vs RUPP comparison failed:', error);
       throw error;
     }
   },

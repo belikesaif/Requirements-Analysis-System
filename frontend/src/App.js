@@ -55,10 +55,10 @@ function App() {
   const steps = [
     'Input Requirements',
     'AI Results & Verification',
-    'RUPP Optimization',
-    'Initial Diagram Generation',
-    'Actor Identification & Verification',
-    'Final LLM Optimization',
+    'RUPP\'s Optimizer',
+    'AI Design Generatorn',
+    'Design Verifier',
+    'Design Optimizer',
     'Skeletal Code Generation'
   ];
 
@@ -283,7 +283,7 @@ System -> User: profile updated
         return (
           <AIResultsVerifier
             aiSnlData={currentCaseStudy?.ai_snl}
-            originalText={currentCaseStudy?.original_text || currentCaseStudy?.text || ''}
+            ruppOptimizedData={optimizationResults?.optimized_requirements || currentCaseStudy?.rupp_snl}
             onVerificationComplete={handleVerificationComplete}
             onError={(error) => showNotification(error, 'error')}
             onContinue={handleNext}
@@ -382,7 +382,7 @@ System -> User: profile updated
             <Typography variant="caption" sx={{ opacity: 0.7 }}>
               Case: {currentCaseStudy ? '✓' : '✗'} | 
               Diagrams: {initialDiagrams ? '✓' : '✗'} | 
-              Actors: {identifiedActors.length} |
+              Instances: {identifiedActors.length} |
               Code: {generatedCode ? '✓' : '✗'}
             </Typography>
             <Button 

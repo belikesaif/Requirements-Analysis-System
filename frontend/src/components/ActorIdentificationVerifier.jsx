@@ -111,7 +111,7 @@ const ActorIdentificationVerifier = ({
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
             <ActorIcon sx={{ mr: 1 }} />
-            Identified Actors ({identifiedActors.length})
+            Identified Instances ({identifiedActors.length})
           </Typography>
           
           <Grid container spacing={1}>
@@ -196,13 +196,13 @@ const ActorIdentificationVerifier = ({
           </Card>
         </Grid>
 
-        {/* Missing Actors */}
+        {/* Missing Instances */}
         <Grid item xs={12} md={3}>
           <Card elevation={1}>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <WarningIcon sx={{ mr: 1, color: 'warning.main' }} />
-                Missing Actors ({verificationResults.missing_actors?.length || 0})
+                Missing Instances ({verificationResults.missing_actors?.length || 0})
               </Typography>
               {verificationResults.missing_actors?.length > 0 ? (
                 <List dense>
@@ -258,7 +258,7 @@ const ActorIdentificationVerifier = ({
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <ErrorIcon sx={{ mr: 1, color: 'error.main' }} />
-                Incorrect Actors ({verificationResults.incorrect_classes?.length || 0})
+                Incorrect Instances ({verificationResults.incorrect_classes?.length || 0})
               </Typography>
               {verificationResults.incorrect_classes?.length > 0 ? (
                 <List dense>
@@ -280,13 +280,13 @@ const ActorIdentificationVerifier = ({
           </Card>
         </Grid>
 
-        {/* Present Actors */}
+        {/* Present Instances */}
         <Grid item xs={12} md={9}>
           <Card elevation={1}>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <SuccessIcon sx={{ mr: 1, color: 'success.main' }} />
-                Present Actors ({verificationResults.present_actors?.length || 0})
+                Present Instances ({verificationResults.present_actors?.length || 0})
               </Typography>
               {verificationResults.present_actors?.length > 0 ? (
                 <Grid container spacing={1}>
@@ -320,7 +320,7 @@ const ActorIdentificationVerifier = ({
                   <Grid item xs={6} sm={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'primary.contrastText' }}>
                       <Typography variant="h4">{verificationResults.statistics.total_identified_actors}</Typography>
-                      <Typography variant="body2">Identified Actors</Typography>
+                      <Typography variant="body2">Identified Instances</Typography>
                     </Paper>
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -344,7 +344,7 @@ const ActorIdentificationVerifier = ({
                   <Grid item xs={6} sm={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.light', color: 'error.contrastText' }}>
                       <Typography variant="h4">{verificationResults.incorrect_classes?.length || 0}</Typography>
-                      <Typography variant="body2">Incorrect Actors</Typography>
+                      <Typography variant="body2">Incorrect Instances</Typography>
                     </Paper>
                   </Grid>
                 </Grid>
@@ -369,11 +369,11 @@ const ActorIdentificationVerifier = ({
           </Grid>
         )}
 
-        {/* Incorrect Actors Alert */}
+        {/* Incorrect Instances Alert */}
         {verificationResults.incorrect_classes?.length > 0 && (
           <Grid item xs={12}>
             <Alert severity="error" sx={{ mb: 2 }}>
-              <Typography variant="h6" gutterBottom>Incorrect Actors Detected:</Typography>
+              <Typography variant="h6" gutterBottom>Incorrect Instances Detected:</Typography>
               <Typography variant="body2" gutterBottom>
                 The following actors in your diagrams are considered incorrect or too generic. 
                 They should be replaced with more specific, domain-relevant actors:
@@ -460,7 +460,7 @@ const ActorIdentificationVerifier = ({
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <VerifyIcon sx={{ mr: 2, color: 'primary.main' }} />
             <Typography variant="h5" component="h2">
-              Screen 5: Actor Identification & Verification
+              Screen 5: Design Verifier
             </Typography>
           </Box>
           
@@ -494,7 +494,7 @@ const ActorIdentificationVerifier = ({
             disabled={loading || !originalRequirements || (!classDiagram && !sequenceDiagram)}
             sx={{ mb: 2 }}
           >
-            {loading ? 'Analyzing Actors & Diagrams...' : 'Identify Actors & Verify Diagrams'}
+            {loading ? 'Analyzing Instances & Diagrams...' : 'Identify Instances & Verify Diagrams'}
           </Button>
 
           {(!classDiagram || !sequenceDiagram) && (
@@ -512,7 +512,7 @@ const ActorIdentificationVerifier = ({
         </CardContent>
       </Card>
 
-      {/* Actors List */}
+      {/* Instances List */}
       {renderActorsList()}
 
       {/* Verification Results */}
@@ -580,10 +580,10 @@ const ActorIdentificationVerifier = ({
           <CardContent sx={{ textAlign: 'center', py: 8 }}>
             <ActorIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" color="textSecondary" gutterBottom>
-              No Actors Identified Yet
+              No Instances Identified Yet
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Click "Identify Actors & Verify" to extract actors from requirements and verify diagram consistency.
+              Click "Identify Instances & Verify" to extract actors from requirements and verify diagram consistency.
             </Typography>
             {!originalRequirements && (
               <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>

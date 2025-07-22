@@ -139,7 +139,7 @@ const FinalLLMOptimizer = ({
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.light', color: 'secondary.contrastText' }}>
               <Typography variant="h4">{identifiedActors.length}</Typography>
-              <Typography variant="body2">Identified Actors</Typography>
+              <Typography variant="body2">Identified Instances</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -166,13 +166,13 @@ const FinalLLMOptimizer = ({
 
   const renderActorsAndIssues = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
-      {/* Identified Actors */}
+      {/* Identified Instances */}
       <Grid item xs={12} md={6}>
         <Card elevation={1}>
           <CardContent>
             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <ActorIcon sx={{ mr: 1 }} />
-              Actors to Include ({identifiedActors.length})
+              Instances to Include ({identifiedActors.length})
             </Typography>
             {identifiedActors.length > 0 ? (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -206,7 +206,7 @@ const FinalLLMOptimizer = ({
             
             {verificationIssues.missing_actors?.length > 0 && (
               <Alert severity="warning" sx={{ mb: 2 }}>
-                <Typography variant="subtitle2">Missing Actors:</Typography>
+                <Typography variant="subtitle2">Missing Instances:</Typography>
                 <Typography variant="body2">
                   {verificationIssues.missing_actors.join(', ')}
                 </Typography>
@@ -313,7 +313,7 @@ const FinalLLMOptimizer = ({
               
               <PlantUMLViewer 
                 plantUMLCode={optimizedDiagrams.optimized_class_diagram}
-                title="Final Optimized Class Diagram"
+                title="Design Optimized Class Diagram"
                 diagramType="class"
                 onError={(error) => handleDiagramError('class', error)}
               />
@@ -332,7 +332,7 @@ const FinalLLMOptimizer = ({
               
               <PlantUMLViewer 
                 plantUMLCode={optimizedDiagrams.optimized_sequence_diagram}
-                title="Final Optimized Sequence Diagram"
+                title="Design Optimized Sequence Diagram"
                 diagramType="sequence"
                 onError={(error) => handleDiagramError('sequence', error)}
               />
@@ -368,7 +368,7 @@ const FinalLLMOptimizer = ({
                 
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom>
-                    Final Actors Included:
+                    Final Instances Included:
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {optimizedDiagrams.final_actors?.map((actor, index) => (
@@ -448,7 +448,7 @@ const FinalLLMOptimizer = ({
       {/* Input Summary */}
       {renderInputSummary()}
 
-      {/* Actors and Issues */}
+      {/* Instances and Issues */}
       {renderActorsAndIssues()}
 
       {/* Optimization Process */}

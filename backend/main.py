@@ -30,9 +30,16 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend integration
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allowed_origins = [
+    "http://localhost:3000", 
+    "http://localhost:5173",  # React/Vite dev servers
+    frontend_url  # Production frontend URL
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React/Vite dev servers
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
