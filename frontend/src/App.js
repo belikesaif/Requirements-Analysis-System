@@ -374,9 +374,6 @@ System -> User: profile updated
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             NLP Requirements Analysis System
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.8, mr: 2 }}>
-            RUPP Template vs AI Comparison
-          </Typography>
           {/* Debug Info */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="caption" sx={{ opacity: 0.7 }}>
