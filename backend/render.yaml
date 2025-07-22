@@ -4,9 +4,10 @@ services:
     env: python
     buildCommand: |
       pip install --upgrade pip setuptools wheel
-      pip install --no-cache-dir -r requirements.txt
-      python -m spacy download en_core_web_sm --quiet || echo "SpaCy model download will happen at runtime"
-    startCommand: ./start.sh
+      pip install --only-binary=:all: --no-compile --force-reinstall -r requirements.txt
+      python -c "import spacy; print('SpaCy installed successfully')" || echo "SpaCy will be handled at runtime"
+      python -m spacy download en_core_web_sm --quiet || echo "Model will download at runtime"
+    startCommand: chmod +x start.sh && ./start.sh
     envVars:
       - key: OPENAI_API_KEY
         sync: false
@@ -30,3 +31,5 @@ services:
         value: app.log
       - key: PYTHONPATH
         value: /opt/render/project/src
+      - key: PIP_ONLY_BINARY
+        value: ":all:"

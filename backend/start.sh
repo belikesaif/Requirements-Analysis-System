@@ -1,35 +1,45 @@
 #!/bin/bash
 
 # Production startup script for Render deployment
-echo "Starting NLP Requirements Analysis System..."
+echo "🚀 Starting NLP Requirements Analysis System..."
 
-# Setup SpaCy model
-echo "Setting up SpaCy model..."
+# Try to install SpaCy at runtime if not available
+echo "🔧 Checking SpaCy installation..."
 python -c "
-import spacy
 import sys
+import subprocess
 
-try:
-    # Try to load the model
-    nlp = spacy.load('en_core_web_sm')
-    print('SpaCy model en_core_web_sm loaded successfully')
-except OSError:
-    print('SpaCy model not found, downloading...')
+def install_spacy_runtime():
     try:
-        # Download the model
-        import subprocess
-        result = subprocess.run([sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'], 
-                              capture_output=True, text=True)
-        if result.returncode == 0:
-            print('SpaCy model downloaded successfully')
-        else:
-            print(f'SpaCy download failed: {result.stderr}')
-            print('Application will use fallback processing')
-    except Exception as e:
-        print(f'SpaCy setup error: {e}')
-        print('Application will use fallback processing')
+        import spacy
+        nlp = spacy.load('en_core_web_sm')
+        print('✅ SpaCy and model already available')
+        return True
+    except ImportError:
+        print('📦 Installing SpaCy at runtime...')
+        try:
+            subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', 'spacy==3.7.2'], check=True)
+            subprocess.run([sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'], check=True)
+            print('✅ SpaCy installed successfully at runtime')
+            return True
+        except Exception as e:
+            print(f'⚠️ SpaCy runtime installation failed: {e}')
+            print('🔄 Application will use fallback processing')
+            return False
+    except OSError:
+        print('📥 Downloading SpaCy model...')
+        try:
+            subprocess.run([sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'], check=True)
+            print('✅ SpaCy model downloaded successfully')
+            return True
+        except Exception as e:
+            print(f'⚠️ Model download failed: {e}')
+            print('🔄 Application will use fallback processing')
+            return False
+
+install_spacy_runtime()
 "
 
 # Start the FastAPI application
-echo "Starting FastAPI server..."
+echo "🌟 Starting FastAPI server..."
 exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
