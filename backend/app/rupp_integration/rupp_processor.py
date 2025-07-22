@@ -5,14 +5,23 @@ Clean version with proper actor identification
 
 import spacy
 import re
-import textacy
 from typing import List, Dict, Any
+
+# Optional import for textacy
+try:
+    import textacy
+    HAS_TEXTACY = True
+except ImportError:
+    HAS_TEXTACY = False
+    print("Warning: textacy not available, using basic text processing")
 
 class FixedRUPPProcessor:
     def __init__(self):
         try:
             self.nlp = spacy.load('en_core_web_sm')
-        except OSError:
+            print("SpaCy model 'en_core_web_sm' loaded successfully")
+        except OSError as e:
+            print(f"SpaCy model not available: {e}")
             # Fallback to basic processing if spaCy model not available
             self.nlp = None
         

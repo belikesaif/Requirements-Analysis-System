@@ -1,0 +1,28 @@
+# Core FastAPI dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+pydantic==2.5.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# AI/ML dependencies (lightweight versions)
+openai==1.3.5
+
+# Text processing (lightweight alternatives)
+nltk==3.8.1
+contractions==0.1.73
+
+# Document processing
+python-docx==1.1.0
+docx2txt==0.8
+
+# Utility dependencies
+aiofiles==0.24.0
+
+# For PlantUML (if needed)
+requests==2.31.0
+
+# Optional: Add these if specific functionality is needed
+# scikit-learn==1.3.2  # Uncomment if ML features are essential
+# spacy==3.7.2  # Uncomment if spaCy NLP is essential

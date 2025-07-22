@@ -1,9 +1,12 @@
 services:
   - type: web
-    name: nlp-requirements-backend
+    name: requirements-analysis-system
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: |
+      pip install --upgrade pip setuptools wheel
+      pip install --no-cache-dir -r requirements.txt
+      python -m spacy download en_core_web_sm --quiet || echo "SpaCy model download will happen at runtime"
+    startCommand: ./start.sh
     envVars:
       - key: OPENAI_API_KEY
         sync: false
@@ -25,3 +28,5 @@ services:
         value: INFO
       - key: LOG_FILE
         value: app.log
+      - key: PYTHONPATH
+        value: /opt/render/project/src
