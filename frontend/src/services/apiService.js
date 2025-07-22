@@ -2,6 +2,11 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
+console.log('🔗 Frontend Environment Check:');
+console.log('- REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+console.log('- Final API_BASE_URL:', API_BASE_URL);
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
