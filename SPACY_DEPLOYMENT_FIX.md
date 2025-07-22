@@ -67,8 +67,8 @@ echo "Core packages only, SpaCy at runtime"
 **Use this emergency build command:**
 ```bash
 pip install --no-deps fastapi uvicorn gunicorn pydantic python-multipart python-dotenv openai aiofiles requests
-pip install --no-binary=numpy numpy==1.24.3
-pip install python-docx docx2txt contractions
+pip install --no-binary=numpy numpy>=2.1.0,<3.0.0
+pip install python-docx==1.1.0 docx2txt==0.9 contractions
 echo "Emergency minimal build complete"
 ```
 

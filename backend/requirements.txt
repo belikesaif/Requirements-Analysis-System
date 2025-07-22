@@ -23,7 +23,7 @@ contractions==0.1.73
 
 # Document processing
 python-docx==1.1.0
-docx2txt==0.8
+docx2txt==0.9
 
 # Utility dependencies
 aiofiles==0.24.0
