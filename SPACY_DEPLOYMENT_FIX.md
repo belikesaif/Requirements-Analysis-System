@@ -37,7 +37,7 @@ echo "Basic packages installed, SpaCy will install at runtime"
 **Build Command:**
 ```bash
 pip install --upgrade pip setuptools wheel
-pip install fastapi uvicorn gunicorn pydantic python-multipart python-dotenv openai python-docx==1.1.0 docx2txt==0.9 aiofiles==24.1.0 requests contractions numpy>=2.1.0,<3.0.0 scikit-learn>=1.3.0,<2.0.0
+pip install fastapi uvicorn gunicorn pydantic python-multipart python-dotenv python-docx==1.1.0 docx2txt==0.9 aiofiles==24.1.0 requests contractions numpy>=2.1.0,<3.0.0 scikit-learn>=1.3.0,<2.0.0 "openai>=1.52.0,<2.0.0"
 echo "Core packages only, SpaCy at runtime"
 ```
 
@@ -66,9 +66,9 @@ echo "Core packages only, SpaCy at runtime"
 
 **Use this emergency build command:**
 ```bash
-pip install --no-deps fastapi uvicorn gunicorn python-multipart python-dotenv openai aiofiles requests
+pip install --no-deps fastapi uvicorn gunicorn python-multipart python-dotenv aiofiles requests
 pip install --no-binary=numpy numpy>=2.1.0,<3.0.0
-pip install "pydantic>=2.8.0,<3.0.0" python-docx==1.1.0 docx2txt==0.9 contractions "scikit-learn>=1.3.0,<2.0.0"
+pip install "pydantic>=2.8.0,<3.0.0" python-docx==1.1.0 docx2txt==0.9 contractions "scikit-learn>=1.3.0,<2.0.0" "openai>=1.52.0,<2.0.0"
 echo "Emergency minimal build complete"
 ```
 

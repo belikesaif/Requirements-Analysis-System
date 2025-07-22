@@ -11,15 +11,32 @@ load_dotenv()
 
 class AIService:
     def __init__(self):
-        self.client = openai.AsyncOpenAI(
-            api_key=os.getenv("OPENAI_API_KEY")
-        )
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("⚠️ Warning: OPENAI_API_KEY not set, AI features will be disabled")
+            self.client = None
+        else:
+            try:
+                self.client = openai.AsyncOpenAI(
+                    api_key=api_key
+                )
+                print("✅ OpenAI client initialized successfully")
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to initialize OpenAI client: {e}")
+                self.client = None
+        
         self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
     
     async def generate_ai_snl(self, requirements_text: str) -> Dict[str, Any]:
         """
         Generate SNL using OpenAI GPT model
         """
+        if not self.client:
+            return {
+                "status": "error",
+                "message": "OpenAI client not available - check API key configuration"
+            }
+            
         try:
             prompt = self._create_snl_prompt(requirements_text)
             
@@ -119,6 +136,9 @@ Output each requirement on a separate line, numbered sequentially."""
         """
         Improve a single requirement using AI
         """
+        if not self.client:
+            return requirement  # Return original if no AI available
+            
         try:
             prompt = f"""Improve the following requirement to make it clearer, more specific, and better formatted:
 
@@ -153,6 +173,9 @@ Return only the improved requirement text."""
         """
         Extract actors from text using AI
         """
+        if not self.client:
+            return []  # Return empty list if no AI available
+            
         try:
             prompt = f"""Extract all actors (users, roles, external systems) from the following requirements text:
 
