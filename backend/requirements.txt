@@ -14,7 +14,7 @@ openai>=1.52.0,<2.0.0
 
 # NLP dependencies (Python 3.13 compatible)
 spacy>=3.7.0,<4.0.0
-textacy>=0.15.0,<0.16.0
+textacy
 
 # Pre-built scientific computing (Python 3.13 compatible)
 numpy>=2.1.0,<3.0.0
