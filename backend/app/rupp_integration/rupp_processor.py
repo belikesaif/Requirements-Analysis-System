@@ -17,12 +17,7 @@ except ImportError:
 
 class NotebookFaithfulRUPPProcessor:
     def __init__(self):
-        try:
-            self.nlp = spacy.load('en_core_web_sm')
-            print("SpaCy model 'en_core_web_sm' loaded successfully")
-        except OSError as e:
-            print(f"SpaCy model not available: {e}")
-            self.nlp = None
+        
         
         # Notebook corrections mapping
         self.corrections = {
