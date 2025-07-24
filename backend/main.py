@@ -66,6 +66,10 @@ class AIAnalysisRequest(BaseModel):
     ai_snl: List[str]
     original_text: str
 
+class AIVsRUPPAnalysisRequest(BaseModel):
+    ai_snl: List[str]
+    rupp_snl: List[str]
+
 class ComparisonRequest(BaseModel):
     rupp_snl: List[str]
     ai_snl: List[str]
@@ -544,6 +548,40 @@ async def analyze_ai_snl_detailed(request: AIAnalysisRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Detailed AI SNL analysis failed: {str(e)}")
+
+@app.post("/api/compare-ai-vs-rupp")
+async def compare_ai_vs_rupp(request: AIVsRUPPAnalysisRequest):
+    """
+    Compare AI-generated SNL against RUPP-generated SNL with detailed analysis
+    """
+    try:
+        # Debug logging
+        print(f"DEBUG - Received request with AI SNL count: {len(request.ai_snl)}")
+        print(f"DEBUG - Received request with RUPP SNL count: {len(request.rupp_snl)}")
+        print(f"DEBUG - AI SNL sample: {request.ai_snl[:2] if request.ai_snl else 'None'}")
+        print(f"DEBUG - RUPP SNL sample: {request.rupp_snl[:2] if request.rupp_snl else 'None'}")
+        
+        detailed_analysis = await comparison_service.analyze_ai_vs_rupp_detailed(
+            request.ai_snl, 
+            request.rupp_snl,
+            ai_service
+        )
+        
+        return {
+            "detailed_analysis": detailed_analysis.get('detailed_ai_analysis', {}),
+            "summary_stats": {
+                "total_ai_requirements": len(detailed_analysis.get('ai_requirements', [])),
+                "total_rupp_requirements": len(detailed_analysis.get('rupp_requirements', [])),
+                "accuracy_score": detailed_analysis.get('detailed_ai_analysis', {}).get('accuracy_percentage', 0),
+                "issues_found": detailed_analysis.get('detailed_ai_analysis', {}).get('total_issues', 0)
+            },
+            "comparison_method": "ai_vs_rupp_snl",
+            "timestamp": datetime.now().isoformat(),
+            "status": "success"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI vs RUPP comparison failed: {str(e)}")
 
 @app.post("/api/generate-code")
 async def generate_code(request: CodeGenerationRequest):

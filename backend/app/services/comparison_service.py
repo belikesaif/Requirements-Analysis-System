@@ -352,6 +352,85 @@ class ComparisonService:
         
         return recommendations
     
+    async def analyze_ai_vs_rupp_detailed(self, ai_snl, rupp_snl: str, ai_service) -> Dict[str, Any]:
+        """
+        Enhanced comparison analysis using AI service for detailed categorization
+        Compare AI-generated SNL against RUPP-generated SNL
+        """
+        try:
+            # Handle list input for AI SNL
+            if isinstance(ai_snl, list):
+                ai_requirements = ai_snl
+            else:
+                ai_requirements = self._parse_snl_requirements(ai_snl)
+            
+            # Parse RUPP requirements
+            if isinstance(rupp_snl, list):
+                rupp_requirements = rupp_snl
+            else:
+                rupp_requirements = self._parse_snl_requirements(rupp_snl)
+            
+            # Get AI-powered detailed analysis comparing AI vs RUPP
+            ai_analysis = await ai_service.analyze_ai_vs_rupp_snl(
+                ai_requirements, rupp_requirements
+            )
+            
+            # Create detailed stats
+            detailed_stats = {
+                'missing_in_ai': {
+                    'count': len(ai_analysis.get('missing_in_ai', [])),
+                    'items': ai_analysis.get('missing_in_ai', []),
+                    'description': 'Requirements from RUPP that AI failed to capture'
+                },
+                'overspecified_in_ai': {
+                    'count': len(ai_analysis.get('overspecified_in_ai', [])),
+                    'items': ai_analysis.get('overspecified_in_ai', []),
+                    'description': 'Requirements where AI was too detailed or specific beyond RUPP scope'
+                },
+                'incorrect_in_ai': {
+                    'count': len(ai_analysis.get('incorrect_in_ai', [])),
+                    'items': ai_analysis.get('incorrect_in_ai', []),
+                    'description': 'Requirements where AI made factual errors or misinterpretations compared to RUPP'
+                },
+                'total_issues': (
+                    len(ai_analysis.get('missing_in_ai', [])) + 
+                    len(ai_analysis.get('overspecified_in_ai', [])) + 
+                    len(ai_analysis.get('incorrect_in_ai', []))
+                ),
+                'analysis_summary': ai_analysis.get('analysis_summary', ''),
+                'accuracy_percentage': self._calculate_accuracy_percentage(
+                    len(ai_requirements),
+                    len(ai_analysis.get('missing_in_ai', [])) + 
+                    len(ai_analysis.get('overspecified_in_ai', [])) + 
+                    len(ai_analysis.get('incorrect_in_ai', []))
+                )
+            }
+            
+            # Return the detailed analysis
+            return {
+                'ai_requirements': ai_requirements,
+                'rupp_requirements': rupp_requirements,
+                'detailed_ai_analysis': detailed_stats,
+                'comparison_method': 'ai_vs_rupp_snl'
+            }
+            
+        except Exception as e:
+            # Fallback on error
+            return {
+                'ai_requirements': ai_requirements if 'ai_requirements' in locals() else [],
+                'rupp_requirements': rupp_requirements if 'rupp_requirements' in locals() else [],
+                'detailed_ai_analysis': {
+                    'error': f"AI vs RUPP analysis failed: {str(e)}",
+                    'fallback_used': True,
+                    'missing_in_ai': {'count': 0, 'items': [], 'description': 'Analysis unavailable'},
+                    'overspecified_in_ai': {'count': 0, 'items': [], 'description': 'Analysis unavailable'},
+                    'incorrect_in_ai': {'count': 0, 'items': [], 'description': 'Analysis unavailable'},
+                    'total_issues': 0,
+                    'accuracy_percentage': 0,
+                    'analysis_summary': 'Analysis failed due to technical issues'
+                }
+            }
+
     async def analyze_ai_snl_detailed(self, ai_snl, original_text: str, ai_service) -> Dict[str, Any]:
         """
         Enhanced comparison analysis using AI service for detailed categorization

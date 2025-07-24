@@ -311,6 +311,246 @@ Return your analysis in the specified JSON format with scores from 0.0 to 10.0."
         except Exception as e:
             raise Exception(f"AI accuracy analysis failed: {str(e)}")
     
+    async def analyze_ai_vs_rupp_snl(self, ai_requirements: List[str], rupp_requirements: List[str]) -> Dict[str, Any]:
+        """
+        Analyze AI-generated SNL against RUPP-generated SNL to identify missing, overspecified, and incorrect instances
+        """
+        if not self.client:
+            return {
+                "status": "error",
+                "message": "OpenAI client not available - check API key configuration"
+            }
+            
+        try:
+            # Check if we need to chunk the analysis due to size
+            total_chars = sum(len(req) for req in ai_requirements + rupp_requirements)
+            chunk_size = 50  # Requirements per chunk
+            
+            if len(ai_requirements) > chunk_size or len(rupp_requirements) > chunk_size or total_chars > 15000:
+                print(f"DEBUG - Large dataset detected, using chunked analysis: AI={len(ai_requirements)}, RUPP={len(rupp_requirements)}, chars={total_chars}")
+                return await self._chunked_analysis(ai_requirements, rupp_requirements)
+            else:
+                print(f"DEBUG - Using direct analysis: AI={len(ai_requirements)}, RUPP={len(rupp_requirements)}")
+                return await self._direct_analysis(ai_requirements, rupp_requirements)
+                
+        except Exception as e:
+            raise Exception(f"AI vs RUPP analysis failed: {str(e)}")
+
+    async def _direct_analysis(self, ai_requirements: List[str], rupp_requirements: List[str]) -> Dict[str, Any]:
+        """
+        Perform direct analysis of all requirements
+        """
+        prompt = self._create_ai_vs_rupp_comparison_prompt(ai_requirements, rupp_requirements)
+        
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": self._get_ai_vs_rupp_system_prompt()},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=4000
+        )
+        
+        return self._parse_analysis_response(response)
+
+    async def _chunked_analysis(self, ai_requirements: List[str], rupp_requirements: List[str]) -> Dict[str, Any]:
+        """
+        Break down analysis into chunks and combine results
+        """
+        all_missing = []
+        all_overspecified = []
+        all_incorrect = []
+        
+        # Analyze in chunks of 30 requirements at a time
+        chunk_size = 30
+        
+        for i in range(0, len(ai_requirements), chunk_size):
+            ai_chunk = ai_requirements[i:i+chunk_size]
+            # Use all RUPP requirements for each chunk to ensure nothing is missed
+            
+            print(f"DEBUG - Analyzing chunk {i//chunk_size + 1}: AI requirements {i+1}-{min(i+chunk_size, len(ai_requirements))}")
+            
+            prompt = self._create_ai_vs_rupp_comparison_prompt(ai_chunk, rupp_requirements)
+            
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": self._get_ai_vs_rupp_system_prompt()},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_tokens=3000
+            )
+            
+            chunk_result = self._parse_analysis_response(response)
+            
+            # Combine results, adjusting indices for AI requirements
+            for item in chunk_result.get('missing_in_ai', []):
+                all_missing.append(item)
+            
+            for item in chunk_result.get('overspecified_in_ai', []):
+                # Adjust AI index to account for chunk offset
+                if 'ai_index' in item:
+                    item['ai_index'] += i
+                all_overspecified.append(item)
+            
+            for item in chunk_result.get('incorrect_in_ai', []):
+                # Adjust AI index to account for chunk offset
+                if 'ai_index' in item:
+                    item['ai_index'] += i
+                all_incorrect.append(item)
+        
+        return {
+            'missing_in_ai': all_missing,
+            'overspecified_in_ai': all_overspecified,
+            'incorrect_in_ai': all_incorrect,
+            'analysis_summary': f"Comprehensive chunked analysis completed. Found {len(all_missing)} missing, {len(all_overspecified)} overspecified, and {len(all_incorrect)} incorrect requirements."
+        }
+
+    def _parse_analysis_response(self, response) -> Dict[str, Any]:
+        """
+        Parse and clean the AI response
+        """
+        try:
+            import json
+            raw_content = response.choices[0].message.content
+            print(f"DEBUG - Raw AI response: {raw_content[:500]}...")
+            
+            # Clean the response to extract JSON
+            cleaned_content = raw_content.strip()
+            
+            # Look for JSON object boundaries
+            start_idx = cleaned_content.find('{')
+            end_idx = cleaned_content.rfind('}') + 1
+            
+            if start_idx != -1 and end_idx > start_idx:
+                json_content = cleaned_content[start_idx:end_idx]
+                print(f"DEBUG - Extracted JSON: {json_content[:200]}...")
+            else:
+                json_content = cleaned_content
+                print(f"DEBUG - Using full content as JSON")
+            
+            analysis_result = json.loads(json_content)
+            print(f"DEBUG - Parsed analysis result keys: {analysis_result.keys()}")
+            
+            # Ensure all required fields are present
+            required_fields = ['missing_in_ai', 'overspecified_in_ai', 'incorrect_in_ai', 'analysis_summary']
+            for field in required_fields:
+                if field not in analysis_result:
+                    analysis_result[field] = []
+            
+            return analysis_result
+            
+        except json.JSONDecodeError as e:
+            print(f"DEBUG - JSON parsing failed: {e}")
+            print(f"DEBUG - Full raw response: {response.choices[0].message.content}")
+            # Fallback if JSON parsing fails
+            return {
+                'missing_in_ai': [],
+                'overspecified_in_ai': [],
+                'incorrect_in_ai': [],
+                'analysis_summary': f"Analysis completed but JSON parsing failed: {str(e)}",
+                'raw_response': response.choices[0].message.content
+            }
+
+        except Exception as e:
+            raise Exception(f"AI vs RUPP analysis failed: {str(e)}")
+    
+    def _get_ai_vs_rupp_system_prompt(self) -> str:
+        """
+        System prompt for AI vs RUPP SNL comparison analysis
+        """
+        return """You are an expert requirements analyst comparing two sets of software requirements. 
+
+**CONTEXT:**
+- RUPP requirements: Generated by a rule-based algorithm (consistent, structured)
+- AI requirements: Generated by an AI system (may have variations, additions, or errors)
+- Both sets describe the same software system functionality
+
+**YOUR TASK:**
+Perform a detailed line-by-line comparison to categorize AI requirements into exactly 3 categories:
+
+**1. MISSING in AI (Requirements in RUPP that AI completely missed):**
+- Look for RUPP requirements that have NO equivalent functionality in AI
+- Don't mark as missing if AI expresses the same concept differently
+- Focus on completely absent functional requirements
+
+**2. OVERSPECIFIED in AI (AI added unnecessary detail/assumptions):**
+- Requirements where AI went beyond RUPP's level of detail
+- AI added implementation specifics not in RUPP
+- AI made assumptions or added features not in RUPP scope
+- AI broke down simple RUPP requirements into excessive detail
+
+**3. INCORRECT in AI (AI made actual mistakes):**
+- Factual errors about system behavior
+- Logic inconsistencies compared to RUPP
+- Wrong actor assignments or permissions
+- Contradictions with RUPP's intent
+
+**CRITICAL INSTRUCTIONS:**
+- Be VERY selective - not every difference is a problem
+- Equivalent functionality with different wording is NOT an issue
+- Only flag actual problems, not stylistic differences
+- Provide specific, detailed reasoning for each issue
+- If AI and RUPP express the same thing differently, that's NORMAL
+
+**OUTPUT FORMAT:**
+Return ONLY valid JSON with specific examples and clear reasoning for each category. Do not include any text before or after the JSON.
+
+{
+    "missing_in_ai": [
+        {
+            "requirement": "exact RUPP requirement text that has no AI equivalent",
+            "rupp_index": number,
+            "reason": "detailed explanation of what functionality is completely missing"
+        }
+    ],
+    "overspecified_in_ai": [
+        {
+            "requirement": "exact AI requirement text that adds unnecessary detail", 
+            "ai_index": number,
+            "reason": "specific explanation of why this exceeds RUPP's scope"
+        }
+    ],
+    "incorrect_in_ai": [
+        {
+            "requirement": "exact AI requirement text with errors",
+            "ai_index": number,
+            "issue_type": "factual|logic|interpretation|security",
+            "reason": "specific explanation of the error compared to RUPP"
+        }
+    ],
+    "analysis_summary": "overall assessment focusing on the most significant differences"
+}
+
+IMPORTANT: Return ONLY the JSON object above, nothing else."""
+    
+    def _create_ai_vs_rupp_comparison_prompt(self, ai_requirements: List[str], rupp_requirements: List[str]) -> str:
+        """
+        Create prompt for AI vs RUPP SNL comparison analysis
+        """
+        # Use ALL requirements for complete analysis
+        ai_text = "\n".join([f"{i+1}. {req}" for i, req in enumerate(ai_requirements)])
+        rupp_text = "\n".join([f"{i+1}. {req}" for i, req in enumerate(rupp_requirements)])
+        
+        return f"""Compare ALL software requirements from both sets:
+
+**RUPP-GENERATED REQUIREMENTS** ({len(rupp_requirements)} total):
+{rupp_text}
+
+**AI-GENERATED REQUIREMENTS** ({len(ai_requirements)} total):
+{ai_text}
+
+**Analysis Task:**
+Perform a COMPLETE comparison of all requirements to identify:
+
+1. **MISSING**: RUPP requirements with no AI equivalent (completely absent functionality)
+2. **OVERSPECIFIED**: AI requirements that go beyond RUPP's scope (excessive detail/assumptions)  
+3. **INCORRECT**: AI requirements with factual errors vs RUPP
+
+Analyze EVERY requirement thoroughly. Be comprehensive in your analysis."""
+
     def _get_comparison_analysis_system_prompt(self) -> str:
         """
         System prompt for AI vs Initial Case study comparison analysis

@@ -27,6 +27,8 @@ import {
   Close as IncorrectIcon,
   Assessment as StatsIcon
 } from '@mui/icons-material';
+import { apiService } from '../services/apiService';
+
 
 const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplete, onError, onContinue }) => {
   const [verificationResults, setVerificationResults] = useState([]);
@@ -313,25 +315,145 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
     try {
       console.log('Starting AI vs RUPP SNL comparison analysis...');
       
-      // Perform simple string-based comparison without AI/NLP
-      const comparisonResult = performSimpleComparison(
-        aiSnlData.requirements, 
-        ruppOptimizedData
-      );
+      // Extract RUPP requirements from the optimized data
+      let ruppRequirements = [];
+      
+      console.log('DEBUG - Full ruppOptimizedData structure:', ruppOptimizedData);
+      console.log('DEBUG - ruppOptimizedData keys:', ruppOptimizedData ? Object.keys(ruppOptimizedData) : 'null');
+      console.log('DEBUG - ruppOptimizedData type:', typeof ruppOptimizedData);
+      
+      if (ruppOptimizedData?.formatted_sentences) {
+        ruppRequirements = typeof ruppOptimizedData.formatted_sentences === 'string'
+          ? ruppOptimizedData.formatted_sentences.split('\n')
+              .map(line => line.trim())
+              .filter(line => line && line.match(/^\d+\./)) // Only lines that start with numbers
+              .map(line => line.replace(/^\d+\.\s*/, '').trim()) // Remove numbering
+              .filter(line => line.length > 10) // Filter out very short lines
+          : Array.isArray(ruppOptimizedData.formatted_sentences) 
+            ? ruppOptimizedData.formatted_sentences
+            : [];
+        console.log('DEBUG - Using formatted_sentences, split into:', ruppRequirements.length);
+      } else if (ruppOptimizedData?.requirements) {
+        ruppRequirements = typeof ruppOptimizedData.requirements === 'string'
+          ? ruppOptimizedData.requirements.split('\n')
+              .map(line => line.trim())
+              .filter(line => line && line.length > 10)
+          : Array.isArray(ruppOptimizedData.requirements)
+            ? ruppOptimizedData.requirements
+            : [];
+        console.log('DEBUG - Using requirements:', ruppRequirements.length);
+      } else if (ruppOptimizedData?.optimized_requirements) {
+        ruppRequirements = Array.isArray(ruppOptimizedData.optimized_requirements) 
+          ? ruppOptimizedData.optimized_requirements 
+          : ruppOptimizedData.optimized_requirements.split('\n').filter(line => line.trim());
+        console.log('DEBUG - Using optimized_requirements:', ruppRequirements.length);
+      } else if (Array.isArray(ruppOptimizedData)) {
+        ruppRequirements = ruppOptimizedData;
+        console.log('DEBUG - Using array data directly:', ruppRequirements.length);
+      } else if (ruppOptimizedData?.snl_text) {
+        // Fallback to snl_text if other formats aren't available
+        ruppRequirements = ruppOptimizedData.snl_text.split('\n')
+          .map(line => line.trim())
+          .filter(line => line && line.length > 10);
+        console.log('DEBUG - Using snl_text as fallback:', ruppRequirements.length);
+      } else {
+        // Fallback to simple comparison if RUPP data format is unclear
+        console.warn('Unable to extract RUPP requirements, falling back to simple comparison');
+        console.warn('Available RUPP data keys:', ruppOptimizedData ? Object.keys(ruppOptimizedData) : 'none');
+        const comparisonResult = performSimpleComparison(
+          aiSnlData.requirements, 
+          ruppOptimizedData
+        );
+        setComparisonStats(comparisonResult);
+        return;
+      }
 
-      console.log('Comparison analysis completed:', comparisonResult);
-      setComparisonStats(comparisonResult);
-    } catch (error) {
-      console.error('Comparison analysis failed:', error);
-      // Fallback only on error
-      setComparisonStats({
-        missing_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
-        overspecified_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
-        incorrect_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
-        total_issues: 0,
-        accuracy_percentage: 0,
-        analysis_summary: 'Detailed analysis temporarily unavailable due to technical issues'
+      console.log('Using AI-powered comparison with:', {
+        aiRequirements: aiSnlData.requirements.length,
+        ruppRequirements: ruppRequirements.length
       });
+
+      // Debug the actual data being sent
+      console.log('DEBUG - AI requirements sample:', aiSnlData.requirements.slice(0, 2));
+      console.log('DEBUG - RUPP requirements sample:', ruppRequirements.slice(0, 2));
+      console.log('DEBUG - AI requirements type:', typeof aiSnlData.requirements, Array.isArray(aiSnlData.requirements));
+      console.log('DEBUG - RUPP requirements type:', typeof ruppRequirements, Array.isArray(ruppRequirements));
+
+      // Ensure both are arrays of strings
+      const cleanAiRequirements = Array.isArray(aiSnlData.requirements) 
+        ? aiSnlData.requirements
+            .filter(req => typeof req === 'string' && req.trim().length > 5)
+            .filter(req => !req.includes('Actors Identified:') && !req.includes('Structured Natural Language'))
+            .map(req => req.trim())
+        : [];
+      
+      const cleanRuppRequirements = Array.isArray(ruppRequirements) 
+        ? ruppRequirements
+            .filter(req => typeof req === 'string' && req.trim().length > 5)
+            .map(req => req.trim())
+        : [];
+
+      console.log('DEBUG - Clean AI requirements count:', cleanAiRequirements.length);
+      console.log('DEBUG - Clean RUPP requirements count:', cleanRuppRequirements.length);
+      console.log('DEBUG - Clean AI sample:', cleanAiRequirements.slice(0, 2));
+      console.log('DEBUG - Clean RUPP sample:', cleanRuppRequirements.slice(0, 2));
+
+      if (cleanAiRequirements.length === 0 || cleanRuppRequirements.length === 0) {
+        console.error('Invalid data: AI or RUPP requirements are empty after cleaning');
+        console.error('AI count:', cleanAiRequirements.length, 'RUPP count:', cleanRuppRequirements.length);
+        throw new Error('Invalid requirements data format');
+      }
+
+      // Use the new AI-powered comparison API
+      const response = await apiService.compareAIvsRUPP({
+        ai_snl: cleanAiRequirements,
+        rupp_snl: cleanRuppRequirements
+      });
+
+      console.log('AI-powered comparison analysis completed:', response);
+      console.log('Response detailed_analysis:', response.detailed_analysis);
+      
+      // Use the detailed analysis from the response
+      const detailedAnalysis = response.detailed_analysis;
+      
+      setComparisonStats({
+        missing_in_ai: detailedAnalysis.missing_in_ai || { count: 0, items: [], description: 'No missing requirements identified' },
+        overspecified_in_ai: detailedAnalysis.overspecified_in_ai || { count: 0, items: [], description: 'No overspecified requirements identified' },
+        incorrect_in_ai: detailedAnalysis.incorrect_in_ai || { count: 0, items: [], description: 'No incorrect requirements identified' },
+        total_issues: detailedAnalysis.total_issues || 0,
+        accuracy_percentage: detailedAnalysis.accuracy_percentage || 0,
+        analysis_summary: detailedAnalysis.analysis_summary || 'Analysis completed successfully'
+      });
+
+    } catch (error) {
+      console.error('AI-powered comparison failed, falling back to simple comparison:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      
+      // Fallback to simple comparison on API error
+      try {
+        const comparisonResult = performSimpleComparison(
+          aiSnlData.requirements, 
+          ruppOptimizedData
+        );
+        setComparisonStats({
+          ...comparisonResult,
+          analysis_summary: `${comparisonResult.analysis_summary} (Using fallback method due to API error: ${error.message})`
+        });
+      } catch (fallbackError) {
+        console.error('Both AI-powered and simple comparison failed:', fallbackError);
+        setComparisonStats({
+          missing_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
+          overspecified_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
+          incorrect_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
+          total_issues: 0,
+          accuracy_percentage: 0,
+          analysis_summary: 'Detailed analysis temporarily unavailable due to technical issues'
+        });
+      }
     } finally {
       setIsAnalyzing(false);
     }
