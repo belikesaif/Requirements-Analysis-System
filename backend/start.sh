@@ -3,6 +3,14 @@
 # Production startup script for Render deployment
 echo "🚀 Starting NLP Requirements Analysis System..."
 
+# Validate SpaCy installation before starting the app
+echo "🔍 Validating SpaCy installation..."
+python validate_spacy.py
+if [ $? -ne 0 ]; then
+    echo "❌ SpaCy validation failed - cannot start application"
+    exit 1
+fi
+
 # Install missing dependencies at runtime
 echo "🔧 Installing additional dependencies..."
 python -c "
@@ -14,23 +22,30 @@ def install_runtime_deps():
     print('📦 Installing NumPy, SpaCy, and textacy at runtime...')
     try:
         # Install NumPy first (compatible version)
-        subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', 'numpy>=2.1.0,<3.0.0'], check=False)
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', 'numpy>=2.1.0,<3.0.0'], check=True)
         print('✅ NumPy installed')
         
-        # Try to install SpaCy and textacy
-        subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', 'spacy>=3.7.0,<4.0.0'], check=False)
+        # Try to install SpaCy and textacy - REQUIRED
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', 'spacy>=3.7.0,<4.0.0'], check=True)
         print('✅ SpaCy installed')
         
-        subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', 'textacy>=0.12.0,<1.0.0'], check=False)
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', 'textacy>=0.12.0,<1.0.0'], check=True)
         print('✅ textacy installed')
         
-        # Try to download SpaCy model
-        subprocess.run([sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'], check=False)
-        print('✅ SpaCy model downloaded')
+        # Download SpaCy model - REQUIRED
+        result = subprocess.run([sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'], check=False)
+        if result.returncode != 0:
+            print('⚠️ SpaCy model download failed, trying alternative method...')
+            subprocess.run([sys.executable, '-m', 'pip', 'install', 'https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl'], check=True)
+        
+        # Verify SpaCy model is available
+        subprocess.run([sys.executable, '-c', 'import spacy; nlp = spacy.load("en_core_web_sm"); print("SpaCy model verified")'], check=True)
+        print('✅ SpaCy model verified and working')
         
     except Exception as e:
-        print(f'⚠️ Some dependencies failed: {e}')
-        print('🔄 App will use fallback processing')
+        print(f'❌ CRITICAL: SpaCy setup failed: {e}')
+        print('� Cannot continue without SpaCy - exiting')
+        sys.exit(1)
 
 
 

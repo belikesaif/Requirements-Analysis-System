@@ -17,7 +17,18 @@ except ImportError:
 
 class NotebookFaithfulRUPPProcessor:
     def __init__(self):
-        self.nlp = spacy.load("en_core_web_sm")
+        try:
+            import spacy
+            self.nlp = spacy.load("en_core_web_sm")
+            print("✅ SpaCy model 'en_core_web_sm' loaded successfully")
+        except (OSError, IOError) as e:
+            print(f"❌ CRITICAL ERROR: Could not load spaCy model 'en_core_web_sm': {e}")
+            print("🔧 REQUIRED: Install the spaCy English model with: python -m spacy download en_core_web_sm")
+            raise RuntimeError(f"SpaCy model 'en_core_web_sm' is required but not available: {e}")
+        except ImportError as e:
+            print(f"❌ CRITICAL ERROR: SpaCy not installed: {e}")
+            print("🔧 REQUIRED: Install spaCy with: pip install spacy>=3.7.0")
+            raise ImportError(f"SpaCy is required but not installed: {e}")
         
         
         # Notebook corrections mapping
@@ -130,9 +141,7 @@ class NotebookFaithfulRUPPProcessor:
 
     def identify_actors_with_actions(self, description: str) -> List[str]:
         """Identify actors with actions - Notebook Implementation using textacy"""
-        if not self.nlp:
-            return ['system', 'user']  # Fallback
-            
+        # SpaCy is guaranteed to be available at this point
         doc = self.nlp(description)
         actors_with_actions = set()
 
@@ -441,19 +450,10 @@ class NotebookFaithfulRUPPProcessor:
     def generate_snl_from_text(self, description: str) -> Dict[str, Any]:
         """
         Generate SNL from natural language description - Notebook Faithful Implementation
+        Requires spaCy to be available - no fallbacks
         """
         try:
-            if not self.nlp:
-                return {
-                    'snl_text': "Error: SpaCy model not available",
-                    'actors': [],
-                    'preprocessed_text': description,
-                    'sentences_count': 0,
-                    'formatted_sentences': "",
-                    'requirements': [],
-                    'error': "SpaCy model not available"
-                }
-
+            # SpaCy is guaranteed to be available - no checks needed
             # Step 1: Apply preprocessing (notebook style)
             preprocessed_text = self.apply_preprocessing(description)
             
