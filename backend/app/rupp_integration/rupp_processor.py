@@ -17,19 +17,7 @@ except ImportError:
 
 class NotebookFaithfulRUPPProcessor:
     def __init__(self):
-        try:
-            import spacy
-            self.nlp = spacy.load("en_core_web_sm")
-            print("✅ SpaCy model 'en_core_web_sm' loaded successfully")
-        except (OSError, IOError) as e:
-            print(f"❌ CRITICAL ERROR: Could not load spaCy model 'en_core_web_sm': {e}")
-            print("🔧 REQUIRED: Install the spaCy English model with: python -m spacy download en_core_web_sm")
-            raise RuntimeError(f"SpaCy model 'en_core_web_sm' is required but not available: {e}")
-        except ImportError as e:
-            print(f"❌ CRITICAL ERROR: SpaCy not installed: {e}")
-            print("🔧 REQUIRED: Install spaCy with: pip install spacy>=3.7.0")
-            raise ImportError(f"SpaCy is required but not installed: {e}")
-        
+        self.nlp = self._load_spacy_model()
         
         # Notebook corrections mapping
         self.corrections = {
@@ -44,6 +32,69 @@ class NotebookFaithfulRUPPProcessor:
         
         # Initialize RUPP templates exactly as in notebook
         self.initialize_rupp_templates()
+    
+    def _load_spacy_model(self):
+        """Load spaCy model with fallback installation"""
+        import subprocess
+        import sys
+        
+        try:
+            # Try to load the model first
+            return spacy.load("en_core_web_sm")
+            
+        except (OSError, IOError) as e:
+            print(f"⚠️ SpaCy model 'en_core_web_sm' not found: {e}")
+            print("🔧 Attempting to download the model at runtime...")
+            
+            try:
+                # Try standard download
+                result = subprocess.run([
+                    sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'
+                ], capture_output=True, text=True, timeout=300)
+                
+                if result.returncode == 0:
+                    print("✅ SpaCy model downloaded successfully")
+                    return spacy.load("en_core_web_sm")
+                else:
+                    print(f"⚠️ Standard download failed: {result.stderr}")
+                    
+            except Exception as download_error:
+                print(f"⚠️ Standard download error: {download_error}")
+            
+            try:
+                # Try direct wheel installation
+                print("🔧 Trying direct wheel installation...")
+                wheel_url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"
+                result = subprocess.run([
+                    sys.executable, '-m', 'pip', 'install', wheel_url
+                ], capture_output=True, text=True, timeout=300)
+                
+                if result.returncode == 0:
+                    print("✅ SpaCy model installed via wheel")
+                    return spacy.load("en_core_web_sm")
+                else:
+                    print(f"⚠️ Wheel installation failed: {result.stderr}")
+                    
+            except Exception as wheel_error:
+                print(f"⚠️ Wheel installation error: {wheel_error}")
+                
+            # Final attempt - check if model is available after installations
+            try:
+                return spacy.load("en_core_web_sm")
+            except:
+                pass
+                
+            # If all else fails, raise error
+            print("❌ CRITICAL ERROR: Could not load or install spaCy model 'en_core_web_sm'")
+            print("🔧 REQUIRED: Manual installation needed")
+            print("   1. pip install spacy")
+            print("   2. python -m spacy download en_core_web_sm")
+            raise RuntimeError(f"SpaCy model 'en_core_web_sm' is required but not available: {e}")
+        
+        except ImportError as e:
+            print(f"❌ CRITICAL ERROR: SpaCy not installed: {e}")
+            print("🔧 REQUIRED: Install spaCy with: pip install spacy>=3.7.0")
+            raise ImportError(f"SpaCy is required but not installed: {e}")
         
     def initialize_rupp_templates(self):
         """Initialize RUPP templates exactly as defined in the notebook"""
