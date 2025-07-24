@@ -30,7 +30,7 @@ class NLPService:
         Extract actors from requirements text
         """
         try:
-            return self.rupp_processor.identify_actors_enhanced(text)
+            return self.rupp_processor.identify_actors_with_actions(text)
         except Exception as e:
             raise Exception(f"Actor extraction failed: {str(e)}")
     

@@ -1996,41 +1996,90 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
     def _identify_case_study_pattern(self, requirements: str, actors: List[str]) -> str:
         """
         Analyze requirements and actors to identify the case study pattern
+        Enhanced with better keyword matching and priority ordering
         """
         requirements_lower = requirements.lower()
         actors_lower = [actor.lower() for actor in actors]
         
-        # Library Management System patterns
-        library_keywords = ['library', 'book', 'librarian', 'member', 'borrow', 'issue', 'return', 'catalog']
-        library_actors = ['librarian', 'member', 'administrator', 'guest', 'user']
+        # Monitoring Operator System patterns (check FIRST - most specific)
+        # Enhanced with more specific monitoring keywords
+        monitor_keywords = ['monitoring', 'operator', 'remote sensor', 'outstanding alarm', 'monitoring status', 
+                           'emergency warning', 'help facility', 'monitoring location', 'sensor data', 
+                           'alarm notification', 'monitoring system', 'subscribe', 'subscription']
+        monitor_actors = ['operator']  # Most specific actor for MOS
         
-        if (any(keyword in requirements_lower for keyword in library_keywords) and 
-            any(actor in actors_lower for actor in library_actors)):
+        # Count monitoring-specific matches
+        monitor_keyword_matches = sum(1 for keyword in monitor_keywords if keyword in requirements_lower)
+        monitor_actor_matches = sum(1 for actor in monitor_actors if actor in actors_lower)
+        
+        # High specificity check for Monitoring System
+        if (monitor_keyword_matches >= 2 and monitor_actor_matches >= 1) or \
+           ('operator' in actors_lower and any(keyword in requirements_lower for keyword in 
+            ['monitoring status', 'outstanding alarm', 'remote sensor', 'monitoring location'])):
+            return "Monitoring Operator System"
+        
+        # Library Management System patterns
+        library_keywords = ['library', 'book', 'librarian', 'member', 'borrow', 'issue', 'return', 
+                           'catalog', 'login button', 'login page', 'book id', 'member id', 
+                           'total number of issued books', 'fine to paid', 'guest user']
+        library_actors = ['librarian', 'member', 'administrator', 'guest']
+        
+        library_keyword_matches = sum(1 for keyword in library_keywords if keyword in requirements_lower)
+        library_actor_matches = sum(1 for actor in library_actors if actor in actors_lower)
+        
+        if (library_keyword_matches >= 3 and library_actor_matches >= 2) or \
+           ('librarian' in actors_lower and 'member' in actors_lower):
             return "Library Management System"
         
         # Digital Home System patterns  
-        home_keywords = ['temperature', 'humidity', 'thermostat', 'humidistat', 'sensor', 'alarm', 'appliance', 'home', 'control']
-        home_actors = ['user', 'operator', 'homeowner']
+        home_keywords = ['temperature', 'humidity', 'thermostat', 'humidistat', 'sensor', 'appliance', 
+                        'home automation', 'control', 'planned temperature', 'manual temperature',
+                        'light alarm', 'sound alarm', 'power switch', 'preset parameters']
+        home_actors = ['user', 'homeowner']
         
-        if (any(keyword in requirements_lower for keyword in home_keywords) and
-            any(actor in actors_lower for actor in home_actors)):
+        home_keyword_matches = sum(1 for keyword in home_keywords if keyword in requirements_lower)
+        home_actor_matches = sum(1 for actor in home_actors if actor in actors_lower)
+        
+        # Check for specific home automation patterns
+        if (home_keyword_matches >= 3 and any(keyword in requirements_lower for keyword in 
+            ['thermostat', 'humidistat', 'planned temperature', 'humidity'])) or \
+           (any(keyword in requirements_lower for keyword in ['temperature', 'humidity']) and 
+            'control' in requirements_lower):
             return "Digital Home System"
         
         # Car Booking System patterns
-        car_keywords = ['car', 'booking', 'vehicle', 'rental', 'customer', 'payment', 'reservation']
-        car_actors = ['customer', 'admin', 'user']
+        car_keywords = ['car', 'booking', 'vehicle', 'rental', 'customer', 'payment', 'reservation',
+                       'source station', 'destination station', 'car type', 'distance travelled',
+                       'card number', 'card holder', 'zoom car']
+        car_actors = ['customer', 'admin']
         
-        if (any(keyword in requirements_lower for keyword in car_keywords) and
-            any(actor in actors_lower for actor in car_actors)):
+        car_keyword_matches = sum(1 for keyword in car_keywords if keyword in requirements_lower)
+        car_actor_matches = sum(1 for actor in car_actors if actor in actors_lower)
+        
+        if (car_keyword_matches >= 3 and car_actor_matches >= 1) or \
+           ('customer' in actors_lower and any(keyword in requirements_lower for keyword in 
+            ['booking', 'car', 'payment'])):
             return "Zoom Car Booking System"
         
-        # Monitoring System patterns
-        monitor_keywords = ['monitor', 'sensor', 'alarm', 'operator', 'system', 'alert', 'status', 'remote']
-        monitor_actors = ['operator', 'admin', 'user']
-        
-        if (any(keyword in requirements_lower for keyword in monitor_keywords) and
-            any(actor in actors_lower for actor in monitor_actors)):
+        # Fallback logic with enhanced priority
+        # 1. Check for operator-specific fallback (even without strong monitoring keywords)
+        if 'operator' in actors_lower:
             return "Monitoring Operator System"
+        
+        # 2. Check for other specific actor patterns
+        if any(actor in actors_lower for actor in ['librarian', 'member']) and \
+           any(keyword in requirements_lower for keyword in ['system', 'login', 'page']):
+            return "Library Management System"
+        
+        # 3. Check for home automation fallback
+        if 'user' in actors_lower and any(keyword in requirements_lower for keyword in 
+           ['control', 'setting', 'device', 'automation']):
+            return "Digital Home System"
+        
+        # 4. Check for customer/admin patterns
+        if any(actor in actors_lower for actor in ['customer', 'admin']) and \
+           any(keyword in requirements_lower for keyword in ['manage', 'booking', 'service']):
+            return "Zoom Car Booking System"
         
         return "Unknown Pattern"
 
