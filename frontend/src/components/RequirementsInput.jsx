@@ -227,235 +227,87 @@ const RequirementsInput = ({ onProcessingComplete, onError, onSuccess }) => {
           </Paper>
         </Grid>
 
-        {/* Info Section */}
-        <Grid item xs={12} md={4}>
-          <Card elevation={2}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <AIIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Processing Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              
-              <Alert severity="info" sx={{ mb: 2 }}>
-                The system will analyze your text using two approaches:
-              </Alert>
-
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  1. RUPP's Template Method
+          <Grid item xs={12} md={4}>
+            <Card elevation={2}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+            <AIIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Processing Information
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Uses predefined templates and rules to convert natural language into structured requirements following established patterns.
-                </Typography>
-              </Box>
-
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  2. AI-Powered Analysis
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Uses GPT-3.5 to generate structured natural language requirements with intelligent understanding of context.
-                </Typography>
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Typography variant="subtitle2" gutterBottom>
-                Best Practices:
-              </Typography>
-              <Typography variant="body2" color="text.secondary" component="ul" sx={{ pl: 2 }}>
-                <li>Write clear, complete sentences</li>
-                <li>Include actors and actions explicitly</li>
-                <li>Describe system responses</li>
-                <li>Use conditional statements when appropriate</li>
-              </Typography>
-            </CardContent>
-          </Card>          <Card elevation={2} sx={{ mt: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Case Studies
-                {/* Debug info */}
-                <Chip 
-                  label={`${storageService.getCaseStudies().length} stored`} 
-                  size="small" 
-                  sx={{ ml: 1 }}
-                />
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              
-              {/* Debug controls */}
-              {process.env.NODE_ENV === 'development' && (
-                <Box sx={{ mb: 2 }}>
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
-                    onClick={() => {
-                      console.log('Case Studies in Storage:', storageService.getCaseStudies());
-                      if (onSuccess) {
-                        onSuccess('Check console for storage data');
-                      }
-                    }}
-                    sx={{ mr: 1 }}
-                  >
-                    Debug Storage
-                  </Button>
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
-                    color="warning"
-                    onClick={() => {
-                      storageService.clearAllData();
-                      if (onSuccess) {
-                        onSuccess('Storage cleared');
-                      }
-                    }}
-                  >
-                    Clear Storage
-                  </Button>
-                </Box>
-              )}
-              
-              {storageService.getRecentCaseStudies(3).map((caseStudy, index) => {
-                // Handle different timestamp formats and missing timestamps
-                const timestamp = caseStudy.timestamp || caseStudy.processed_date || new Date().toISOString();
-                const date = new Date(timestamp);
-                const isValidDate = !isNaN(date.getTime());
+                <Divider sx={{ mb: 2 }} />
                 
-                return (
-                  <Card 
-                    key={index} 
-                    variant="outlined" 
-                    sx={{ 
-                      mb: 2, 
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                        boxShadow: 1
-                      }
-                    }}
-                    onClick={() => {
-                      // Handle different data structures for loading case study
-                      const caseTitle = caseStudy.title || 
-                                       caseStudy.rupp_snl?.title || 
-                                       caseStudy.rupp_result?.title ||
-                                       'Untitled Case Study';
-                      
-                      const originalText = caseStudy.original_text || 
-                                         caseStudy.rupp_result?.original_text ||
-                                         caseStudy.ai_result?.original_text ||
-                                         '';
-                      
-                      // Load the case study data into the form
-                      setTitle(caseTitle);
-                      setInputText(originalText);
-                      
-                      // Transform the case study data to match expected format for processing completion
-                      const transformedCaseStudy = {
-                        id: caseStudy.id,
-                        timestamp: caseStudy.timestamp,
-                        title: caseTitle,
-                        original_text: originalText,
-                        rupp_snl: caseStudy.rupp_snl || caseStudy.rupp_result || {},
-                        ai_snl: caseStudy.ai_snl || caseStudy.ai_result || {},
-                        comparison: caseStudy.comparison || {}
-                      };
-                      
-                      // Trigger processing complete to load the case study into the app
-                      onProcessingComplete(transformedCaseStudy);
-                      
-                      // Show a brief notification that data was loaded
-                      if (onSuccess) {
-                        onSuccess(`Case study "${caseTitle}" loaded successfully!`);
-                      }
-                    }}
-                  >
-                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography variant="body2" fontWeight="medium" noWrap>
-                        {caseStudy.title || caseStudy.rupp_snl?.title || caseStudy.rupp_result?.title || 'Untitled Case Study'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {isValidDate ? date.toLocaleDateString() : 'Date not available'}
-                      </Typography>
-                      
-                      {/* Show some stats */}
-                      <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
-                        {/* RUPP requirements count - handle different structures */}
-                        {(() => {
-                          const ruppCount = caseStudy.rupp_snl?.sentences_count || 
-                                          caseStudy.rupp_result?.sentences_count ||
-                                          caseStudy.rupp_snl?.requirements?.length ||
-                                          caseStudy.rupp_result?.requirements?.length ||
-                                          0;
-                          return ruppCount > 0 ? (
-                            <Chip 
-                              label={`${ruppCount} RUPP`} 
-                              size="small" 
-                              variant="outlined"
-                              color="primary"
-                            />
-                          ) : null;
-                        })()}
-                        
-                        {/* AI requirements count - handle different structures */}
-                        {(() => {
-                          const aiCount = caseStudy.ai_snl?.requirements?.length || 
-                                        caseStudy.ai_result?.requirements?.length ||
-                                        0;
-                          return aiCount > 0 ? (
-                            <Chip 
-                              label={`${aiCount} AI`} 
-                              size="small" 
-                              variant="outlined"
-                              color="secondary"
-                            />
-                          ) : null;
-                        })()}
-                        
-                        {/* Accuracy - handle different structures */}
-                        {(() => {
-                          const accuracy = caseStudy.comparison?.metrics?.accuracy || 0;
-                          return accuracy > 0 ? (
-                            <Chip 
-                              label={`${Math.round(accuracy * 100)}% acc`} 
-                              size="small" 
-                              variant="outlined"
-                              color="success"
-                            />
-                          ) : null;
-                        })()}
-                        
-                        {/* Original text indicator */}
-                        {(() => {
-                          const hasText = caseStudy.original_text || 
-                                        caseStudy.rupp_result?.original_text ||
-                                        caseStudy.ai_result?.original_text;
-                          return hasText ? (
-                            <Chip 
-                              label="Has text" 
-                              size="small" 
-                              variant="outlined"
-                            />
-                          ) : null;
-                        })()}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-              
-              {storageService.getRecentCaseStudies(3).length === 0 && (
-                <Box sx={{ textAlign: 'center', py: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No case studies processed yet.
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Process your first case study to see it here!
-                  </Typography>
+                <Alert severity="info" sx={{ mb: 2 }}>
+            The system will analyze your text using two approaches:
+                </Alert>
+
+                <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              1. RUPP's Template Method
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Uses predefined templates and rules to convert natural language into structured requirements following established patterns.
+            </Typography>
                 </Box>
-              )}
-            </CardContent>
-          </Card>
+
+                
+
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="subtitle2" gutterBottom>
+            RUPP Template Structure:
+                </Typography>
+                <Paper sx={{ p: 2, mb: 2, bgcolor: 'grey.50' }}>
+            <Typography variant="body2" fontFamily="monospace" sx={{ mb: 1 }}>
+              [&lt;When?&gt; &lt;under what conditions?&gt;]
+            </Typography>
+            <Typography variant="body2" fontFamily="monospace" sx={{ mb: 1 }}>
+              THE SYSTEM &lt;system name&gt;
+            </Typography>
+            <Typography variant="body2" fontFamily="monospace" sx={{ mb: 1 }}>
+              (SHALL | SHOULD | WILL)
+            </Typography>
+            <Typography variant="body2" fontFamily="monospace" sx={{ mb: 1 }}>
+              (PROVIDE &lt;whom?&gt; WITH THE ABILITY TO &lt;process&gt;
+            </Typography>
+            <Typography variant="body2" fontFamily="monospace" sx={{ mb: 1 }}>
+              | BE ABLE TO &lt;process&gt;)
+            </Typography>
+            <Typography variant="body2" fontFamily="monospace" sx={{ mb: 1 }}>
+              &lt;object&gt;
+            </Typography>
+            <Typography variant="body2" fontFamily="monospace">
+              [&lt;additional details about the object&gt;]
+            </Typography>
+                </Paper>
+
+                <Typography variant="subtitle2" gutterBottom>
+            Example:
+                </Typography>
+                <Paper sx={{ p: 2, mb: 2, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
+            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+              "When a member clicks the search button, the system shall provide the member with the ability to search books by title and display matching results with availability status."
+            </Typography>
+                </Paper>
+                <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              2. AI-Powered Analysis
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Uses GPT-3.5 to generate structured natural language requirements with intelligent understanding of context.
+            </Typography>
+                </Box>
+
+                <Typography variant="subtitle2" gutterBottom>
+            Best Practices:
+                </Typography>
+                <Typography variant="body2" color="text.secondary" component="ul" sx={{ pl: 2 }}>
+            <li>Write clear, complete sentences</li>
+            <li>Include instances and actions explicitly</li>
+            <li>Describe system responses</li>
+            <li>Use conditional statements when appropriate</li>
+                </Typography>
+              </CardContent>
+            </Card>
         </Grid>
       </Grid>
     </Box>

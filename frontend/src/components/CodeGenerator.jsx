@@ -442,14 +442,14 @@ const CodeGenerator = ({
           </Box>
           
           <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
-            Generate Java code templates from the optimized PlantUML class diagram. 
+            Generate Java code templates from the optimized PlantUML class diagram and relationships. 
             Creates complete class structure with attributes, methods, constructors, and getters/setters.
           </Typography>
 
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
-              <strong>Code Generation:</strong> Converts PlantUML class diagram into skeletal Java code with 
-              proper class structure, package organization, and basic implementation templates.
+              <strong>Code Generation:</strong> Converts PlantUML class diagram into Java code template
+              structure, package organization, and basic implementation templates.
               {!classDiagram && (
                 <span style={{ color: 'orange', marginLeft: 8 }}>
                   ⚠️ Waiting for class diagram from Final LLM Optimization...
@@ -466,7 +466,7 @@ const CodeGenerator = ({
             disabled={loading || !classDiagram}
             sx={{ mb: 2 }}
           >
-            {loading ? 'Generating Java Code...' : 'Generate Java Code Templates'}
+            {loading ? 'Generating Java Code...' : 'Generate Java Code'}
           </Button>
         </CardContent>
       </Card>
@@ -496,7 +496,7 @@ const CodeGenerator = ({
             </Typography>
             <Typography variant="body2" color="textSecondary">
               {classDiagram 
-                ? 'Click "Generate Java Code Templates" to create skeletal Java classes from your PlantUML diagram.'
+                ? 'Click "Generate Java Code" to create skeletal Java classes from your PlantUML diagram.'
                 : 'Complete the Final LLM Optimization step to get the class diagram for code generation.'
               }
             </Typography>

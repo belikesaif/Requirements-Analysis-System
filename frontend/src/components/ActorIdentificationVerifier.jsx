@@ -108,7 +108,7 @@ const ActorIdentificationVerifier = ({
 
     return (
       <Card elevation={1} sx={{ mb: 3 }}>
-        <CardContent>
+        {/* <CardContent>
           <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
             <ActorIcon sx={{ mr: 1 }} />
             Identified Instances ({identifiedActors.length})
@@ -126,7 +126,7 @@ const ActorIdentificationVerifier = ({
               </Grid>
             ))}
           </Grid>
-        </CardContent>
+        </CardContent> */}
       </Card>
     );
   };
@@ -280,6 +280,34 @@ const ActorIdentificationVerifier = ({
           </Card>
         </Grid>
 
+        {/* Extra Classes */}
+        <Grid item xs={12} md={3}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <WarningIcon sx={{ mr: 1, color: 'warning.main' }} />
+                Extra Instances ({verificationResults.extra_classes?.length || 0})
+              </Typography>
+              {verificationResults.extra_classes?.length > 0 ? (
+                <List dense>
+                  {verificationResults.extra_classes.map((cls, index) => (
+                    <ListItem key={index} sx={{ py: 0.5 }}>
+                      <ListItemIcon sx={{ minWidth: 32 }}>
+                        <WarningIcon fontSize="small" color="warning" />
+                      </ListItemIcon>
+                      <ListItemText primary={cls} secondary="Not in original requirements" />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="success.main">
+                  ✓ No extra actors detected
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Present Instances */}
         <Grid item xs={12} md={9}>
           <Card elevation={1}>
@@ -345,6 +373,12 @@ const ActorIdentificationVerifier = ({
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.light', color: 'error.contrastText' }}>
                       <Typography variant="h4">{verificationResults.incorrect_classes?.length || 0}</Typography>
                       <Typography variant="body2">Incorrect Instances</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+                      <Typography variant="h4">{verificationResults.extra_classes?.length || 0}</Typography>
+                      <Typography variant="body2">Extra Instances</Typography>
                     </Paper>
                   </Grid>
                 </Grid>
@@ -418,6 +452,31 @@ const ActorIdentificationVerifier = ({
           </Grid>
         )}
 
+        {/* Extra Instances Alert */}
+        {verificationResults.extra_classes?.length > 0 && (
+          <Grid item xs={12}>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="h6" gutterBottom>Extra Instances Detected:</Typography>
+              <Typography variant="body2" gutterBottom>
+                The following instances are completely outside the scope of the original requirements. 
+                They represent features or actors that were not mentioned in the original case study:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                {verificationResults.extra_classes.map((cls, index) => (
+                  <Chip 
+                    key={index}
+                    label={cls}
+                    color="warning"
+                    size="small"
+                    variant="outlined"
+                    icon={<WarningIcon />}
+                  />
+                ))}
+              </Box>
+            </Alert>
+          </Grid>
+        )}
+
         {/* Specification Issues */}
         {verificationResults.specification_issues?.length > 0 && (
           <Grid item xs={12}>
@@ -435,7 +494,7 @@ const ActorIdentificationVerifier = ({
         )}
 
         {/* Recommendations */}
-        {verificationResults.recommendations?.length > 0 && (
+        {/* {verificationResults.recommendations?.length > 0 && (
           <Grid item xs={12}>
             <Alert severity="info">
               <Typography variant="h6" gutterBottom>Recommendations:</Typography>
@@ -448,7 +507,7 @@ const ActorIdentificationVerifier = ({
               </List>
             </Alert>
           </Grid>
-        )}
+        )} */}
       </Grid>
     );
   };
@@ -472,7 +531,7 @@ const ActorIdentificationVerifier = ({
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
               <strong>Analysis Method:</strong> Using spaCy NER + POS tagging + GPT-3.5 for comprehensive actor extraction.<br/>
-              <strong>Verification:</strong> Cross-referencing identified actors with diagram elements + overspecification detection.<br/>
+              <strong>Verification:</strong> Cross-referencing identified instances with diagram elements + overspecification detection.<br/>
               <strong>Detection:</strong> Missing actors, overspecified classes, incorrect classes, and specification issues.<br/>
               <strong>Status:</strong> 
               {originalRequirements ? `✓ Requirements available (${originalRequirements.length} chars)` : '✗ Requirements missing'} | 

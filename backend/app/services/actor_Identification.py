@@ -198,7 +198,7 @@ class ActorIdentificationService:
             except Exception:
                 return conflicting_actors[0]
             
-    async def verify_diagrams_with_actors(self, class_diagram: str, sequence_diagram: str, identified_actors: List[str]) -> Dict[str, Any]:
+    async def verify_diagrams_with_actors(self, class_diagram: str, sequence_diagram: str, identified_actors: List[str], original_requirements: str = "") -> Dict[str, Any]:
         """
         Verify diagrams against identified actors with enhanced missing actor detection
         """
@@ -212,9 +212,98 @@ class ActorIdentificationService:
                 if actor not in identified_actors
             ]
             
-            # Differentiate between incorrect and overspecified actors
+            # Differentiate between incorrect, overspecified, and extra actors
             incorrect_actors = []
             purely_overspecified_actors = []
+            extra_actors = []
+            
+            # Helper function to check if actor exists in original requirements
+            def actor_exists_in_requirements(actor_name: str, requirements_text: str) -> bool:
+                """Check if an actor exists in the original requirements text"""
+                if not requirements_text or not actor_name:
+                    return False
+                    
+                requirements_lower = requirements_text.lower()
+                actor_lower = actor_name.lower()
+                
+                # For compound words (like "BookDatabase"), we need stricter matching
+                # Only match if the exact compound word exists or very close variations
+                
+                # Special cases for compound words that should NOT match their parts
+                compound_patterns = [
+                    ('database', 'Database'),
+                    ('page', 'Page'), 
+                    ('record', 'Record'),
+                    ('details', 'Details'),
+                    ('category', 'Category')
+                ]
+                
+                # Check if this is a compound word that should be handled strictly
+                is_compound = any(pattern[0] in actor_lower or pattern[1] in actor_name for pattern in compound_patterns)
+                
+                if is_compound:
+                    # For compound words, only check exact matches and very close variations
+                    strict_variations = [
+                        actor_lower,
+                        actor_lower.replace('page', ' page'),
+                        actor_lower.replace('page', '-page'),
+                        actor_lower.replace('database', ' database'),
+                        actor_lower.replace('database', '-database'),
+                        actor_lower.replace('record', ' record'),
+                        actor_lower.replace('record', '-record'),
+                        actor_lower.replace('details', ' details'),
+                        actor_lower.replace('details', '-details'),
+                    ]
+                    
+                    for variation in strict_variations:
+                        if variation in requirements_lower:
+                            print(f"DEBUG: Compound actor '{actor_name}' found in requirements as '{variation}'")
+                            return True
+                    
+                    print(f"DEBUG: Compound actor '{actor_name}' NOT found in requirements (checked: {strict_variations})")
+                    return False
+                
+                # For simple actors, use the existing logic but be more careful
+                # Remove common prefixes/suffixes that might be added in diagrams
+                clean_actor = actor_lower
+                prefixes = ['the', 'a', 'an']
+                suffixes = ['system', 'service', 'manager', 'handler', 'controller']
+                
+                for prefix in prefixes:
+                    if clean_actor.startswith(prefix + ' '):
+                        clean_actor = clean_actor[len(prefix) + 1:]
+                        break
+                
+                for suffix in suffixes:
+                    if clean_actor.endswith(' ' + suffix):
+                        clean_actor = clean_actor[:-len(suffix) - 1]
+                        break
+                
+                # Check for exact matches and common variations
+                variations = [
+                    actor_lower,
+                    clean_actor,
+                    actor_lower + 's',  # plural
+                    actor_lower + 'es', # plural for words ending in 's', 'x', 'z', 'ch', 'sh'
+                    actor_lower.rstrip('s') if actor_lower.endswith('s') else actor_lower,  # singular
+                    clean_actor + 's',  # clean version plural
+                    clean_actor.rstrip('s') if clean_actor.endswith('s') else clean_actor,  # clean version singular
+                ]
+                
+                # Remove duplicates and empty strings
+                variations = list(set([v for v in variations if v and len(v) > 1]))
+                
+                # Check each variation but use word boundaries for better matching
+                import re
+                for variation in variations:
+                    # Use word boundary matching to avoid partial matches
+                    pattern = r'\b' + re.escape(variation) + r'\b'
+                    if re.search(pattern, requirements_lower):
+                        print(f"DEBUG: Actor '{actor_name}' found in requirements as '{variation}'")
+                        return True
+                
+                print(f"DEBUG: Actor '{actor_name}' NOT found in requirements (checked: {variations})")
+                return False
             
             # Incorrect actors are those that are fundamentally wrong (technical, UI, etc.)
             incorrect_patterns = [
@@ -232,18 +321,31 @@ class ActorIdentificationService:
                 'data', 'information', 'report', 'log', 'history', 'catalog'
             ]
             
+            print(f"DEBUG: Starting actor classification with {len(overspecified_actors)} overspecified actors")
+            print(f"DEBUG: Original requirements text (first 200 chars): '{original_requirements[:200]}...'")
+            
             for actor in overspecified_actors:
                 actor_lower = actor.lower()
                 
+                print(f"DEBUG: Processing overspecified actor: '{actor}'")
+                
+                # First check if the actor exists in the original requirements
+                if not actor_exists_in_requirements(actor, original_requirements):
+                    # If it doesn't exist in requirements, it's EXTRA
+                    extra_actors.append(actor)
+                    print(f"EXTRA: '{actor}' - not found in original requirements")
                 # Check if it's an incorrect actor (technical/UI elements)
-                if any(pattern in actor_lower for pattern in incorrect_patterns):
+                elif any(pattern in actor_lower for pattern in incorrect_patterns):
                     incorrect_actors.append(actor)
+                    print(f"INCORRECT: '{actor}' - technical/UI element")
                 # Check if it's an overspecified domain entity
                 elif any(pattern in actor_lower for pattern in overspecified_patterns):
                     purely_overspecified_actors.append(actor)
+                    print(f"OVERSPECIFIED: '{actor}' - domain entity but not needed")
                 else:
-                    # If it doesn't match either pattern, consider it overspecified
+                    # If it exists in requirements but wasn't identified, it's overspecified
                     purely_overspecified_actors.append(actor)
+                    print(f"OVERSPECIFIED: '{actor}' - exists in requirements but not identified")
             
             # Update overspecified_actors to only include non-incorrect ones
             overspecified_actors = purely_overspecified_actors
@@ -324,6 +426,7 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                 verification_result['present_actors'] = detected_present
                 verification_result['overspecified_classes'] = overspecified_actors
                 verification_result['incorrect_classes'] = incorrect_actors
+                verification_result['extra_classes'] = extra_actors
                 
                 # Add statistics for the frontend
                 total_actors = len(identified_actors)
@@ -335,6 +438,8 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                     'present_count': len(detected_present),
                     'missing_count': len(detected_missing),
                     'overspecified_count': len(overspecified_actors),
+                    'incorrect_count': len(incorrect_actors),
+                    'extra_count': len(extra_actors),
                     'coverage_percentage': actor_coverage * 100
                 }
                 
@@ -346,6 +451,8 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                 print(f"  Present actors: {detected_present}")
                 print(f"  Missing actors: {detected_missing}")
                 print(f"  Overspecified actors: {overspecified_actors}")
+                print(f"  Incorrect actors: {incorrect_actors}")
+                print(f"  Extra actors: {extra_actors}")
                 print(f"  Actor coverage: {actor_coverage:.2%}")
                 
                 return verification_result
@@ -373,6 +480,7 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                     "present_actors": detected_present,
                     "overspecified_classes": overspecified_actors,
                     "incorrect_classes": incorrect_actors,
+                    "extra_classes": extra_actors,
                     "class_diagram_actors": [],
                     "sequence_diagram_actors": [],
                     "inconsistencies": ["Unable to parse verification results"],
@@ -383,6 +491,8 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                         'present_count': len(detected_present),
                         'missing_count': len(detected_missing),
                         'overspecified_count': len(overspecified_actors),
+                        'incorrect_count': len(incorrect_actors),
+                        'extra_count': len(extra_actors),
                         'coverage_percentage': (len(detected_present) / len(identified_actors) * 100) if identified_actors else 0
                     },
                     "overall_score": len(detected_present) / len(identified_actors) if identified_actors else 0.0
@@ -395,6 +505,7 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                 "present_actors": [],
                 "overspecified_classes": [],
                 "incorrect_classes": [],
+                "extra_classes": [],
                 "class_diagram_actors": [],
                 "sequence_diagram_actors": [],
                 "inconsistencies": [f"Verification failed: {str(e)}"],
@@ -405,6 +516,8 @@ Be extremely strict about missing actors. If an identified actor is not explicit
                     'present_count': 0,
                     'missing_count': len(identified_actors),
                     'overspecified_count': 0,
+                    'incorrect_count': 0,
+                    'extra_count': 0,
                     'coverage_percentage': 0
                 },
                 "overall_score": 0.0
@@ -686,9 +799,98 @@ Return only the valid actor names separated by commas, nothing else."""
                 if actor not in final_actors
             ]
             
-            # Differentiate between incorrect and overspecified actors
+            # Differentiate between incorrect, overspecified, and extra actors
             incorrect_actors = []
             overspecified_actors = []
+            extra_actors = []
+            
+            # Helper function to check if actor exists in original requirements
+            def actor_exists_in_requirements(actor_name: str, requirements_text: str) -> bool:
+                """Check if an actor exists in the original requirements text"""
+                if not requirements_text or not actor_name:
+                    return False
+                    
+                requirements_lower = requirements_text.lower()
+                actor_lower = actor_name.lower()
+                
+                # For compound words (like "BookDatabase"), we need stricter matching
+                # Only match if the exact compound word exists or very close variations
+                
+                # Special cases for compound words that should NOT match their parts
+                compound_patterns = [
+                    ('database', 'Database'),
+                    ('page', 'Page'), 
+                    ('record', 'Record'),
+                    ('details', 'Details'),
+                    ('category', 'Category')
+                ]
+                
+                # Check if this is a compound word that should be handled strictly
+                is_compound = any(pattern[0] in actor_lower or pattern[1] in actor_name for pattern in compound_patterns)
+                
+                if is_compound:
+                    # For compound words, only check exact matches and very close variations
+                    strict_variations = [
+                        actor_lower,
+                        actor_lower.replace('page', ' page'),
+                        actor_lower.replace('page', '-page'),
+                        actor_lower.replace('database', ' database'),
+                        actor_lower.replace('database', '-database'),
+                        actor_lower.replace('record', ' record'),
+                        actor_lower.replace('record', '-record'),
+                        actor_lower.replace('details', ' details'),
+                        actor_lower.replace('details', '-details'),
+                    ]
+                    
+                    for variation in strict_variations:
+                        if variation in requirements_lower:
+                            print(f"DEBUG: Compound actor '{actor_name}' found in requirements as '{variation}'")
+                            return True
+                    
+                    print(f"DEBUG: Compound actor '{actor_name}' NOT found in requirements (checked: {strict_variations})")
+                    return False
+                
+                # For simple actors, use the existing logic but be more careful
+                # Remove common prefixes/suffixes that might be added in diagrams
+                clean_actor = actor_lower
+                prefixes = ['the', 'a', 'an']
+                suffixes = ['system', 'service', 'manager', 'handler', 'controller']
+                
+                for prefix in prefixes:
+                    if clean_actor.startswith(prefix + ' '):
+                        clean_actor = clean_actor[len(prefix) + 1:]
+                        break
+                
+                for suffix in suffixes:
+                    if clean_actor.endswith(' ' + suffix):
+                        clean_actor = clean_actor[:-len(suffix) - 1]
+                        break
+                
+                # Check for exact matches and common variations
+                variations = [
+                    actor_lower,
+                    clean_actor,
+                    actor_lower + 's',  # plural
+                    actor_lower + 'es', # plural for words ending in 's', 'x', 'z', 'ch', 'sh'
+                    actor_lower.rstrip('s') if actor_lower.endswith('s') else actor_lower,  # singular
+                    clean_actor + 's',  # clean version plural
+                    clean_actor.rstrip('s') if clean_actor.endswith('s') else clean_actor,  # clean version singular
+                ]
+                
+                # Remove duplicates and empty strings
+                variations = list(set([v for v in variations if v and len(v) > 1]))
+                
+                # Check each variation but use word boundaries for better matching
+                import re
+                for variation in variations:
+                    # Use word boundary matching to avoid partial matches
+                    pattern = r'\b' + re.escape(variation) + r'\b'
+                    if re.search(pattern, requirements_lower):
+                        print(f"DEBUG: Actor '{actor_name}' found in requirements as '{variation}'")
+                        return True
+                
+                print(f"DEBUG: Actor '{actor_name}' NOT found in requirements (checked: {variations})")
+                return False
             
             # Incorrect actors are those that are fundamentally wrong (technical, UI, etc.)
             incorrect_patterns = [
@@ -707,24 +909,39 @@ Return only the valid actor names separated by commas, nothing else."""
                 'data', 'information', 'report', 'log', 'history', 'catalog'
             ]
             
+            print(f"DEBUG: Starting second classification with {len(all_overspecified)} all_overspecified actors")
+            print(f"DEBUG: Original requirements text (first 300 chars): '{original_requirements[:300]}...'")
+            
             for actor in all_overspecified:
                 actor_lower = actor.lower()
                 
+                print(f"DEBUG: Processing all_overspecified actor: '{actor}'")
+                
+                # First check if the actor exists in the original requirements
+                if not actor_exists_in_requirements(actor, original_requirements):
+                    # If it doesn't exist in requirements, it's EXTRA
+                    extra_actors.append(actor)
+                    print(f"EXTRA: '{actor}' - not found in original requirements")
                 # Check if it's an incorrect actor (technical/UI elements)
-                if any(pattern in actor_lower for pattern in incorrect_patterns):
+                elif any(pattern in actor_lower for pattern in incorrect_patterns):
                     incorrect_actors.append(actor)
+                    print(f"INCORRECT: '{actor}' - technical/UI element")
                 # Check if it's an overspecified domain entity
                 elif any(pattern in actor_lower for pattern in overspecified_patterns):
                     overspecified_actors.append(actor)
+                    print(f"OVERSPECIFIED: '{actor}' - domain entity but not needed")
                 else:
-                    # Default to overspecified for unclear cases
+                    # If it exists in requirements but wasn't identified, it's overspecified
                     overspecified_actors.append(actor)
+                    print(f"OVERSPECIFIED: '{actor}' - exists in requirements but not identified")
             
             # Log for debugging
             if overspecified_actors:
                 print(f"Overspecified actors detected: {overspecified_actors}")
             if incorrect_actors:
                 print(f"Incorrect actors detected: {incorrect_actors}")
+            if extra_actors:
+                print(f"Extra actors detected: {extra_actors}")
 
             return final_actors  # Return all identified actors for accurate testing
 

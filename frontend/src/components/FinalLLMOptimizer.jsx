@@ -128,7 +128,7 @@ const FinalLLMOptimizer = ({
       <CardContent>
         <Typography variant="h6" sx={{ mb: 2 }}>Optimization Inputs</Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={4} md={4}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'primary.contrastText' }}>
               <Typography variant="h4">
                 {originalRequirements ? '✓' : '✗'}
@@ -136,13 +136,13 @@ const FinalLLMOptimizer = ({
               <Typography variant="body2">Original Requirements</Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={4} md={4}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'secondary.light', color: 'secondary.contrastText' }}>
               <Typography variant="h4">{identifiedActors.length}</Typography>
               <Typography variant="body2">Identified Instances</Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          {/* <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light', color: 'warning.contrastText' }}>
               <Typography variant="h4">
                 {(verificationIssues.missing_actors?.length || 0) + 
@@ -152,8 +152,8 @@ const FinalLLMOptimizer = ({
               </Typography>
               <Typography variant="body2">Issues to Fix</Typography>
             </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Grid> */}
+          <Grid item xs={12} sm={4} md={4}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.light', color: 'info.contrastText' }}>
               <Typography variant="h4">2</Typography>
               <Typography variant="body2">Diagrams to Optimize</Typography>
@@ -269,12 +269,12 @@ const FinalLLMOptimizer = ({
             <StepLabel>Ready for Optimization</StepLabel>
             <StepContent>
               <Typography variant="body2" color="textSecondary">
-                All required inputs are prepared. GPT-3.5 will analyze and optimize both diagrams.
+                All required inputs are prepared. Now analyzing and optimizing both diagrams.
               </Typography>
             </StepContent>
           </Step>
           <Step>
-            <StepLabel>Processing with GPT-3.5</StepLabel>
+            <StepLabel>Processing with Proposed heuristic rules</StepLabel>
             <StepContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 {loading && <CircularProgress size={20} />}
@@ -394,8 +394,8 @@ const FinalLLMOptimizer = ({
               🎉 Final Optimization Complete!
             </Typography>
             <Typography variant="body2">
-              Both class and sequence diagrams have been optimized using GPT-3.5 with all identified actors, 
-              original requirements, and verification feedback. The diagrams now represent a comprehensive 
+              Both class and sequence diagrams have been optimized with all identified instances, interactions,
+              original requirements, and verification results. The diagrams now represent a comprehensive 
               and consistent view of your system architecture.
             </Typography>
           </Alert>
@@ -416,14 +416,14 @@ const FinalLLMOptimizer = ({
           </Box>
           
           <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
-            Final optimization using GPT-3.5 with all context: original requirements, identified actors, 
-            initial diagrams, and verification feedback. This produces the definitive optimized diagrams.
+            Final optimization with all context: original requirements, identified instances, 
+            AI Generated Diagrams, and verification results. This produces the definitive optimized diagrams.
           </Typography>
 
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
-              <strong>Optimization Context:</strong> Using original requirements + {identifiedActors.length} actors + 
-              verification feedback + initial diagrams for comprehensive optimization.
+              <strong>Optimization Context:</strong> Using original requirements + {identifiedActors.length} instances + 
+              verification results + AI Generated Diagrams for comprehensive optimization.
               {(diagramErrors.class || diagramErrors.sequence) && (
                 <span style={{ color: 'orange', marginLeft: 8 }}>
                   ⚠️ Diagram rendering issues detected - will be addressed in optimization.
@@ -440,7 +440,7 @@ const FinalLLMOptimizer = ({
             disabled={loading || !originalRequirements || !classDiagram || !sequenceDiagram}
             sx={{ mb: 2 }}
           >
-            {loading ? 'Optimizing with GPT-3.5...' : 'Start Final Optimization'}
+            {loading ? 'Optimizing with Proposed heuristic rules...' : 'Start Final Optimization'}
           </Button>
         </CardContent>
       </Card>

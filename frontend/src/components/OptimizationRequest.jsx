@@ -42,6 +42,48 @@ const OptimizationRequest = ({ ruppSnlData, onOptimize, onError }) => {
       // Call parent handler with optimization results
       const optimizationResults = {
         optimized_requirements: ruppSnlData.formatted_sentences || ruppSnlData.snl_text,
+        requirements: ruppSnlData.requirements || [],
+        formatted_sentences: ruppSnlData.formatted_sentences,
+        snl_text: ruppSnlData.snl_text,
+        actual_count: (() => {
+          // Calculate actual count of non-empty, meaningful requirements for consistency
+          if (ruppSnlData.requirements && Array.isArray(ruppSnlData.requirements)) {
+            const validReqs = ruppSnlData.requirements.filter(req => 
+              req && 
+              typeof req === 'string' && 
+              req.trim().length > 10 && // Must be substantial content
+              !req.trim().match(/^\s*$/) // Not just whitespace
+            );
+            return validReqs.length;
+          } else if (ruppSnlData.formatted_sentences) {
+            if (Array.isArray(ruppSnlData.formatted_sentences)) {
+              const validReqs = ruppSnlData.formatted_sentences.filter(req => 
+                req && 
+                typeof req === 'string' && 
+                req.trim().length > 10 &&
+                !req.trim().match(/^\s*$/)
+              );
+              return validReqs.length;
+            } else if (typeof ruppSnlData.formatted_sentences === 'string') {
+              const lines = ruppSnlData.formatted_sentences.split('\n');
+              const validLines = lines.filter(line => {
+                const trimmed = line.trim();
+                return trimmed.length > 0 && 
+                       trimmed.match(/^\d+\./) && // Starts with number and period
+                       trimmed.replace(/^\d+\.\s*/, '').trim().length > 5; // Has meaningful content after number
+              });
+              return validLines.length;
+            }
+          } else if (ruppSnlData.snl_text) {
+            const lines = ruppSnlData.snl_text.split('\n');
+            const validLines = lines.filter(line => {
+              const trimmed = line.trim();
+              return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+            });
+            return validLines.length;
+          }
+          return 0;
+        })(),
         metrics: ruppSnlData.metrics || {},
         timestamp: new Date().toISOString(),
         status: 'completed'
@@ -59,7 +101,7 @@ const OptimizationRequest = ({ ruppSnlData, onOptimize, onError }) => {
     return (
       <Box>
         <Typography variant="h4" gutterBottom>
-          RUPP Template Optimization
+          AI Generated Rupp's Optimization
         </Typography>
         <Alert severity="info">
           No RUPP template data available for optimization.
@@ -71,7 +113,7 @@ const OptimizationRequest = ({ ruppSnlData, onOptimize, onError }) => {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        RUPP Template Optimization
+        AI Generated Rupp's Optimization
       </Typography>
 
       <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
@@ -84,7 +126,45 @@ const OptimizationRequest = ({ ruppSnlData, onOptimize, onError }) => {
             {/* Only show requirements count AFTER optimization starts */}
             {showRupp && (
               <Chip 
-                label={`${ruppSnlData.sentences_count || 0} requirements processed`}
+                label={`${(() => {
+                  // Calculate actual count of non-empty, meaningful requirements
+                  if (ruppSnlData.requirements && Array.isArray(ruppSnlData.requirements)) {
+                    const validReqs = ruppSnlData.requirements.filter(req => 
+                      req && 
+                      typeof req === 'string' && 
+                      req.trim().length > 10 && // Must be substantial content
+                      !req.trim().match(/^\s*$/) // Not just whitespace
+                    );
+                    return validReqs.length;
+                  } else if (ruppSnlData.formatted_sentences) {
+                    if (Array.isArray(ruppSnlData.formatted_sentences)) {
+                      const validReqs = ruppSnlData.formatted_sentences.filter(req => 
+                        req && 
+                        typeof req === 'string' && 
+                        req.trim().length > 10 &&
+                        !req.trim().match(/^\s*$/)
+                      );
+                      return validReqs.length;
+                    } else if (typeof ruppSnlData.formatted_sentences === 'string') {
+                      const lines = ruppSnlData.formatted_sentences.split('\n');
+                      const validLines = lines.filter(line => {
+                        const trimmed = line.trim();
+                        return trimmed.length > 0 && 
+                               trimmed.match(/^\d+\./) && // Starts with number and period
+                               trimmed.replace(/^\d+\.\s*/, '').trim().length > 5; // Has meaningful content after number
+                      });
+                      return validLines.length;
+                    }
+                  } else if (ruppSnlData.snl_text) {
+                    const lines = ruppSnlData.snl_text.split('\n');
+                    const validLines = lines.filter(line => {
+                      const trimmed = line.trim();
+                      return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+                    });
+                    return validLines.length;
+                  }
+                  return 0;
+                })()} requirements processed`}
                 size="small"
                 sx={{ ml: 2 }}
                 color="success"

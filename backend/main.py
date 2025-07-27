@@ -305,7 +305,8 @@ async def identify_actors(request: ActorIdentificationRequest):
         verification_results = await actor_identification_service.verify_diagrams_with_actors(
             request.class_diagram,
             request.sequence_diagram,
-            identified_actors
+            identified_actors,
+            request.original_requirements
         )
         
         return {
@@ -322,7 +323,7 @@ async def identify_actors(request: ActorIdentificationRequest):
 @app.post("/api/final-optimization")
 async def final_optimization(request: FinalOptimizationRequest):
     """
-    Final LLM optimization using GPT-3.5 with identified actors and verification feedback (Screen 6)
+    Final LLM optimization using GPT-3.5 with identified actors and verification results (Screen 6)
     """
     try:
         print("Performing final LLM optimization with actors...")

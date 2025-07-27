@@ -126,7 +126,7 @@ function App() {
 
   const handleDiagramsGenerated = (diagrams) => {
     setInitialDiagrams(diagrams);
-    showNotification('Initial diagrams generated successfully!', 'success');
+    showNotification('AI Generated Diagrams generated successfully!', 'success');
   };
 
   const handleActorsIdentified = (result) => {
@@ -372,7 +372,7 @@ System -> User: profile updated
         <Toolbar>
           <DescriptionIcon sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            NLP Requirements Analysis System
+            VeriGen - NLP Requirements Analysis System
           </Typography>
           {/* Debug Info */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

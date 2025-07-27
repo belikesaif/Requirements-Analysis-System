@@ -36,19 +36,32 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
   const [isVerifying, setIsVerifying] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [issues, setIssues] = useState({ missing: [], overspecified: [], incorrect: [] });
+  const [hasAnalyzed, setHasAnalyzed] = useState(false); // Prevent multiple analyses
 
   useEffect(() => {
     const verifyAndAnalyze = async () => {
-      if (aiSnlData?.requirements) {
-        await verifyRequirements();
-      }
-      if (aiSnlData?.requirements && ruppOptimizedData) {
-        await analyzeComparison();
+      // Reset analysis state when data changes
+      if (aiSnlData?.requirements && ruppOptimizedData && !hasAnalyzed) {
+        setHasAnalyzed(true);
+        
+        if (aiSnlData?.requirements) {
+          await verifyRequirements();
+        }
+        
+        if (aiSnlData?.requirements && ruppOptimizedData) {
+          await analyzeComparison();
+        }
       }
     };
     
     verifyAndAnalyze();
-  }, [aiSnlData, ruppOptimizedData]);
+  }, [aiSnlData, ruppOptimizedData]); // Remove hasAnalyzed from dependencies to prevent loops
+
+  // Reset analysis flag when data changes
+  useEffect(() => {
+    setHasAnalyzed(false);
+    setComparisonStats(null);
+  }, [aiSnlData?.requirements, ruppOptimizedData]);
 
   const verifyRequirements = async () => {
     setIsVerifying(true);
@@ -133,6 +146,86 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
     return <ErrorIcon color="error" />;
   };
 
+  // Helper function to calculate RUPP requirements count consistently
+  const getRuppRequirementsCount = (ruppData) => {
+    if (!ruppData) return 0;
+
+    // First check if we have the actual_count from optimization results
+    if (ruppData.actual_count !== undefined) {
+      return ruppData.actual_count;
+    }
+
+    if (ruppData?.formatted_sentences) {
+      if (Array.isArray(ruppData.formatted_sentences)) {
+        const validReqs = ruppData.formatted_sentences.filter(req => 
+          req && 
+          typeof req === 'string' && 
+          req.trim().length > 10 &&
+          !req.trim().match(/^\s*$/)
+        );
+        return validReqs.length;
+      } else if (typeof ruppData.formatted_sentences === 'string') {
+        const lines = ruppData.formatted_sentences.split('\n');
+        const validLines = lines.filter(line => {
+          const trimmed = line.trim();
+          return trimmed.length > 0 && 
+                 trimmed.match(/^\d+\./) && // Starts with number and period
+                 trimmed.replace(/^\d+\.\s*/, '').trim().length > 5; // Has meaningful content after number
+        });
+        return validLines.length;
+      }
+    } else if (ruppData?.requirements && Array.isArray(ruppData.requirements)) {
+      const validReqs = ruppData.requirements.filter(req => 
+        req && 
+        typeof req === 'string' && 
+        req.trim().length > 10 && // Must be substantial content
+        !req.trim().match(/^\s*$/) // Not just whitespace
+      );
+      return validReqs.length;
+    } else if (ruppData?.optimized_requirements) {
+      if (Array.isArray(ruppData.optimized_requirements)) {
+        const validReqs = ruppData.optimized_requirements.filter(req => 
+          req && 
+          typeof req === 'string' && 
+          req.trim().length > 10 &&
+          !req.trim().match(/^\s*$/)
+        );
+        return validReqs.length;
+      } else if (typeof ruppData.optimized_requirements === 'string') {
+        const lines = ruppData.optimized_requirements.split('\n');
+        const validLines = lines.filter(line => {
+          const trimmed = line.trim();
+          return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+        });
+        return validLines.length;
+      }
+    } else if (Array.isArray(ruppData)) {
+      const validReqs = ruppData.filter(req => 
+        req && 
+        typeof req === 'string' && 
+        req.trim().length > 10 &&
+        !req.trim().match(/^\s*$/)
+      );
+      return validReqs.length;
+    } else if (ruppData?.snl_text) {
+      const lines = ruppData.snl_text.split('\n');
+      const validLines = lines.filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+      });
+      return validLines.length;
+    } else if (typeof ruppData === 'string') {
+      const lines = ruppData.split('\n');
+      const validLines = lines.filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+      });
+      return validLines.length;
+    }
+
+    return 0;
+  };
+
   const performSimpleComparison = (aiRequirements, ruppData) => {
     console.log('=== DEBUGGING COMPARISON DATA ===');
     console.log('AI Requirements Input:', aiRequirements);
@@ -142,33 +235,75 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
     console.log('RUPP Data Type:', typeof ruppData);
     console.log('RUPP Data Keys:', ruppData ? Object.keys(ruppData) : 'null');
 
-    // Extract RUPP requirements from different possible formats
+    // Extract RUPP requirements from different possible formats using consistent filtering
     let ruppRequirements = [];
     
     if (ruppData?.formatted_sentences) {
-      ruppRequirements = ruppData.formatted_sentences;
-      console.log('Using formatted_sentences:', ruppRequirements.length, 'items');
-    } else if (ruppData?.requirements) {
-      ruppRequirements = ruppData.requirements;
-      console.log('Using requirements:', ruppRequirements.length, 'items');
+      if (typeof ruppData.formatted_sentences === 'string') {
+        const lines = ruppData.formatted_sentences.split('\n');
+        ruppRequirements = lines
+          .filter(line => {
+            const trimmed = line.trim();
+            return trimmed.length > 0 && 
+                   trimmed.match(/^\d+\./) && // Starts with number and period
+                   trimmed.replace(/^\d+\.\s*/, '').trim().length > 5; // Has meaningful content after number
+          })
+          .map(line => line.replace(/^\d+\.\s*/, '').trim()); // Remove numbering for comparison
+        console.log('Using formatted_sentences string:', ruppRequirements.length, 'items');
+      } else if (Array.isArray(ruppData.formatted_sentences)) {
+        ruppRequirements = ruppData.formatted_sentences.filter(req => 
+          req && 
+          typeof req === 'string' && 
+          req.trim().length > 10 &&
+          !req.trim().match(/^\s*$/)
+        );
+        console.log('Using formatted_sentences array:', ruppRequirements.length, 'items');
+      }
+    } else if (ruppData?.requirements && Array.isArray(ruppData.requirements)) {
+      ruppRequirements = ruppData.requirements.filter(req => 
+        req && 
+        typeof req === 'string' && 
+        req.trim().length > 10 &&
+        !req.trim().match(/^\s*$/)
+      );
+      console.log('Using requirements array:', ruppRequirements.length, 'items');
     } else if (ruppData?.snl_text) {
       // Split by lines and filter out empty lines
-      ruppRequirements = ruppData.snl_text.split('\n').filter(line => line.trim());
+      ruppRequirements = ruppData.snl_text.split('\n').filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+      });
       console.log('Using snl_text, split into:', ruppRequirements.length, 'items');
     } else if (ruppData?.optimized_requirements) {
       // Handle optimization results format
       if (Array.isArray(ruppData.optimized_requirements)) {
-        ruppRequirements = ruppData.optimized_requirements;
+        ruppRequirements = ruppData.optimized_requirements.filter(req => 
+          req && 
+          typeof req === 'string' && 
+          req.trim().length > 10 &&
+          !req.trim().match(/^\s*$/)
+        );
         console.log('Using optimized_requirements array:', ruppRequirements.length, 'items');
       } else if (typeof ruppData.optimized_requirements === 'string') {
-        ruppRequirements = ruppData.optimized_requirements.split('\n').filter(line => line.trim());
+        ruppRequirements = ruppData.optimized_requirements.split('\n').filter(line => {
+          const trimmed = line.trim();
+          return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+        });
         console.log('Using optimized_requirements string, split into:', ruppRequirements.length, 'items');
       }
     } else if (typeof ruppData === 'string') {
-      ruppRequirements = ruppData.split('\n').filter(line => line.trim());
+      ruppRequirements = ruppData.split('\n').filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+      });
       console.log('Using string data, split into:', ruppRequirements.length, 'items');
     } else if (Array.isArray(ruppData)) {
-      ruppRequirements = ruppData;
+      ruppRequirements = ruppData.filter(req => 
+        req && 
+        typeof req === 'string' && 
+        req.trim().length > 10 &&
+        !req.trim().match(/^\s*$/)
+      );
       console.log('Using array data directly:', ruppRequirements.length, 'items');
     } else {
       console.warn('Unable to extract RUPP requirements from:', ruppData);
@@ -311,11 +446,18 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
       return;
     }
 
+    // Prevent multiple simultaneous calls
+    if (isAnalyzing) {
+      console.log('Analysis already in progress, skipping...');
+      return;
+    }
+
     setIsAnalyzing(true);
+    
     try {
       console.log('Starting AI vs RUPP SNL comparison analysis...');
       
-      // Extract RUPP requirements from the optimized data
+      // Extract RUPP requirements from the optimized data using consistent filtering logic
       let ruppRequirements = [];
       
       console.log('DEBUG - Full ruppOptimizedData structure:', ruppOptimizedData);
@@ -323,38 +465,66 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
       console.log('DEBUG - ruppOptimizedData type:', typeof ruppOptimizedData);
       
       if (ruppOptimizedData?.formatted_sentences) {
-        ruppRequirements = typeof ruppOptimizedData.formatted_sentences === 'string'
-          ? ruppOptimizedData.formatted_sentences.split('\n')
-              .map(line => line.trim())
-              .filter(line => line && line.match(/^\d+\./)) // Only lines that start with numbers
-              .map(line => line.replace(/^\d+\.\s*/, '').trim()) // Remove numbering
-              .filter(line => line.length > 10) // Filter out very short lines
-          : Array.isArray(ruppOptimizedData.formatted_sentences) 
-            ? ruppOptimizedData.formatted_sentences
-            : [];
-        console.log('DEBUG - Using formatted_sentences, split into:', ruppRequirements.length);
-      } else if (ruppOptimizedData?.requirements) {
-        ruppRequirements = typeof ruppOptimizedData.requirements === 'string'
-          ? ruppOptimizedData.requirements.split('\n')
-              .map(line => line.trim())
-              .filter(line => line && line.length > 10)
-          : Array.isArray(ruppOptimizedData.requirements)
-            ? ruppOptimizedData.requirements
-            : [];
-        console.log('DEBUG - Using requirements:', ruppRequirements.length);
+        if (typeof ruppOptimizedData.formatted_sentences === 'string') {
+          const lines = ruppOptimizedData.formatted_sentences.split('\n');
+          ruppRequirements = lines
+            .filter(line => {
+              const trimmed = line.trim();
+              return trimmed.length > 0 && 
+                     trimmed.match(/^\d+\./) && // Starts with number and period
+                     trimmed.replace(/^\d+\.\s*/, '').trim().length > 5; // Has meaningful content after number
+            })
+            .map(line => line.replace(/^\d+\.\s*/, '').trim()); // Remove numbering for comparison
+          console.log('DEBUG - Using formatted_sentences string, extracted:', ruppRequirements.length);
+        } else if (Array.isArray(ruppOptimizedData.formatted_sentences)) {
+          ruppRequirements = ruppOptimizedData.formatted_sentences.filter(req => 
+            req && 
+            typeof req === 'string' && 
+            req.trim().length > 10 &&
+            !req.trim().match(/^\s*$/)
+          );
+          console.log('DEBUG - Using formatted_sentences array:', ruppRequirements.length);
+        }
+      } else if (ruppOptimizedData?.requirements && Array.isArray(ruppOptimizedData.requirements)) {
+        ruppRequirements = ruppOptimizedData.requirements.filter(req => 
+          req && 
+          typeof req === 'string' && 
+          req.trim().length > 10 &&
+          !req.trim().match(/^\s*$/)
+        );
+        console.log('DEBUG - Using requirements array:', ruppRequirements.length);
       } else if (ruppOptimizedData?.optimized_requirements) {
-        ruppRequirements = Array.isArray(ruppOptimizedData.optimized_requirements) 
-          ? ruppOptimizedData.optimized_requirements 
-          : ruppOptimizedData.optimized_requirements.split('\n').filter(line => line.trim());
-        console.log('DEBUG - Using optimized_requirements:', ruppRequirements.length);
+        if (Array.isArray(ruppOptimizedData.optimized_requirements)) {
+          ruppRequirements = ruppOptimizedData.optimized_requirements.filter(req => 
+            req && 
+            typeof req === 'string' && 
+            req.trim().length > 10 &&
+            !req.trim().match(/^\s*$/)
+          );
+          console.log('DEBUG - Using optimized_requirements array:', ruppRequirements.length);
+        } else if (typeof ruppOptimizedData.optimized_requirements === 'string') {
+          ruppRequirements = ruppOptimizedData.optimized_requirements.split('\n')
+            .filter(line => {
+              const trimmed = line.trim();
+              return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+            });
+          console.log('DEBUG - Using optimized_requirements string:', ruppRequirements.length);
+        }
       } else if (Array.isArray(ruppOptimizedData)) {
-        ruppRequirements = ruppOptimizedData;
+        ruppRequirements = ruppOptimizedData.filter(req => 
+          req && 
+          typeof req === 'string' && 
+          req.trim().length > 10 &&
+          !req.trim().match(/^\s*$/)
+        );
         console.log('DEBUG - Using array data directly:', ruppRequirements.length);
       } else if (ruppOptimizedData?.snl_text) {
         // Fallback to snl_text if other formats aren't available
         ruppRequirements = ruppOptimizedData.snl_text.split('\n')
-          .map(line => line.trim())
-          .filter(line => line && line.length > 10);
+          .filter(line => {
+            const trimmed = line.trim();
+            return trimmed.length > 10 && !trimmed.match(/^\s*$/);
+          });
         console.log('DEBUG - Using snl_text as fallback:', ruppRequirements.length);
       } else {
         // Fallback to simple comparison if RUPP data format is unclear
@@ -404,56 +574,114 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
         throw new Error('Invalid requirements data format');
       }
 
-      // Use the new AI-powered comparison API
-      const response = await apiService.compareAIvsRUPP({
-        ai_snl: cleanAiRequirements,
-        rupp_snl: cleanRuppRequirements
-      });
-
-      console.log('AI-powered comparison analysis completed:', response);
-      console.log('Response detailed_analysis:', response.detailed_analysis);
-      
-      // Use the detailed analysis from the response
-      const detailedAnalysis = response.detailed_analysis;
-      
-      setComparisonStats({
-        missing_in_ai: detailedAnalysis.missing_in_ai || { count: 0, items: [], description: 'No missing requirements identified' },
-        overspecified_in_ai: detailedAnalysis.overspecified_in_ai || { count: 0, items: [], description: 'No overspecified requirements identified' },
-        incorrect_in_ai: detailedAnalysis.incorrect_in_ai || { count: 0, items: [], description: 'No incorrect requirements identified' },
-        total_issues: detailedAnalysis.total_issues || 0,
-        accuracy_percentage: detailedAnalysis.accuracy_percentage || 0,
-        analysis_summary: detailedAnalysis.analysis_summary || 'Analysis completed successfully'
-      });
-
-    } catch (error) {
-      console.error('AI-powered comparison failed, falling back to simple comparison:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data
-      });
-      
-      // Fallback to simple comparison on API error
+      // Try AI-powered comparison first
       try {
+        console.log('Attempting AI-powered comparison...');
+        console.log('DEBUG - Sending to API:', {
+          ai_count: cleanAiRequirements.length,
+          rupp_count: cleanRuppRequirements.length,
+          ai_sample: cleanAiRequirements.slice(0, 2),
+          rupp_sample: cleanRuppRequirements.slice(0, 2)
+        });
+        
+        const response = await apiService.compareAIvsRUPP({
+          ai_snl: cleanAiRequirements,
+          rupp_snl: cleanRuppRequirements
+        });
+
+        console.log('AI-powered comparison analysis completed:', response);
+        console.log('Response detailed_analysis:', response.detailed_analysis);
+        
+        // Use the detailed analysis from the response - handle the nested structure
+        const detailedAnalysis = response.detailed_analysis;
+        
+        // Extract the data, handling both array and object formats
+        const getMissingData = () => {
+          if (Array.isArray(detailedAnalysis.missing_in_ai)) {
+            return { count: detailedAnalysis.missing_in_ai.length, items: detailedAnalysis.missing_in_ai };
+          } else if (detailedAnalysis.missing_in_ai && typeof detailedAnalysis.missing_in_ai === 'object') {
+            return {
+              count: detailedAnalysis.missing_in_ai.count || 0,
+              items: detailedAnalysis.missing_in_ai.items || []
+            };
+          }
+          return { count: 0, items: [] };
+        };
+
+        const getOverspecifiedData = () => {
+          if (Array.isArray(detailedAnalysis.overspecified_in_ai)) {
+            return { count: detailedAnalysis.overspecified_in_ai.length, items: detailedAnalysis.overspecified_in_ai };
+          } else if (detailedAnalysis.overspecified_in_ai && typeof detailedAnalysis.overspecified_in_ai === 'object') {
+            return {
+              count: detailedAnalysis.overspecified_in_ai.count || 0,
+              items: detailedAnalysis.overspecified_in_ai.items || []
+            };
+          }
+          return { count: 0, items: [] };
+        };
+
+        const getIncorrectData = () => {
+          if (Array.isArray(detailedAnalysis.incorrect_in_ai)) {
+            return { count: detailedAnalysis.incorrect_in_ai.length, items: detailedAnalysis.incorrect_in_ai };
+          } else if (detailedAnalysis.incorrect_in_ai && typeof detailedAnalysis.incorrect_in_ai === 'object') {
+            return {
+              count: detailedAnalysis.incorrect_in_ai.count || 0,
+              items: detailedAnalysis.incorrect_in_ai.items || []
+            };
+          }
+          return { count: 0, items: [] };
+        };
+
+        const missingData = getMissingData();
+        const overspecifiedData = getOverspecifiedData();
+        const incorrectData = getIncorrectData();
+        
+        console.log('DEBUG - Parsed data:', {
+          missing: missingData,
+          overspecified: overspecifiedData,
+          incorrect: incorrectData
+        });
+        
+        setComparisonStats({
+          missing_in_ai: missingData,
+          overspecified_in_ai: overspecifiedData,
+          incorrect_in_ai: incorrectData,
+          total_issues: detailedAnalysis.total_issues || (missingData.count + overspecifiedData.count + incorrectData.count),
+          accuracy_percentage: detailedAnalysis.accuracy_percentage || response.summary_stats?.accuracy_score || 0,
+          analysis_summary: detailedAnalysis.analysis_summary || 'Analysis completed successfully'
+        });
+
+      } catch (apiError) {
+        console.error('AI-powered comparison failed, falling back to simple comparison:', apiError);
+        console.error('API Error details:', {
+          message: apiError.message,
+          stack: apiError.stack,
+          response: apiError.response?.data
+        });
+        
+        // Fallback to simple comparison on API error
+        console.log('Using fallback simple comparison...');
         const comparisonResult = performSimpleComparison(
-          aiSnlData.requirements, 
+          cleanAiRequirements, 
           ruppOptimizedData
         );
+        
         setComparisonStats({
           ...comparisonResult,
-          analysis_summary: `${comparisonResult.analysis_summary} (Using fallback method due to API error: ${error.message})`
-        });
-      } catch (fallbackError) {
-        console.error('Both AI-powered and simple comparison failed:', fallbackError);
-        setComparisonStats({
-          missing_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
-          overspecified_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
-          incorrect_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
-          total_issues: 0,
-          accuracy_percentage: 0,
-          analysis_summary: 'Detailed analysis temporarily unavailable due to technical issues'
+          analysis_summary: `${comparisonResult.analysis_summary} (Using fallback method due to API error: ${apiError.message})`
         });
       }
+
+    } catch (error) {
+      console.error('Comparison analysis completely failed:', error);
+      setComparisonStats({
+        missing_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
+        overspecified_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
+        incorrect_in_ai: { count: 0, items: [], description: 'Analysis unavailable due to error' },
+        total_issues: 0,
+        accuracy_percentage: 0,
+        analysis_summary: `Detailed analysis temporarily unavailable due to technical issues: ${error.message}`
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -478,7 +706,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        AI vs RUPP Comparison & Verification
+        AI Generated SNL Verifier
       </Typography>
 
       <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
@@ -502,7 +730,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
               endIcon={<ArrowForwardIcon />}
               onClick={onContinue}
             >
-              Continue to RUPP Optimization
+              Continue to Rupp's Optimization
             </Button>
           )}
         </Box>
@@ -512,7 +740,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
         {isVerifying ? (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={24} sx={{ mr: 2 }} />
-            <Typography>Verifying requirements...</Typography>
+            <Typography>Analyzing AI Generated SNL...</Typography>
           </Box>
         ) : (
           <>
@@ -574,7 +802,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
                     <CircularProgress size={24} sx={{ mr: 2 }} />
-                    <Typography>Analyzing AI vs RUPP comparison...</Typography>
+                    <Typography>Analyzing and Verifying AI SNL...</Typography>
                   </Box>
                 </CardContent>
               </Card>
@@ -597,17 +825,17 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                   
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={4}>
-                      <Paper sx={{ p: 2, backgroundColor: '#fff3e0' }}>
+                      <Paper sx={{ p: 2, backgroundColor: '#ffebee' }}>
                         <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <MissingIcon color="warning" sx={{ mr: 1 }} /> 
-                          Missing in AI ({comparisonStats.missing_in_ai?.count || 0})
+                          <IncorrectIcon color="error" sx={{ mr: 1 }} /> 
+                          Incorrect in AI ({comparisonStats.incorrect_in_ai?.count || 0})
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          Requirements from RUPP optimization that AI failed to capture
+                          Requirements where AI made factual errors or misinterpretations
                         </Typography>
                         <List dense>
-                          {comparisonStats.missing_in_ai?.items?.length > 0 ? (
-                            comparisonStats.missing_in_ai.items.map((item, idx) => (
+                          {comparisonStats.incorrect_in_ai?.items?.length > 0 ? (
+                            comparisonStats.incorrect_in_ai.items.map((item, idx) => (
                               <ListItem key={idx} sx={{ py: 0.5 }}>
                                 <ListItemText 
                                   primary={item.requirement || item} 
@@ -619,13 +847,13 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                             ))
                           ) : (
                             <ListItem>
-                              <ListItemText primary="No missing requirements found" />
+                              <ListItemText primary="No incorrect requirements found" />
                             </ListItem>
                           )}
                         </List>
                       </Paper>
                     </Grid>
-                    
+
                     <Grid item xs={12} md={4}>
                       <Paper sx={{ p: 2, backgroundColor: '#e3f2fd' }}>
                         <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -657,17 +885,17 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                     </Grid>
                     
                     <Grid item xs={12} md={4}>
-                      <Paper sx={{ p: 2, backgroundColor: '#ffebee' }}>
+                      <Paper sx={{ p: 2, backgroundColor: '#fff3e0' }}>
                         <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <IncorrectIcon color="error" sx={{ mr: 1 }} /> 
-                          Incorrect in AI ({comparisonStats.incorrect_in_ai?.count || 0})
+                          <MissingIcon color="warning" sx={{ mr: 1 }} /> 
+                          Missing in AI ({comparisonStats.missing_in_ai?.count || 0})
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          Requirements where AI made factual errors or misinterpretations
+                          Requirements from RUPP optimization that AI failed to capture
                         </Typography>
                         <List dense>
-                          {comparisonStats.incorrect_in_ai?.items?.length > 0 ? (
-                            comparisonStats.incorrect_in_ai.items.map((item, idx) => (
+                          {comparisonStats.missing_in_ai?.items?.length > 0 ? (
+                            comparisonStats.missing_in_ai.items.map((item, idx) => (
                               <ListItem key={idx} sx={{ py: 0.5 }}>
                                 <ListItemText 
                                   primary={item.requirement || item} 
@@ -679,7 +907,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                             ))
                           ) : (
                             <ListItem>
-                              <ListItemText primary="No incorrect requirements found" />
+                              <ListItemText primary="No missing requirements found" />
                             </ListItem>
                           )}
                         </List>
@@ -694,6 +922,11 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 1 }}>
                       <strong>Total Issues Found:</strong> {comparisonStats.total_issues || 0}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      <strong>AI SNL Count:</strong> {aiSnlData.requirements?.length || 0} | 
+                      <strong> RUPP SNL Count:</strong> {getRuppRequirementsCount(ruppOptimizedData)} | 
+                      <strong> Extras in AI:</strong> {Math.max(0, (aiSnlData.requirements?.length || 0) - getRuppRequirementsCount(ruppOptimizedData))}
                     </Typography>
                   </Box>
                 </CardContent>
