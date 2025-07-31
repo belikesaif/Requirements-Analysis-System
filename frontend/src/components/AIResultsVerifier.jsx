@@ -14,7 +14,9 @@ import {
   Divider,
   Grid,
   Card,
-  CardContent
+  CardContent,
+  Collapse,
+  IconButton
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -25,7 +27,9 @@ import {
   Remove as MissingIcon,
   Add as OverspecifiedIcon,
   Close as IncorrectIcon,
-  Assessment as StatsIcon
+  Assessment as StatsIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import { apiService } from '../services/apiService';
 
@@ -37,6 +41,281 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [issues, setIssues] = useState({ missing: [], overspecified: [], incorrect: [] });
   const [hasAnalyzed, setHasAnalyzed] = useState(false); // Prevent multiple analyses
+  
+  // State for collapsible sections
+  const [expandedSections, setExpandedSections] = useState({
+    correct: true,
+    incorrect: true,
+    overspecified: true,
+    missing: true
+  });
+
+  // Function to toggle section expansion
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Enhanced reusable component for requirement category display
+  const RequirementCategoryCard = ({ 
+    title, 
+    count, 
+    icon, 
+    backgroundColor, 
+    description, 
+    items, 
+    expanded, 
+    onToggle 
+  }) => (
+    <Paper 
+      elevation={3} 
+      sx={{ 
+        p: 3, 
+        backgroundColor, 
+        borderRadius: 3,
+        border: '1px solid rgba(0,0,0,0.08)',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          elevation: 6,
+          transform: 'translateY(-2px)'
+        }
+      }}
+    >
+      {/* Header Section */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 2,
+        pb: 1,
+        borderBottom: count > 0 ? '2px solid rgba(0,0,0,0.1)' : 'none'
+      }}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            fontWeight: 600,
+            fontSize: '1.1rem'
+          }}
+        >
+          {icon}
+          <Box sx={{ ml: 1 }}>
+            {title}
+            <Chip 
+              label={count}
+              size="small"
+              sx={{ 
+                ml: 1, 
+                fontWeight: 'bold',
+                color: count > 0 ? '#fff' : '#666',
+                backgroundColor: count > 0 ? 
+                  (title.includes('Correct') ? '#4caf50' : 
+                   title.includes('Incorrect') ? '#f44336' : 
+                   title.includes('Overspecified') ? '#2196f3' : 
+                   title.includes('Missing') ? '#ff9800' : '#666') : 
+                  'rgba(0,0,0,0.1)',
+                border: count > 0 ? 'none' : '1px solid rgba(0,0,0,0.2)',
+                '& .MuiChip-label': {
+                  color: count > 0 ? '#fff' : '#666',
+                  fontWeight: 'bold'
+                }
+              }}
+            />
+          </Box>
+        </Typography>
+        
+        {count > 0 && (
+          <IconButton 
+            onClick={onToggle} 
+            size="medium"
+            sx={{
+              backgroundColor: 'rgba(255,255,255,0.7)',
+              '&:hover': {
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                transform: 'scale(1.1)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        )}
+      </Box>
+      
+      {/* Description */}
+      <Typography 
+        variant="body2" 
+        color="text.secondary" 
+        sx={{ 
+          mb: 2,
+          fontStyle: 'italic',
+          lineHeight: 1.4
+        }}
+      >
+        {description}
+      </Typography>
+
+      {/* Content Section */}
+      {count === 0 ? (
+        <Box 
+          sx={{ 
+            textAlign: 'center',
+            py: 3,
+            backgroundColor: 'rgba(255,255,255,0.5)',
+            borderRadius: 2,
+            border: '1px dashed rgba(0,0,0,0.2)'
+          }}
+        >
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            sx={{ 
+              fontStyle: 'italic',
+              fontSize: '0.9rem'
+            }}
+          >
+            ✨ No {title.toLowerCase()} requirements found
+          </Typography>
+        </Box>
+      ) : (
+        <Collapse in={expanded} timeout={300}>
+          <Box 
+            sx={{ 
+              maxHeight: 350, 
+              overflow: 'auto',
+              backgroundColor: 'rgba(255,255,255,0.6)',
+              borderRadius: 2,
+              border: '1px solid rgba(0,0,0,0.1)',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: 'rgba(0,0,0,0.1)',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'rgba(0,0,0,0.3)',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                },
+              },
+            }}
+          >
+            <List sx={{ p: 0 }}>
+              {items.map((item, idx) => (
+                <ListItem 
+                  key={idx} 
+                  sx={{ 
+                    py: 1.5,
+                    px: 2,
+                    borderBottom: idx < items.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0,0,0,0.03)'
+                    },
+                    transition: 'background-color 0.2s ease'
+                  }}
+                >
+                  <ListItemText 
+                    primary={
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 500,
+                          lineHeight: 1.4,
+                          mb: 1,
+                          color: 'text.primary'
+                        }}
+                      >
+                        📝 {item.requirement || item}
+                      </Typography>
+                    }
+                    secondary={
+                      <Box sx={{ mt: 1 }}>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          sx={{ 
+                            display: 'block',
+                            mb: 1,
+                            lineHeight: 1.3,
+                            fontStyle: 'italic'
+                          }}
+                        >
+                          💡 {item.reason || 'No additional details available'}
+                        </Typography>
+                        
+                        {/* Metrics Chips */}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                          {item.similarity_score && (
+                            <Chip 
+                              label={`Similarity: ${(item.similarity_score * 100).toFixed(1)}%`}
+                              size="small"
+                              sx={{ 
+                                height: 24,
+                                fontSize: '0.75rem',
+                                fontWeight: 500
+                              }}
+                              color={item.similarity_score > 0.7 ? "success" : item.similarity_score > 0.4 ? "warning" : "error"}
+                            />
+                          )}
+                          {item.confidence && (
+                            <Chip 
+                              label={`Confidence: ${(item.confidence * 100).toFixed(1)}%`}
+                              size="small"
+                              sx={{ 
+                                height: 24,
+                                fontSize: '0.75rem',
+                                fontWeight: 500
+                              }}
+                              color="info"
+                            />
+                          )}
+                          {item.match_type && (
+                            <Chip 
+                              label={`Type: ${item.match_type}`}
+                              size="small"
+                              sx={{ 
+                                height: 24,
+                                fontSize: '0.75rem',
+                                fontWeight: 500
+                              }}
+                              color="secondary"
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+            
+            {/* Item count footer */}
+            <Box 
+              sx={{ 
+                p: 1.5, 
+                backgroundColor: 'rgba(0,0,0,0.05)',
+                borderTop: '1px solid rgba(0,0,0,0.1)',
+                textAlign: 'center'
+              }}
+            >
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ fontWeight: 500 }}
+              >
+                📊 Showing {items.length} item{items.length !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
+          </Box>
+        </Collapse>
+      )}
+    </Paper>
+  );
 
   useEffect(() => {
     const verifyAndAnalyze = async () => {
@@ -632,23 +911,62 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
           return { count: 0, items: [] };
         };
 
+        const getCorrectData = () => {
+          if (Array.isArray(detailedAnalysis.correct_in_ai)) {
+            return { count: detailedAnalysis.correct_in_ai.length, items: detailedAnalysis.correct_in_ai };
+          } else if (detailedAnalysis.correct_in_ai && typeof detailedAnalysis.correct_in_ai === 'object') {
+            return {
+              count: detailedAnalysis.correct_in_ai.count || 0,
+              items: detailedAnalysis.correct_in_ai.items || []
+            };
+          }
+          return { count: 0, items: [] };
+        };
+
         const missingData = getMissingData();
         const overspecifiedData = getOverspecifiedData();
         const incorrectData = getIncorrectData();
+        const correctData = getCorrectData();
         
         console.log('DEBUG - Parsed data:', {
           missing: missingData,
           overspecified: overspecifiedData,
-          incorrect: incorrectData
+          incorrect: incorrectData,
+          correct: correctData
         });
         
         setComparisonStats({
           missing_in_ai: missingData,
           overspecified_in_ai: overspecifiedData,
           incorrect_in_ai: incorrectData,
+          correct_in_ai: correctData,
           total_issues: detailedAnalysis.total_issues || (missingData.count + overspecifiedData.count + incorrectData.count),
           accuracy_percentage: detailedAnalysis.accuracy_percentage || response.summary_stats?.accuracy_score || 0,
-          analysis_summary: detailedAnalysis.analysis_summary || 'Analysis completed successfully'
+          analysis_summary: detailedAnalysis.analysis_summary || 'Analysis completed successfully',
+          detailed_metrics: {
+            // Fix: Use direct properties from detailedAnalysis (backend returns them at top level)
+            accuracy: detailedAnalysis.accuracy || (detailedAnalysis.accuracy_percentage ? detailedAnalysis.accuracy_percentage / 100 : 0),
+            precision: detailedAnalysis.precision || 0,
+            recall: detailedAnalysis.recall || 0,
+            f1_score: detailedAnalysis.f1_score || 0,
+            coverage: detailedAnalysis.coverage || 0,
+            correct_matches: detailedAnalysis.correct_matches || correctData.count || 0,
+            total_ai_statements: detailedAnalysis.total_ai_statements || cleanAiRequirements.length || 0,
+            total_rupp_statements: detailedAnalysis.total_rupp_statements || cleanRuppRequirements.length || 0,
+            total_issues: detailedAnalysis.total_issues || (missingData.count + overspecifiedData.count + incorrectData.count),
+            incorrect_statements: detailedAnalysis.incorrect_statements || incorrectData.count || 0,
+            missing_statements: detailedAnalysis.missing_statements || missingData.count || 0,
+            overspecified_statements: detailedAnalysis.overspecified_statements || overspecifiedData.count || 0
+          }
+        });
+
+        console.log('DEBUG - Final comparison stats:', {
+          accuracy: detailedAnalysis.accuracy,
+          precision: detailedAnalysis.precision,
+          recall: detailedAnalysis.recall,
+          f1_score: detailedAnalysis.f1_score,
+          coverage: detailedAnalysis.coverage,
+          detailedAnalysisKeys: Object.keys(detailedAnalysis)
         });
 
       } catch (apiError) {
@@ -822,96 +1140,148 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                       />
                     )}
                   </Box>
+
+                  {/* Comprehensive Performance Metrics */}
+                  {comparisonStats.detailed_metrics && (
+                    <Paper sx={{ p: 2, mb: 3, backgroundColor: '#e8f5e8' }}>
+                      <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                        <CheckIcon color="success" sx={{ mr: 1 }} />
+                        Detailed Performance Metrics
+                      </Typography>
+                      
+                      <Grid container spacing={2}>
+                        {/* Classification Metrics */}
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" gutterBottom>Classification Performance</Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">Accuracy:</Typography>
+                              <Chip 
+                                label={`${(comparisonStats.detailed_metrics.accuracy * 100).toFixed(1)}%`}
+                                size="small"
+                                color={comparisonStats.detailed_metrics.accuracy >= 0.7 ? "success" : comparisonStats.detailed_metrics.accuracy >= 0.5 ? "warning" : "error"}
+                              />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">Precision:</Typography>
+                              <Chip 
+                                label={`${(comparisonStats.detailed_metrics.precision * 100).toFixed(1)}%`}
+                                size="small"
+                                color="info"
+                              />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">Recall:</Typography>
+                              <Chip 
+                                label={`${(comparisonStats.detailed_metrics.recall * 100).toFixed(1)}%`}
+                                size="small"
+                                color="info"
+                              />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">F1-Score:</Typography>
+                              <Chip 
+                                label={`${(comparisonStats.detailed_metrics.f1_score * 100).toFixed(1)}%`}
+                                size="small"
+                                color="secondary"
+                              />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">Coverage:</Typography>
+                              <Chip 
+                                label={`${(comparisonStats.detailed_metrics.coverage * 100).toFixed(1)}%`}
+                                size="small"
+                                color="primary"
+                              />
+                            </Box>
+                          </Box>
+                        </Grid>
+
+                        {/* Statement Counts */}
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" gutterBottom>Statement Analysis</Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">Total AI Statements:</Typography>
+                              <Chip label={comparisonStats.detailed_metrics.total_ai_statements} size="small" />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">Total RUPP Statements:</Typography>
+                              <Chip label={comparisonStats.detailed_metrics.total_rupp_statements} size="small" />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2" color="success.main">Correct Matches:</Typography>
+                              <Chip 
+                                label={comparisonStats.detailed_metrics.correct_matches}
+                                size="small"
+                                color="success"
+                              />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2" color="error.main">Total Issues:</Typography>
+                              <Chip 
+                                label={comparisonStats.detailed_metrics.total_issues}
+                                size="small"
+                                color="error"
+                              />
+                            </Box>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  )}
                   
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={4}>
-                      <Paper sx={{ p: 2, backgroundColor: '#ffebee' }}>
-                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <IncorrectIcon color="error" sx={{ mr: 1 }} /> 
-                          Incorrect in AI ({comparisonStats.incorrect_in_ai?.count || 0})
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          Requirements where AI made factual errors or misinterpretations
-                        </Typography>
-                        <List dense>
-                          {comparisonStats.incorrect_in_ai?.items?.length > 0 ? (
-                            comparisonStats.incorrect_in_ai.items.map((item, idx) => (
-                              <ListItem key={idx} sx={{ py: 0.5 }}>
-                                <ListItemText 
-                                  primary={item.requirement || item} 
-                                  secondary={item.reason}
-                                  primaryTypographyProps={{ variant: 'body2' }}
-                                  secondaryTypographyProps={{ variant: 'caption' }}
-                                />
-                              </ListItem>
-                            ))
-                          ) : (
-                            <ListItem>
-                              <ListItemText primary="No incorrect requirements found" />
-                            </ListItem>
-                          )}
-                        </List>
-                      </Paper>
+                  <Grid container spacing={4} sx={{ mt: 2 }}>
+                    <Grid item xs={12} md={6} xl={3}>
+                      <RequirementCategoryCard
+                        title="Correct in AI"
+                        count={comparisonStats.correct_in_ai?.count || 0}
+                        icon={<CheckIcon color="success" sx={{ mr: 1, fontSize: '1.3rem' }} />}
+                        backgroundColor="linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)"
+                        description="Requirements where AI correctly matched RUPP specifications"
+                        items={comparisonStats.correct_in_ai?.items || []}
+                        expanded={expandedSections.correct}
+                        onToggle={() => toggleSection('correct')}
+                      />
                     </Grid>
 
-                    <Grid item xs={12} md={4}>
-                      <Paper sx={{ p: 2, backgroundColor: '#e3f2fd' }}>
-                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <OverspecifiedIcon color="info" sx={{ mr: 1 }} /> 
-                          Overspecified in AI ({comparisonStats.overspecified_in_ai?.count || 0})
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          Requirements where AI was too detailed beyond RUPP scope
-                        </Typography>
-                        <List dense>
-                          {comparisonStats.overspecified_in_ai?.items?.length > 0 ? (
-                            comparisonStats.overspecified_in_ai.items.map((item, idx) => (
-                              <ListItem key={idx} sx={{ py: 0.5 }}>
-                                <ListItemText 
-                                  primary={item.requirement || item} 
-                                  secondary={item.reason}
-                                  primaryTypographyProps={{ variant: 'body2' }}
-                                  secondaryTypographyProps={{ variant: 'caption' }}
-                                />
-                              </ListItem>
-                            ))
-                          ) : (
-                            <ListItem>
-                              <ListItemText primary="No overspecified requirements found" />
-                            </ListItem>
-                          )}
-                        </List>
-                      </Paper>
+                    <Grid item xs={12} md={6} xl={3}>
+                      <RequirementCategoryCard
+                        title="Incorrect in AI"
+                        count={comparisonStats.incorrect_in_ai?.count || 0}
+                        icon={<IncorrectIcon color="error" sx={{ mr: 1, fontSize: '1.3rem' }} />}
+                        backgroundColor="linear-gradient(135deg, #ffebee 0%, #fce4ec 100%)"
+                        description="Requirements where AI made factual errors or misinterpretations"
+                        items={comparisonStats.incorrect_in_ai?.items || []}
+                        expanded={expandedSections.incorrect}
+                        onToggle={() => toggleSection('incorrect')}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6} xl={3}>
+                      <RequirementCategoryCard
+                        title="Overspecified in AI"
+                        count={comparisonStats.overspecified_in_ai?.count || 0}
+                        icon={<OverspecifiedIcon color="info" sx={{ mr: 1, fontSize: '1.3rem' }} />}
+                        backgroundColor="linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%)"
+                        description="Requirements where AI was too detailed beyond RUPP scope"
+                        items={comparisonStats.overspecified_in_ai?.items || []}
+                        expanded={expandedSections.overspecified}
+                        onToggle={() => toggleSection('overspecified')}
+                      />
                     </Grid>
                     
-                    <Grid item xs={12} md={4}>
-                      <Paper sx={{ p: 2, backgroundColor: '#fff3e0' }}>
-                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <MissingIcon color="warning" sx={{ mr: 1 }} /> 
-                          Missing in AI ({comparisonStats.missing_in_ai?.count || 0})
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          Requirements from RUPP optimization that AI failed to capture
-                        </Typography>
-                        <List dense>
-                          {comparisonStats.missing_in_ai?.items?.length > 0 ? (
-                            comparisonStats.missing_in_ai.items.map((item, idx) => (
-                              <ListItem key={idx} sx={{ py: 0.5 }}>
-                                <ListItemText 
-                                  primary={item.requirement || item} 
-                                  secondary={item.reason}
-                                  primaryTypographyProps={{ variant: 'body2' }}
-                                  secondaryTypographyProps={{ variant: 'caption' }}
-                                />
-                              </ListItem>
-                            ))
-                          ) : (
-                            <ListItem>
-                              <ListItemText primary="No missing requirements found" />
-                            </ListItem>
-                          )}
-                        </List>
-                      </Paper>
+                    <Grid item xs={12} md={6} xl={3}>
+                      <RequirementCategoryCard
+                        title="Missing in AI"
+                        count={comparisonStats.missing_in_ai?.count || 0}
+                        icon={<MissingIcon color="warning" sx={{ mr: 1, fontSize: '1.3rem' }} />}
+                        backgroundColor="linear-gradient(135deg, #fff3e0 0%, #fef7e0 100%)"
+                        description="Requirements from RUPP optimization that AI failed to capture"
+                        items={comparisonStats.missing_in_ai?.items || []}
+                        expanded={expandedSections.missing}
+                        onToggle={() => toggleSection('missing')}
+                      />
                     </Grid>
                   </Grid>
                   
