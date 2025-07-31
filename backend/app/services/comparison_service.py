@@ -6,10 +6,12 @@ import difflib
 from typing import Dict, Any, List, Tuple
 from sklearn.metrics import precision_score, recall_score, f1_score
 import re
+from .rule_based_verifier import RuleBasedVerifier, format_verification_results
 
 class ComparisonService:
     def __init__(self):
         self.similarity_threshold = 0.3  # Lowered from 0.5 to 0.3 for better categorization
+        self.rule_based_verifier = RuleBasedVerifier()  # Initialize rule-based verifier
     def compare_snl(self, rupp_snl: str, ai_snl: str, original_text: str) -> Dict[str, Any]:
         """
         Compare RUPP and AI-generated SNL and categorize differences
@@ -352,10 +354,10 @@ class ComparisonService:
         
         return recommendations
     
-    async def analyze_ai_vs_rupp_detailed(self, ai_snl, rupp_snl: str, ai_service) -> Dict[str, Any]:
+    async def analyze_ai_vs_rupp_detailed(self, ai_snl, rupp_snl: str, ai_service=None) -> Dict[str, Any]:
         """
-        Enhanced comparison analysis using AI service for detailed categorization
-        Compare AI-generated SNL against RUPP-generated SNL
+        Enhanced comparison analysis using rule-based NLP for detailed categorization
+        Compare AI-generated SNL against RUPP-generated SNL without using AI models
         """
         try:
             # Handle list input for AI SNL
@@ -370,57 +372,32 @@ class ComparisonService:
             else:
                 rupp_requirements = self._parse_snl_requirements(rupp_snl)
             
-            # Get AI-powered detailed analysis comparing AI vs RUPP
-            ai_analysis = await ai_service.analyze_ai_vs_rupp_snl(
+            print(f"Rule-based analysis: AI={len(ai_requirements)}, RUPP={len(rupp_requirements)}")
+            
+            # Use rule-based verifier for analysis
+            verification_output = self.rule_based_verifier.verify_snl_statements(
                 ai_requirements, rupp_requirements
             )
             
-            # Create detailed stats
-            detailed_stats = {
-                'missing_in_ai': {
-                    'count': len(ai_analysis.get('missing_in_ai', [])),
-                    'items': ai_analysis.get('missing_in_ai', []),
-                    'description': 'Requirements from RUPP that AI failed to capture'
-                },
-                'overspecified_in_ai': {
-                    'count': len(ai_analysis.get('overspecified_in_ai', [])),
-                    'items': ai_analysis.get('overspecified_in_ai', []),
-                    'description': 'Requirements where AI was too detailed or specific beyond RUPP scope'
-                },
-                'incorrect_in_ai': {
-                    'count': len(ai_analysis.get('incorrect_in_ai', [])),
-                    'items': ai_analysis.get('incorrect_in_ai', []),
-                    'description': 'Requirements where AI made factual errors or misinterpretations compared to RUPP'
-                },
-                'total_issues': (
-                    len(ai_analysis.get('missing_in_ai', [])) + 
-                    len(ai_analysis.get('overspecified_in_ai', [])) + 
-                    len(ai_analysis.get('incorrect_in_ai', []))
-                ),
-                'analysis_summary': ai_analysis.get('analysis_summary', ''),
-                'accuracy_percentage': self._calculate_accuracy_percentage(
-                    len(ai_requirements),
-                    len(ai_analysis.get('missing_in_ai', [])) + 
-                    len(ai_analysis.get('overspecified_in_ai', [])) + 
-                    len(ai_analysis.get('incorrect_in_ai', []))
-                )
-            }
+            # Format results to match expected API structure
+            detailed_stats = format_verification_results(verification_output)
             
             # Return the detailed analysis
             return {
                 'ai_requirements': ai_requirements,
                 'rupp_requirements': rupp_requirements,
                 'detailed_ai_analysis': detailed_stats,
-                'comparison_method': 'ai_vs_rupp_snl'
+                'comparison_method': 'rule_based_nlp'
             }
             
         except Exception as e:
+            print(f"Rule-based analysis error: {str(e)}")
             # Fallback on error
             return {
                 'ai_requirements': ai_requirements if 'ai_requirements' in locals() else [],
                 'rupp_requirements': rupp_requirements if 'rupp_requirements' in locals() else [],
                 'detailed_ai_analysis': {
-                    'error': f"AI vs RUPP analysis failed: {str(e)}",
+                    'error': f"Rule-based analysis failed: {str(e)}",
                     'fallback_used': True,
                     'missing_in_ai': {'count': 0, 'items': [], 'description': 'Analysis unavailable'},
                     'overspecified_in_ai': {'count': 0, 'items': [], 'description': 'Analysis unavailable'},
@@ -431,10 +408,10 @@ class ComparisonService:
                 }
             }
 
-    async def analyze_ai_snl_detailed(self, ai_snl, original_text: str, ai_service) -> Dict[str, Any]:
+    async def analyze_ai_snl_detailed(self, ai_snl, original_text: str, ai_service=None) -> Dict[str, Any]:
         """
-        Enhanced comparison analysis using AI service for detailed categorization
-        Compare AI-generated SNL against original case study text
+        Enhanced comparison analysis using rule-based NLP for detailed categorization
+        Compare AI-generated SNL against original case study text using rule-based methods
         """
         try:
             # Handle list input for AI SNL
@@ -443,55 +420,33 @@ class ComparisonService:
             else:
                 ai_requirements = self._parse_snl_requirements(ai_snl)
             
-            # Get AI-powered detailed analysis comparing against original case study
-            ai_analysis = await ai_service.analyze_ai_vs_original_case_study(
-                ai_requirements, original_text
+            # Parse original text into requirements-like statements for comparison
+            original_requirements = self._extract_requirements_from_text(original_text)
+            
+            print(f"Rule-based analysis vs original: AI={len(ai_requirements)}, Original={len(original_requirements)}")
+            
+            # Use rule-based verifier for analysis
+            verification_output = self.rule_based_verifier.verify_snl_statements(
+                ai_requirements, original_requirements
             )
             
-            # Create detailed stats
-            detailed_stats = {
-                'missing_in_ai': {
-                    'count': len(ai_analysis.get('missing_in_ai', [])),
-                    'items': ai_analysis.get('missing_in_ai', []),
-                    'description': 'Requirements from original case study that AI failed to capture'
-                },
-                'overspecified_in_ai': {
-                    'count': len(ai_analysis.get('overspecified_in_ai', [])),
-                    'items': ai_analysis.get('overspecified_in_ai', []),
-                    'description': 'Requirements where AI was too detailed or specific beyond case study scope'
-                },
-                'incorrect_in_ai': {
-                    'count': len(ai_analysis.get('incorrect_in_ai', [])),
-                    'items': ai_analysis.get('incorrect_in_ai', []),
-                    'description': 'Requirements where AI made factual errors or misinterpretations'
-                },
-                'total_issues': (
-                    len(ai_analysis.get('missing_in_ai', [])) + 
-                    len(ai_analysis.get('overspecified_in_ai', [])) + 
-                    len(ai_analysis.get('incorrect_in_ai', []))
-                ),
-                'analysis_summary': ai_analysis.get('analysis_summary', ''),
-                'accuracy_percentage': self._calculate_accuracy_percentage(
-                    len(ai_requirements),
-                    len(ai_analysis.get('missing_in_ai', [])) + 
-                    len(ai_analysis.get('overspecified_in_ai', [])) + 
-                    len(ai_analysis.get('incorrect_in_ai', []))
-                )
-            }
+            # Format results to match expected API structure
+            detailed_stats = format_verification_results(verification_output)
             
             # Return the detailed analysis
             return {
                 'ai_requirements': ai_requirements,
                 'detailed_ai_analysis': detailed_stats,
-                'comparison_method': 'ai_vs_original_case_study'
+                'comparison_method': 'rule_based_vs_original'
             }
             
         except Exception as e:
+            print(f"Rule-based analysis vs original error: {str(e)}")
             # Fallback on error
             return {
                 'ai_requirements': ai_requirements if 'ai_requirements' in locals() else [],
                 'detailed_ai_analysis': {
-                    'error': f"AI analysis failed: {str(e)}",
+                    'error': f"Rule-based analysis failed: {str(e)}",
                     'fallback_used': True,
                     'missing_in_ai': {'count': 0, 'items': [], 'description': 'Analysis unavailable'},
                     'overspecified_in_ai': {'count': 0, 'items': [], 'description': 'Analysis unavailable'},
@@ -501,6 +456,37 @@ class ComparisonService:
                     'analysis_summary': 'Analysis failed due to technical issues'
                 }
             }
+    
+    def _extract_requirements_from_text(self, original_text: str) -> List[str]:
+        """
+        Extract potential requirements from original case study text
+        
+        Args:
+            original_text: Original case study text
+            
+        Returns:
+            List of extracted requirement-like statements
+        """
+        if not original_text:
+            return []
+        
+        # Split by sentences
+        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s', original_text)
+        
+        requirements = []
+        for sentence in sentences:
+            sentence = sentence.strip()
+            
+            # Filter for requirement-like sentences
+            if (len(sentence) > 20 and 
+                any(keyword in sentence.lower() for keyword in [
+                    'system', 'user', 'must', 'should', 'shall', 'can', 'will',
+                    'allow', 'enable', 'provide', 'display', 'store', 'retrieve',
+                    'validate', 'process', 'manage', 'create', 'update', 'delete'
+                ])):
+                requirements.append(sentence)
+        
+        return requirements[:20]  # Limit to prevent overwhelming comparison
     
     def _calculate_accuracy_percentage(self, total_requirements: int, total_issues: int) -> float:
         """
