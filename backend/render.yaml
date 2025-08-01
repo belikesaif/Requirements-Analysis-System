@@ -22,7 +22,7 @@ services:
       - key: API_HOST
         value: 0.0.0.0
       - key: FRONTEND_URL
-        sync: false
+        value: https://nrasfrontend.vercel.app
       - key: RESEARCH_DATA_PATH
         value: ./research_data
       - key: AUTO_SAVE

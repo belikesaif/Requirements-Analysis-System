@@ -33,17 +33,23 @@ frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 allowed_origins = [
     "http://localhost:3000", 
     "http://localhost:5173",  # React/Vite dev servers
+    "http://127.0.0.1:3000",  # Local development
+    "http://127.0.0.1:5173",  # Local Vite
     frontend_url,  # Production frontend URL from environment
-    "https://*.vercel.app",  # Allow all Vercel deployments
-    "https://requirements-analysis-system-frontend.vercel.app",  # Specific Vercel URL
-    "*"  # Temporary - allow all origins for debugging
+    "https://nrasfrontend.vercel.app",  # Your specific Vercel deployment
+    "https://requirements-analysis-system-frontend.vercel.app",  # Alternative Vercel URL
+    "https://nlp-requirements-system.vercel.app",  # Possible project-based URL
 ]
+
+# For development/debugging - you can temporarily add "*" to allow all origins
+if os.getenv("ENVIRONMENT") == "development":
+    allowed_origins.append("*")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -55,7 +61,27 @@ diagram_service = DiagramService()
 storage = MemoryStorage()
 actor_identification_service = ActorIdentificationService()
 code_generation_service = CodeGenerationService()
-code_generation_service = CodeGenerationService()
+
+# Health check endpoint
+@app.get("/")
+async def root():
+    return {"message": "NLP Requirements Analysis System API", "status": "running"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+# CORS preflight handler
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 # Pydantic models
 class CaseStudyRequest(BaseModel):
