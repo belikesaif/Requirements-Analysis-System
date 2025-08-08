@@ -41,7 +41,7 @@ git commit -m "🔧 Fix CORS configuration for Vercel frontend
 - Include health check endpoints
 - Add CORS testing script
 
-Fixes: Access-Control-Allow-Origin header missing"
+Fixes: Access-Control-Al low-Origin header missing"
 
 # Push to trigger Render deployment
 echo ""

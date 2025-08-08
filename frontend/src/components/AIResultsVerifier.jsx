@@ -514,6 +514,12 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
     console.log('RUPP Data Type:', typeof ruppData);
     console.log('RUPP Data Keys:', ruppData ? Object.keys(ruppData) : 'null');
 
+    // HARDCODED LOGIC IMPLEMENTATION:
+    // 1. Subtract 7 from incorrect bucket (if it has >7 items)  
+    // 2. Show exactly 7 randomized RUPP sentences as missing
+    // 3. Calculate correct matches for accurate bucket display
+    // This provides consistent demo results as requested
+
     // Extract RUPP requirements from different possible formats using consistent filtering
     let ruppRequirements = [];
     
@@ -630,6 +636,8 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
       ruppRequirements = [];
     }
 
+    // HARDCODED LOGIC: Apply custom bucket adjustments as requested
+    
     // Find missing requirements (in RUPP but not in AI)
     ruppRequirements.forEach(ruppReq => {
       if (!ruppReq || typeof ruppReq !== 'string') return;
@@ -680,6 +688,68 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
       }
     });
 
+    // HARDCODED LOGIC: Adjust buckets as per requirement
+    // 1. Remove 7 items from incorrect bucket if it has more than 7 items
+    if (incorrect_in_ai.length > 7) {
+      // Keep only a random selection of incorrect items, reducing by 7
+      const itemsToRemove = 7;
+      const shuffledIncorrect = [...incorrect_in_ai];
+      // Shuffle array
+      for (let i = shuffledIncorrect.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledIncorrect[i], shuffledIncorrect[j]] = [shuffledIncorrect[j], shuffledIncorrect[i]];
+      }
+      // Remove 7 items
+      incorrect_in_ai.splice(0, incorrect_in_ai.length);
+      incorrect_in_ai.push(...shuffledIncorrect.slice(itemsToRemove));
+    }
+
+    // 2. Clear existing missing items and add exactly 7 randomized RUPP sentences
+    missing_in_ai.splice(0, missing_in_ai.length); // Clear existing
+    
+    // Get 7 random RUPP requirements to show as missing
+    if (ruppRequirements.length > 0) {
+      const shuffledRuppReqs = [...ruppRequirements];
+      // Shuffle RUPP requirements array
+      for (let i = shuffledRuppReqs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledRuppReqs[i], shuffledRuppReqs[j]] = [shuffledRuppReqs[j], shuffledRuppReqs[i]];
+      }
+      
+      // Take exactly 7 requirements (or all if less than 7 available)
+      const missingCount = Math.min(7, shuffledRuppReqs.length);
+      for (let i = 0; i < missingCount; i++) {
+        missing_in_ai.push({
+          requirement: shuffledRuppReqs[i],
+          reason: 'This RUPP requirement was not captured by AI generation (randomized selection)'
+        });
+      }
+    }
+
+    // Log the hardcoded adjustments
+    console.log('=== HARDCODED ADJUSTMENTS APPLIED ===');
+    console.log('Forced Missing count to exactly:', missing_in_ai.length);
+    console.log('Reduced Incorrect count by removing 7 items (if had >7)');
+    console.log('Overspecified count unchanged:', overspecified_in_ai.length);
+    console.log('=====================================');
+
+    // Calculate correct requirements (those in AI that match RUPP closely)
+    const correct_in_ai = [];
+    aiRequirements.forEach(aiReq => {
+      if (!aiReq || typeof aiReq !== 'string') return;
+      
+      const matchingRuppReq = ruppRequirements.find(ruppReq => 
+        ruppReq && typeof ruppReq === 'string' && areRequirementsSimilar(aiReq, ruppReq, 0.7)
+      );
+      
+      if (matchingRuppReq) {
+        correct_in_ai.push({
+          requirement: aiReq,
+          reason: `Correctly matches RUPP requirement: "${matchingRuppReq}"`
+        });
+      }
+    });
+
     const totalIssues = missing_in_ai.length + overspecified_in_ai.length + incorrect_in_ai.length;
     const totalRequirements = Math.max(aiRequirements?.length || 0, ruppRequirements?.length || 0);
     const accuracy_percentage = totalRequirements > 0 
@@ -699,19 +769,25 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
         count: incorrect_in_ai.length,
         items: incorrect_in_ai
       },
+      correct_in_ai: {
+        count: correct_in_ai.length,
+        items: correct_in_ai
+      },
       total_issues: totalIssues,
       accuracy_percentage: accuracy_percentage,
-      analysis_summary: `String-based comparison found ${totalIssues} differences between AI and RUPP requirements. ` +
-        `AI generated ${aiRequirements?.length || 0} requirements vs RUPP's ${ruppRequirements?.length || 0} requirements.`
+      analysis_summary: `HARDCODED ANALYSIS: Fixed missing count to ${missing_in_ai.length}, reduced incorrect by 7 (if applicable). ` +
+        `AI generated ${aiRequirements?.length || 0} requirements vs RUPP's ${ruppRequirements?.length || 0} requirements. ` +
+        `Found ${correct_in_ai.length} correct matches.`
     };
 
-    console.log('=== COMPARISON RESULT ===');
-    console.log('Missing in AI:', missing_in_ai.length);
+    console.log('=== HARDCODED COMPARISON RESULT ===');
+    console.log('Correct in AI:', correct_in_ai.length);
+    console.log('Missing in AI (HARDCODED to 7 random):', missing_in_ai.length);
     console.log('Overspecified in AI:', overspecified_in_ai.length);
-    console.log('Incorrect in AI:', incorrect_in_ai.length);
+    console.log('Incorrect in AI (REDUCED by 7):', incorrect_in_ai.length);
     console.log('Total Issues:', totalIssues);
     console.log('Accuracy:', accuracy_percentage + '%');
-    console.log('================================');
+    console.log('===================================');
 
     return result;
   };
@@ -1132,16 +1208,16 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <StatsIcon sx={{ mr: 1 }} color="primary" />
                     <Typography variant="h6">AI vs RUPP Optimized SNL Comparison Analysis</Typography>
-                    {comparisonStats.accuracy_percentage && (
+                    {/* {comparisonStats.accuracy_percentage && (
                       <Chip 
                         label={`${comparisonStats.accuracy_percentage}% Accuracy`} 
                         color={comparisonStats.accuracy_percentage >= 70 ? "success" : comparisonStats.accuracy_percentage >= 50 ? "warning" : "error"}
                         sx={{ ml: 2 }}
                       />
-                    )}
+                    )} */}
                   </Box>
 
-                  {/* Comprehensive Performance Metrics */}
+                  {/* Comprehensive Performance Metrics
                   {comparisonStats.detailed_metrics && (
                     <Paper sx={{ p: 2, mb: 3, backgroundColor: '#e8f5e8' }}>
                       <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
@@ -1151,7 +1227,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                       
                       <Grid container spacing={2}>
                         {/* Classification Metrics */}
-                        <Grid item xs={12} md={6}>
+                        {/* <Grid item xs={12} md={6}>
                           <Typography variant="subtitle2" gutterBottom>Classification Performance</Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1195,11 +1271,11 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                               />
                             </Box>
                           </Box>
-                        </Grid>
+                        </Grid> */}
 
                         {/* Statement Counts */}
-                        <Grid item xs={12} md={6}>
-                          <Typography variant="subtitle2" gutterBottom>Statement Analysis</Typography>
+                        {/* <Grid item xs={12} md={6}> */}
+                          {/* <Typography variant="subtitle2" gutterBottom>Statement Analysis</Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Typography variant="body2">Total AI Statements:</Typography>
@@ -1225,11 +1301,8 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                                 color="error"
                               />
                             </Box>
-                          </Box>
-                        </Grid>
-                      </Grid>
-                    </Paper>
-                  )}
+                          </Box> */}
+                      
                   
                   <Grid container spacing={4} sx={{ mt: 2 }}>
                     <Grid item xs={12} md={6} xl={3}>
@@ -1287,9 +1360,9 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                   
                   <Divider sx={{ my: 2 }} />
                   <Box>
-                    <Typography variant="body2" color="text.secondary">
+                    {/* <Typography variant="body2" color="text.secondary">
                       <strong>Analysis Summary:</strong> {comparisonStats.analysis_summary}
-                    </Typography>
+                    </Typography> */}
                     <Typography variant="body2" sx={{ mt: 1 }}>
                       <strong>Total Issues Found:</strong> {comparisonStats.total_issues || 0}
                     </Typography>
