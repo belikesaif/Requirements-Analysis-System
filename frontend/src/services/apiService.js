@@ -114,7 +114,7 @@ export const apiService = {
       const response = await apiClient.post('/generate-both-diagrams', data);
       return response.data;
     } catch (error) {
-      throw new Error(`Simultaneous diagram generation failed: ${error.message}`);
+      throw new Error(`Class and Sequence Diagram Generation failed: ${error.message}`);
     }
   },
 

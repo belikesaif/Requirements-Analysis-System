@@ -33,14 +33,14 @@ const SimultaneousDiagramGenerator = ({
 
   const handleGenerateDiagrams = async () => {
     if (!ruppSnlData?.snl_text) {
-      onError('No RUPP SNL data available for diagram generation');
+      onError('No RUPP\'s SNL data available for diagram generation');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('Generating diagrams with RUPP SNL:', ruppSnlData.snl_text);
-      
+      console.log('Generating diagrams with RUPP\'s SNL:', ruppSnlData.snl_text);
+
       const response = await apiService.generateBothDiagrams({
         rupp_snl_text: ruppSnlData.snl_text,
         snl_data: ruppSnlData // Keep for compatibility
@@ -90,19 +90,19 @@ const SimultaneousDiagramGenerator = ({
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <DiagramIcon sx={{ mr: 2, color: 'primary.main' }} />
             <Typography variant="h5" component="h2">
-              Screen 4: Simultaneous Diagram Generation
+              Screen 4: Class and Sequence Diagram Generation
             </Typography>
           </Box>
           
           <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
-            Generate both Class and Sequence diagrams simultaneously using RUPP SNL and GPT-3.5 Turbo.
-            This creates the initial diagrams before actor identification and optimization.
+            Generate both Class and Sequence diagrams simultaneously using RUPP's SNL and GPT-3.5 Turbo.
+            This creates the AI Generated Diagrams before actor identification and optimization.
           </Typography>
 
           {ruppSnlData && (
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                <strong>Ready to generate diagrams from RUPP SNL:</strong><br/>
+                <strong>Ready to generate diagrams from RUPP's SNL:</strong><br/>
                 Text length: {ruppSnlData.snl_text?.length || 0} characters<br/>
                 Processing time: {ruppSnlData.processing_time || 'N/A'} ms
               </Typography>
@@ -243,7 +243,7 @@ const SimultaneousDiagramGenerator = ({
               No Diagrams Generated Yet
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Click "Generate Both Diagrams" to create initial class and sequence diagrams using RUPP SNL.
+              Click "Generate Both Diagrams" to create initial class and sequence diagrams using RUPP's SNL.
             </Typography>
           </CardContent>
         </Card>

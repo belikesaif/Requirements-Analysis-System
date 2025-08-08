@@ -98,9 +98,10 @@ Case Study:
 Please generate SNL requirements that:
 1. Capture all functional requirements from the case study
 2. Use proper SNL formatting
-3. Identify and consistently use actor names
-4. Create atomic, testable requirements
-5. Handle conditional logic appropriately
+3. Create atomic, testable requirements
+4. Handle conditional logic appropriately
+
+Note: Please do not include identified actors in the snl requirements text.
 
 Output each requirement on a separate line, numbered sequentially."""
     

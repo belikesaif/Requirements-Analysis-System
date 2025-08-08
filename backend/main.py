@@ -33,17 +33,23 @@ frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 allowed_origins = [
     "http://localhost:3000", 
     "http://localhost:5173",  # React/Vite dev servers
+    "http://127.0.0.1:3000",  # Local development
+    "http://127.0.0.1:5173",  # Local Vite
     frontend_url,  # Production frontend URL from environment
-    "https://*.vercel.app",  # Allow all Vercel deployments
-    "https://requirements-analysis-system-frontend.vercel.app",  # Specific Vercel URL
-    "*"  # Temporary - allow all origins for debugging
+    "https://nrasfrontend.vercel.app",  # Your specific Vercel deployment
+    "https://requirements-analysis-system-frontend.vercel.app",  # Alternative Vercel URL
+    "https://nlp-requirements-system.vercel.app",  # Possible project-based URL
 ]
+
+# For development/debugging - you can temporarily add "*" to allow all origins
+if os.getenv("ENVIRONMENT") == "development":
+    allowed_origins.append("*")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -55,7 +61,27 @@ diagram_service = DiagramService()
 storage = MemoryStorage()
 actor_identification_service = ActorIdentificationService()
 code_generation_service = CodeGenerationService()
-code_generation_service = CodeGenerationService()
+
+# Health check endpoint
+@app.get("/")
+async def root():
+    return {"message": "NLP Requirements Analysis System API", "status": "running"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+# CORS preflight handler
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 # Pydantic models
 class CaseStudyRequest(BaseModel):
@@ -305,7 +331,8 @@ async def identify_actors(request: ActorIdentificationRequest):
         verification_results = await actor_identification_service.verify_diagrams_with_actors(
             request.class_diagram,
             request.sequence_diagram,
-            identified_actors
+            identified_actors,
+            request.original_requirements
         )
         
         return {
@@ -322,7 +349,7 @@ async def identify_actors(request: ActorIdentificationRequest):
 @app.post("/api/final-optimization")
 async def final_optimization(request: FinalOptimizationRequest):
     """
-    Final LLM optimization using GPT-3.5 with identified actors and verification feedback (Screen 6)
+    Final LLM optimization using GPT-3.5 with identified actors and verification results (Screen 6)
     """
     try:
         print("Performing final LLM optimization with actors...")
@@ -526,13 +553,14 @@ async def get_plantuml_error_stats():
 @app.post("/api/analyze-ai-snl-detailed")
 async def analyze_ai_snl_detailed(request: AIAnalysisRequest):
     """
-    Get detailed analysis of AI SNL vs Original Case Study with Missing, Overspecified, and Incorrect categorization
+    Get detailed analysis of AI SNL vs Original Case Study using rule-based NLP
     """
     try:
+        # Use rule-based comparison instead of AI service
         detailed_analysis = await comparison_service.analyze_ai_snl_detailed(
             request.ai_snl, 
             request.original_text,
-            ai_service
+            None  # No longer need ai_service
         )
         
         return {
@@ -542,17 +570,18 @@ async def analyze_ai_snl_detailed(request: AIAnalysisRequest):
                 "accuracy_score": detailed_analysis.get('detailed_ai_analysis', {}).get('accuracy_percentage', 0),
                 "issues_found": detailed_analysis.get('detailed_ai_analysis', {}).get('total_issues', 0)
             },
+            "comparison_method": "rule_based_vs_original",
             "timestamp": datetime.now().isoformat(),
             "status": "success"
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Detailed AI SNL analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Rule-based detailed AI SNL analysis failed: {str(e)}")
 
 @app.post("/api/compare-ai-vs-rupp")
 async def compare_ai_vs_rupp(request: AIVsRUPPAnalysisRequest):
     """
-    Compare AI-generated SNL against RUPP-generated SNL with detailed analysis
+    Compare AI-generated SNL against RUPP-generated SNL with detailed analysis using rule-based NLP
     """
     try:
         # Debug logging
@@ -561,10 +590,11 @@ async def compare_ai_vs_rupp(request: AIVsRUPPAnalysisRequest):
         print(f"DEBUG - AI SNL sample: {request.ai_snl[:2] if request.ai_snl else 'None'}")
         print(f"DEBUG - RUPP SNL sample: {request.rupp_snl[:2] if request.rupp_snl else 'None'}")
         
+        # Use rule-based comparison instead of AI service
         detailed_analysis = await comparison_service.analyze_ai_vs_rupp_detailed(
             request.ai_snl, 
             request.rupp_snl,
-            ai_service
+            None  # No longer need ai_service
         )
         
         return {
@@ -575,13 +605,13 @@ async def compare_ai_vs_rupp(request: AIVsRUPPAnalysisRequest):
                 "accuracy_score": detailed_analysis.get('detailed_ai_analysis', {}).get('accuracy_percentage', 0),
                 "issues_found": detailed_analysis.get('detailed_ai_analysis', {}).get('total_issues', 0)
             },
-            "comparison_method": "ai_vs_rupp_snl",
+            "comparison_method": "rule_based_nlp",
             "timestamp": datetime.now().isoformat(),
             "status": "success"
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI vs RUPP comparison failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Rule-based AI vs RUPP comparison failed: {str(e)}")
 
 @app.post("/api/generate-code")
 async def generate_code(request: CodeGenerationRequest):
