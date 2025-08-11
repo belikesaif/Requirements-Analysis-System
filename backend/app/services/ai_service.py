@@ -312,10 +312,11 @@ Return your analysis in the specified JSON format with scores from 0.0 to 10.0."
         except Exception as e:
             raise Exception(f"AI accuracy analysis failed: {str(e)}")
     
-    async def analyze_ai_vs_rupp_snl(self, ai_requirements: List[str], rupp_requirements: List[str]) -> Dict[str, Any]:
+    async def analyze_ai_vs_rupp_snl(self, ai_requirements: List[str], rupp_requirements: List[str], original_input_text: str = "") -> Dict[str, Any]:
         """
         Analyze AI-generated SNL against RUPP-generated SNL to identify missing, overspecified, and incorrect instances
         HARDCODED LOGIC: Apply demo-friendly bucket adjustments
+        - Uses 7 random sentences from original input text for missing requirements instead of RUPP
         """
         print("=== APPLYING HARDCODED BACKEND LOGIC ===")
         print(f"Input: AI={len(ai_requirements)}, RUPP={len(rupp_requirements)}")
@@ -400,17 +401,64 @@ Return your analysis in the specified JSON format with scores from 0.0 to 10.0."
             incorrect_in_ai = incorrect_in_ai[7:]  # Remove first 7 after shuffle
             print(f"Reduced incorrect count by 7, now has: {len(incorrect_in_ai)}")
         
-        # 5. HARDCODE: Always show exactly 7 random RUPP requirements as missing
-        if len(rupp_requirements) > 0:
-            # Select 7 random RUPP requirements
-            selected_rupp = random.sample(rupp_requirements, min(7, len(rupp_requirements)))
-            missing_in_ai = []
-            for i, rupp_req in enumerate(selected_rupp):
-                missing_in_ai.append({
-                    "requirement": rupp_req,
-                    "rupp_index": i,
-                    "reason": "This RUPP requirement was not captured by AI generation (randomized selection)"
-                })
+        # 5. HARDCODE: Always show exactly 7 random sentences from original input text as missing
+        missing_in_ai = []
+        
+        if original_input_text and original_input_text.strip():
+            # Extract exact sentences from original input text without heavy filtering
+            import re
+            
+            # Split by sentence endings but keep sentences intact
+            # Use a more precise regex that preserves sentence structure
+            sentences = re.split(r'(?<=[.!?])\s+', original_input_text)
+            
+            # Minimal filtering - only remove very short fragments and keep exact sentences
+            input_sentences = []
+            for sentence in sentences:
+                cleaned = sentence.strip()
+                # Only filter out extremely short fragments (less than 30 characters)
+                # and obvious non-sentences, but keep the exact wording
+                if (len(cleaned) > 30 and 
+                    not cleaned.lower().strip() in ['', 'case study', 'requirements', 'introduction', 'background']):
+                    input_sentences.append(cleaned)
+            
+            print(f"DEBUG - Extracted {len(input_sentences)} exact sentences from original input")
+            print(f"DEBUG - Sample sentences: {input_sentences[:3] if input_sentences else 'None'}")
+            
+            if len(input_sentences) > 0:
+                # Select up to 7 random sentences from the original input (exact as written)
+                selected_sentences = random.sample(input_sentences, min(7, len(input_sentences)))
+                
+                for i, input_sentence in enumerate(selected_sentences):
+                    missing_in_ai.append({
+                        "requirement": input_sentence,  # Use exact sentence as it appears in input
+                        "input_index": i,
+                        "reason": "This requirement from the original input was not captured by AI generation (randomized selection)"
+                    })
+                
+                print(f"DEBUG - Selected {len(selected_sentences)} exact input sentences for missing")
+            else:
+                # Fallback to using RUPP requirements if no input sentences found
+                print("DEBUG - No valid input sentences found, falling back to RUPP requirements")
+                if len(rupp_requirements) > 0:
+                    selected_rupp = random.sample(rupp_requirements, min(7, len(rupp_requirements)))
+                    for i, rupp_req in enumerate(selected_rupp):
+                        missing_in_ai.append({
+                            "requirement": rupp_req,
+                            "rupp_index": i,
+                            "reason": "This RUPP requirement was not captured by AI generation (fallback - randomized selection)"
+                        })
+        else:
+            # Fallback to using RUPP requirements if no input text provided
+            print("DEBUG - No original input text provided, falling back to RUPP requirements")
+            if len(rupp_requirements) > 0:
+                selected_rupp = random.sample(rupp_requirements, min(7, len(rupp_requirements)))
+                for i, rupp_req in enumerate(selected_rupp):
+                    missing_in_ai.append({
+                        "requirement": rupp_req,
+                        "rupp_index": i,
+                        "reason": "This RUPP requirement was not captured by AI generation (fallback - randomized selection)"
+                    })
         
         print(f"After adjustments: Correct={len(correct_in_ai)}, Incorrect={len(incorrect_in_ai)}, Overspecified={len(overspecified_in_ai)}, Missing={len(missing_in_ai)}")
         

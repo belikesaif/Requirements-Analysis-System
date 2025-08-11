@@ -95,6 +95,7 @@ class AIAnalysisRequest(BaseModel):
 class AIVsRUPPAnalysisRequest(BaseModel):
     ai_snl: List[str]
     rupp_snl: List[str]
+    original_input_text: Optional[str] = ""
 
 class ComparisonRequest(BaseModel):
     rupp_snl: List[str]
@@ -594,7 +595,8 @@ async def compare_ai_vs_rupp(request: AIVsRUPPAnalysisRequest):
         detailed_analysis = await comparison_service.analyze_ai_vs_rupp_detailed(
             request.ai_snl, 
             request.rupp_snl,
-            None  # No longer need ai_service
+            None,  # No longer need ai_service
+            request.original_input_text  # Pass the original input text
         )
         
         return {

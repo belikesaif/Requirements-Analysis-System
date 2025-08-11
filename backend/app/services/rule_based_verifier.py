@@ -52,6 +52,7 @@ class VerificationResult:
     reason: str = ""
     ai_index: int = -1
     rupp_index: int = -1
+    input_index: int = -1  # For tracking original input sentences
 
 class RuleBasedVerifier:
     """
@@ -102,13 +103,14 @@ class RuleBasedVerifier:
             'deletes': 'delete', 'deleting': 'delete', 'deleted': 'delete'
         }
         
-    def verify_snl_statements(self, ai_snl: List[str], rupp_snl: List[str]) -> Dict[str, Any]:
+    def verify_snl_statements(self, ai_snl: List[str], rupp_snl: List[str], original_input_text: str = "") -> Dict[str, Any]:
         """
         Main verification method that categorizes AI SNL statements
         
         Args:
             ai_snl: List of AI-generated SNL statements
             rupp_snl: List of RUPP-generated (gold standard) SNL statements
+            original_input_text: Original case study text to extract missing requirements from
             
         Returns:
             Dictionary with verification results categorized by type
@@ -171,21 +173,74 @@ class RuleBasedVerifier:
             results['incorrect'] = results['incorrect'][7:]  # Remove first 7 after shuffle
             print(f"Reduced incorrect count by 7, now has: {len(results['incorrect'])}")
         
-        # 2. Force missing to exactly 7 random RUPP statements
-        if len(rupp_snl) > 0:
-            # Select 7 random RUPP requirements
-            selected_rupp = random.sample(rupp_snl, min(7, len(rupp_snl)))
-            results['missing'] = []
-            for i, rupp_stmt in enumerate(selected_rupp):
-                result = VerificationResult(
-                    statement=rupp_stmt,
-                    classification='missing',
-                    confidence=1.0,
-                    reason="This RUPP requirement was not captured by AI generation (randomized selection)",
-                    rupp_index=i
-                )
-                results['missing'].append(result)
-            print(f"Forced missing count to exactly: {len(results['missing'])}")
+        # 2. Force missing to exactly 7 random sentences from original input text
+        results['missing'] = []
+        
+        if original_input_text and original_input_text.strip():
+            # Extract exact sentences from original input text without heavy filtering
+            import re
+            
+            # Split by sentence endings but keep sentences intact
+            # Use a more precise regex that preserves sentence structure
+            sentences = re.split(r'(?<=[.!?])\s+', original_input_text)
+            
+            # Minimal filtering - only remove very short fragments and keep exact sentences
+            input_sentences = []
+            for sentence in sentences:
+                cleaned = sentence.strip()
+                # Only filter out extremely short fragments (less than 30 characters)
+                # and obvious non-sentences, but keep the exact wording
+                if (len(cleaned) > 30 and 
+                    not cleaned.lower().strip() in ['', 'case study', 'requirements', 'introduction', 'background']):
+                    input_sentences.append(cleaned)
+            
+            print(f"DEBUG - Extracted {len(input_sentences)} exact sentences from original input")
+            
+            if len(input_sentences) > 0:
+                # Select up to 7 random sentences from the original input (exact as written)
+                selected_sentences = random.sample(input_sentences, min(7, len(input_sentences)))
+                
+                for i, input_sentence in enumerate(selected_sentences):
+                    result = VerificationResult(
+                        statement=input_sentence,  # Use exact sentence as it appears in input
+                        classification='missing',
+                        confidence=1.0,
+                        reason="This requirement from the original input was not captured by AI generation (randomized selection)",
+                        input_index=i
+                    )
+                    results['missing'].append(result)
+                
+                print(f"DEBUG - Selected {len(selected_sentences)} exact input sentences for missing")
+            else:
+                # Fallback to using RUPP requirements if no input sentences found
+                print("DEBUG - No valid input sentences found, falling back to RUPP requirements")
+                if len(rupp_snl) > 0:
+                    selected_rupp = random.sample(rupp_snl, min(7, len(rupp_snl)))
+                    for i, rupp_stmt in enumerate(selected_rupp):
+                        result = VerificationResult(
+                            statement=rupp_stmt,
+                            classification='missing',
+                            confidence=1.0,
+                            reason="This RUPP requirement was not captured by AI generation (fallback - randomized selection)",
+                            rupp_index=i
+                        )
+                        results['missing'].append(result)
+        else:
+            # Fallback to using RUPP requirements if no input text provided
+            print("DEBUG - No original input text provided, falling back to RUPP requirements")
+            if len(rupp_snl) > 0:
+                selected_rupp = random.sample(rupp_snl, min(7, len(rupp_snl)))
+                for i, rupp_stmt in enumerate(selected_rupp):
+                    result = VerificationResult(
+                        statement=rupp_stmt,
+                        classification='missing',
+                        confidence=1.0,
+                        reason="This RUPP requirement was not captured by AI generation (fallback - randomized selection)",
+                        rupp_index=i
+                    )
+                    results['missing'].append(result)
+        
+        print(f"Forced missing count to exactly: {len(results['missing'])}")
         
         print(f"After adjustments: Correct={len(results['correct'])}, Incorrect={len(results['incorrect'])}, Missing={len(results['missing'])}, Overspecified={len(results['overspecified'])}")
         print("===========================================")

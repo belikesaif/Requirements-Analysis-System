@@ -354,7 +354,7 @@ class ComparisonService:
         
         return recommendations
     
-    async def analyze_ai_vs_rupp_detailed(self, ai_snl, rupp_snl: str, ai_service=None) -> Dict[str, Any]:
+    async def analyze_ai_vs_rupp_detailed(self, ai_snl, rupp_snl: str, ai_service=None, original_input_text: str = "") -> Dict[str, Any]:
         """
         Enhanced comparison analysis using rule-based NLP for detailed categorization
         Compare AI-generated SNL against RUPP-generated SNL without using AI models
@@ -376,7 +376,7 @@ class ComparisonService:
             
             # Use rule-based verifier for analysis
             verification_output = self.rule_based_verifier.verify_snl_statements(
-                ai_requirements, rupp_requirements
+                ai_requirements, rupp_requirements, original_input_text
             )
             
             # Format results to match expected API structure

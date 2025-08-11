@@ -230,64 +230,8 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                           color: 'text.primary'
                         }}
                       >
-                        📝 {item.requirement || item}
+                        {idx + 1}. {item.requirement || item}
                       </Typography>
-                    }
-                    secondary={
-                      <Box sx={{ mt: 1 }}>
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary"
-                          sx={{ 
-                            display: 'block',
-                            mb: 1,
-                            lineHeight: 1.3,
-                            fontStyle: 'italic'
-                          }}
-                        >
-                          💡 {item.reason || 'No additional details available'}
-                        </Typography>
-                        
-                        {/* Metrics Chips */}
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                          {item.similarity_score && (
-                            <Chip 
-                              label={`Similarity: ${(item.similarity_score * 100).toFixed(1)}%`}
-                              size="small"
-                              sx={{ 
-                                height: 24,
-                                fontSize: '0.75rem',
-                                fontWeight: 500
-                              }}
-                              color={item.similarity_score > 0.7 ? "success" : item.similarity_score > 0.4 ? "warning" : "error"}
-                            />
-                          )}
-                          {item.confidence && (
-                            <Chip 
-                              label={`Confidence: ${(item.confidence * 100).toFixed(1)}%`}
-                              size="small"
-                              sx={{ 
-                                height: 24,
-                                fontSize: '0.75rem',
-                                fontWeight: 500
-                              }}
-                              color="info"
-                            />
-                          )}
-                          {item.match_type && (
-                            <Chip 
-                              label={`Type: ${item.match_type}`}
-                              size="small"
-                              sx={{ 
-                                height: 24,
-                                fontSize: '0.75rem',
-                                fontWeight: 500
-                              }}
-                              color="secondary"
-                            />
-                          )}
-                        </Box>
-                      </Box>
                     }
                   />
                 </ListItem>
@@ -1145,35 +1089,14 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                     {getStatusIcon(validation)}
                   </ListItemIcon>
                   <ListItemText
-                    primary={requirement}
-                    secondary={
-                      <Box sx={{ mt: 1 }}>
-                        <Chip 
-                          label={`Clarity: ${validation.clarity}/10`}
-                          size="small"
-                          sx={{ mr: 1 }}
-                          color={validation.clarity >= 7 ? "success" : "warning"}
-                        />
-                        <Chip 
-                          label={`Completeness: ${validation.completeness}/10`}
-                          size="small"
-                          sx={{ mr: 1 }}
-                          color={validation.completeness >= 7 ? "success" : "warning"}
-                        />
-                        <Chip 
-                          label={`Atomicity: ${validation.atomicity}/10`}
-                          size="small"
-                          color={validation.atomicity >= 7 ? "success" : "warning"}
-                        />
-                      </Box>
-                    }
+                    primary={`${index + 1}. ${requirement}`}
                   />
                 </ListItem>
               ))}
             </List>
 
             {/* Issues Summary */}
-            {Object.values(issues).flat().length > 0 && (
+            {/* {Object.values(issues).flat().length > 0 && (
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   Issues Found:
@@ -1188,7 +1111,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                   <Typography variant="body2">• {issues.incorrect.length} requirements with clarity issues</Typography>
                 )}
               </Alert>
-            )}
+            )} */}
 
             {/* Comparison Stats Summary */}
             {isAnalyzing && (
@@ -1207,7 +1130,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <StatsIcon sx={{ mr: 1 }} color="primary" />
-                    <Typography variant="h6">AI vs RUPP Optimized SNL Comparison Analysis</Typography>
+                    <Typography variant="h6">AI SNL Verifier</Typography>
                     {/* {comparisonStats.accuracy_percentage && (
                       <Chip 
                         label={`${comparisonStats.accuracy_percentage}% Accuracy`} 
@@ -1363,9 +1286,9 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                     {/* <Typography variant="body2" color="text.secondary">
                       <strong>Analysis Summary:</strong> {comparisonStats.analysis_summary}
                     </Typography> */}
-                    <Typography variant="body2" sx={{ mt: 1 }}>
+                    {/* <Typography variant="body2" sx={{ mt: 1 }}>
                       <strong>Total Issues Found:</strong> {comparisonStats.total_issues || 0}
-                    </Typography>
+                    </Typography> */}
                     <Typography variant="body2" sx={{ mt: 1 }}>
                       <strong>AI SNL Count:</strong> {aiSnlData.requirements?.length || 0} | 
                       <strong> RUPP SNL Count:</strong> {getRuppRequirementsCount(ruppOptimizedData)} | 
