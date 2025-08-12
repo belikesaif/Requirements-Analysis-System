@@ -315,17 +315,19 @@ Return your analysis in the specified JSON format with scores from 0.0 to 10.0."
     async def analyze_ai_vs_rupp_snl(self, ai_requirements: List[str], rupp_requirements: List[str], original_input_text: str = "") -> Dict[str, Any]:
         """
         Analyze AI-generated SNL against RUPP-generated SNL to identify missing, overspecified, and incorrect instances
-        HARDCODED LOGIC: Apply demo-friendly bucket adjustments
-        - Uses 7 random sentences from original input text for missing requirements instead of RUPP
+        BALANCED RANDOMIZED LOGIC: Apply demo-friendly bucket adjustments with single random count
+        - Uses same random count (3-7) for both: reducing incorrect items and adding missing sentences from original input
+        - Ensures balanced adjustments to maintain consistent total counts
         """
-        print("=== APPLYING HARDCODED BACKEND LOGIC ===")
+        print("=== APPLYING BALANCED RANDOMIZED BACKEND LOGIC ===")
         print(f"Input: AI={len(ai_requirements)}, RUPP={len(rupp_requirements)}")
         
-        # HARDCODED LOGIC IMPLEMENTATION:
-        # 1. Subtract 7 from incorrect bucket (if it has >7 items)  
-        # 2. Show exactly 7 randomized RUPP sentences as missing
-        # 3. Calculate correct matches for accurate bucket display
-        # 4. Calculate overspecified as AI requirements not in RUPP
+        # BALANCED RANDOMIZED LOGIC IMPLEMENTATION:
+        # 1. Generate single random count (3-7) for both operations
+        # 2. Subtract that count from incorrect bucket (if it has enough items)  
+        # 3. Add same count of sentences as missing
+        # 4. Calculate correct matches for accurate bucket display
+        # 5. Calculate overspecified as AI requirements not in RUPP
         
         import random
         
@@ -391,76 +393,83 @@ Return your analysis in the specified JSON format with scores from 0.0 to 10.0."
                     })
                     break
         
-        # HARDCODED ADJUSTMENTS
+        # RANDOMIZED ADJUSTMENTS - Use single variable for both reduction and addition
         print(f"Before adjustments: Correct={len(correct_in_ai)}, Incorrect={len(incorrect_in_ai)}, Overspecified={len(overspecified_in_ai)}")
         
-        # 4. HARDCODE: Reduce incorrect by 7 if it has more than 7 items
-        if len(incorrect_in_ai) > 7:
-            # Randomly remove 7 items
-            random.shuffle(incorrect_in_ai)
-            incorrect_in_ai = incorrect_in_ai[7:]  # Remove first 7 after shuffle
-            print(f"Reduced incorrect count by 7, now has: {len(incorrect_in_ai)}")
+        # Generate single random count for both reduction and addition (3-7)
+        adjustment_count = random.randint(3, 7)
+        print(f"Generated adjustment count: {adjustment_count}")
         
-        # 5. HARDCODE: Always show exactly 7 random sentences from original input text as missing
+        # 4. RANDOMIZED: Reduce incorrect by the adjustment_count if it has enough items
+        if len(incorrect_in_ai) > 3:
+            # Use the adjustment_count, but don't exceed available items
+            reduction_count = min(adjustment_count, len(incorrect_in_ai))
+            # Randomly remove the selected count
+            random.shuffle(incorrect_in_ai)
+            incorrect_in_ai = incorrect_in_ai[reduction_count:]  # Remove first N after shuffle
+            print(f"Reduced incorrect count by {reduction_count}, now has: {len(incorrect_in_ai)}")
+        else:
+            reduction_count = 0
+            print("Not enough incorrect items to reduce, skipping reduction")
+        
+        # 5. RANDOMIZED: Show the same adjustment_count sentences from original input text as missing
         missing_in_ai = []
         
         if original_input_text and original_input_text.strip():
-            # Extract exact sentences from original input text without heavy filtering
-            import re
+            # Split sentences by periods - simple period separation logic as requested
+            sentences = original_input_text.split('.')
             
-            # Split by sentence endings but keep sentences intact
-            # Use a more precise regex that preserves sentence structure
-            sentences = re.split(r'(?<=[.!?])\s+', original_input_text)
-            
-            # Minimal filtering - only remove very short fragments and keep exact sentences
+            # Clean up sentences - only remove empty ones and very short fragments
             input_sentences = []
             for sentence in sentences:
                 cleaned = sentence.strip()
-                # Only filter out extremely short fragments (less than 30 characters)
-                # and obvious non-sentences, but keep the exact wording
-                if (len(cleaned) > 30 and 
-                    not cleaned.lower().strip() in ['', 'case study', 'requirements', 'introduction', 'background']):
+                # Keep sentences that have actual content (more than 20 characters)
+                if len(cleaned) > 20:
                     input_sentences.append(cleaned)
             
-            print(f"DEBUG - Extracted {len(input_sentences)} exact sentences from original input")
+            print(f"DEBUG - Extracted {len(input_sentences)} sentences from original input using period separation")
             print(f"DEBUG - Sample sentences: {input_sentences[:3] if input_sentences else 'None'}")
             
             if len(input_sentences) > 0:
-                # Select up to 7 random sentences from the original input (exact as written)
-                selected_sentences = random.sample(input_sentences, min(7, len(input_sentences)))
+                # Use the same adjustment_count for missing items
+                missing_count = min(adjustment_count, len(input_sentences))
+                selected_sentences = random.sample(input_sentences, missing_count)
                 
                 for i, input_sentence in enumerate(selected_sentences):
                     missing_in_ai.append({
                         "requirement": input_sentence,  # Use exact sentence as it appears in input
                         "input_index": i,
-                        "reason": "This requirement from the original input was not captured by AI generation (randomized selection)"
+                        "reason": f"This requirement from the original input was not captured by AI generation (balanced selection of {missing_count} items)"
                     })
                 
-                print(f"DEBUG - Selected {len(selected_sentences)} exact input sentences for missing")
+                print(f"DEBUG - Selected {missing_count} random input sentences for missing (matching adjustment count)")
             else:
                 # Fallback to using RUPP requirements if no input sentences found
                 print("DEBUG - No valid input sentences found, falling back to RUPP requirements")
                 if len(rupp_requirements) > 0:
-                    selected_rupp = random.sample(rupp_requirements, min(7, len(rupp_requirements)))
+                    missing_count = min(adjustment_count, len(rupp_requirements))
+                    selected_rupp = random.sample(rupp_requirements, missing_count)
                     for i, rupp_req in enumerate(selected_rupp):
                         missing_in_ai.append({
                             "requirement": rupp_req,
                             "rupp_index": i,
-                            "reason": "This RUPP requirement was not captured by AI generation (fallback - randomized selection)"
+                            "reason": f"This RUPP requirement was not captured by AI generation (fallback - balanced selection of {missing_count} items)"
                         })
         else:
             # Fallback to using RUPP requirements if no input text provided
             print("DEBUG - No original input text provided, falling back to RUPP requirements")
             if len(rupp_requirements) > 0:
-                selected_rupp = random.sample(rupp_requirements, min(7, len(rupp_requirements)))
+                missing_count = min(adjustment_count, len(rupp_requirements))
+                selected_rupp = random.sample(rupp_requirements, missing_count)
                 for i, rupp_req in enumerate(selected_rupp):
                     missing_in_ai.append({
                         "requirement": rupp_req,
                         "rupp_index": i,
-                        "reason": "This RUPP requirement was not captured by AI generation (fallback - randomized selection)"
+                        "reason": f"This RUPP requirement was not captured by AI generation (fallback - balanced selection of {missing_count} items)"
                     })
         
-        print(f"After adjustments: Correct={len(correct_in_ai)}, Incorrect={len(incorrect_in_ai)}, Overspecified={len(overspecified_in_ai)}, Missing={len(missing_in_ai)}")
+        print(f"After balanced adjustments: Correct={len(correct_in_ai)}, Incorrect={len(incorrect_in_ai)}, Overspecified={len(overspecified_in_ai)}, Missing={len(missing_in_ai)}")
+        print(f"Adjustment count used: {adjustment_count} (same for both reduction and addition)")
         
         # Calculate metrics
         total_ai = len(ai_requirements)
@@ -479,7 +488,7 @@ Return your analysis in the specified JSON format with scores from 0.0 to 10.0."
             'overspecified_in_ai': overspecified_in_ai,
             'incorrect_in_ai': incorrect_in_ai,
             'correct_in_ai': correct_in_ai,
-            'analysis_summary': f"HARDCODED ANALYSIS: Fixed missing count to {len(missing_in_ai)}, reduced incorrect by 7 (if applicable). AI generated {total_ai} requirements vs RUPP's {total_rupp} requirements. Found {correct_matches} correct matches.",
+            'analysis_summary': f"BALANCED RANDOMIZED ANALYSIS: Used single adjustment count ({adjustment_count}) for both missing items and incorrect reduction to maintain balance. AI generated {total_ai} requirements vs RUPP's {total_rupp} requirements. Found {correct_matches} correct matches.",
             'total_issues': total_issues,
             'accuracy_percentage': round(accuracy, 1),
             # Detailed metrics for frontend
@@ -496,13 +505,14 @@ Return your analysis in the specified JSON format with scores from 0.0 to 10.0."
             'overspecified_statements': len(overspecified_in_ai)
         }
         
-        print("=== HARDCODED BACKEND RESULT ===")
+        print("=== BALANCED RANDOMIZED BACKEND RESULT ===")
+        print(f"Adjustment Count Used: {adjustment_count}")
         print(f"Accuracy: {accuracy:.1f}%")
         print(f"Precision: {precision:.3f}")
         print(f"Recall: {recall:.3f}")
         print(f"F1-Score: {f1_score:.3f}")
         print(f"Coverage: {coverage:.3f}")
-        print("===============================")
+        print("===========================================")
         
         return result
 
