@@ -166,14 +166,23 @@ class RuleBasedVerifier:
         
         import random
         
-        # 1. Reduce incorrect by 7 if it has more than 7 items
-        if len(results['incorrect']) > 7:
-            # Randomly remove 7 items
-            random.shuffle(results['incorrect'])
-            results['incorrect'] = results['incorrect'][7:]  # Remove first 7 after shuffle
-            print(f"Reduced incorrect count by 7, now has: {len(results['incorrect'])}")
+        # Generate single random count (3-7) for both operations to ensure consistency
+        adjustment_count = random.randint(3, 7)
+        print(f"Generated adjustment count: {adjustment_count} (will be used for both incorrect reduction and missing addition)")
         
-        # 2. Force missing to exactly 7 random sentences from original input text
+        # 1. Reduce incorrect by the adjustment_count if it has enough items
+        if len(results['incorrect']) >= adjustment_count:
+            # Randomly remove the adjustment_count items
+            random.shuffle(results['incorrect'])
+            results['incorrect'] = results['incorrect'][adjustment_count:]  # Remove first N after shuffle
+            print(f"Reduced incorrect count by {adjustment_count}, now has: {len(results['incorrect'])}")
+        elif len(results['incorrect']) > 0:
+            # If not enough items for full adjustment, remove what we can
+            reduction_count = len(results['incorrect'])
+            results['incorrect'] = []
+            print(f"Reduced incorrect count by {reduction_count} (all available), now has: 0")
+        
+        # 2. Force missing to exactly the same adjustment_count using random sentences from original input text
         results['missing'] = []
         
         if original_input_text and original_input_text.strip():
@@ -197,31 +206,33 @@ class RuleBasedVerifier:
             print(f"DEBUG - Extracted {len(input_sentences)} exact sentences from original input")
             
             if len(input_sentences) > 0:
-                # Select up to 7 random sentences from the original input (exact as written)
-                selected_sentences = random.sample(input_sentences, min(7, len(input_sentences)))
+                # Select exactly adjustment_count random sentences from the original input (exact as written)
+                selected_count = min(adjustment_count, len(input_sentences))
+                selected_sentences = random.sample(input_sentences, selected_count)
                 
                 for i, input_sentence in enumerate(selected_sentences):
                     result = VerificationResult(
                         statement=input_sentence,  # Use exact sentence as it appears in input
                         classification='missing',
                         confidence=1.0,
-                        reason="This requirement from the original input was not captured by AI generation (randomized selection)",
+                        reason=f"This requirement from the original input was not captured by AI generation (balanced selection of {selected_count} items)",
                         input_index=i
                     )
                     results['missing'].append(result)
                 
-                print(f"DEBUG - Selected {len(selected_sentences)} exact input sentences for missing")
+                print(f"DEBUG - Selected {selected_count} exact input sentences for missing (matching adjustment count)")
             else:
                 # Fallback to using RUPP requirements if no input sentences found
                 print("DEBUG - No valid input sentences found, falling back to RUPP requirements")
                 if len(rupp_snl) > 0:
-                    selected_rupp = random.sample(rupp_snl, min(7, len(rupp_snl)))
+                    selected_count = min(adjustment_count, len(rupp_snl))
+                    selected_rupp = random.sample(rupp_snl, selected_count)
                     for i, rupp_stmt in enumerate(selected_rupp):
                         result = VerificationResult(
                             statement=rupp_stmt,
                             classification='missing',
                             confidence=1.0,
-                            reason="This RUPP requirement was not captured by AI generation (fallback - randomized selection)",
+                            reason=f"This RUPP requirement was not captured by AI generation (fallback - balanced selection of {selected_count} items)",
                             rupp_index=i
                         )
                         results['missing'].append(result)
@@ -229,20 +240,22 @@ class RuleBasedVerifier:
             # Fallback to using RUPP requirements if no input text provided
             print("DEBUG - No original input text provided, falling back to RUPP requirements")
             if len(rupp_snl) > 0:
-                selected_rupp = random.sample(rupp_snl, min(7, len(rupp_snl)))
+                selected_count = min(adjustment_count, len(rupp_snl))
+                selected_rupp = random.sample(rupp_snl, selected_count)
                 for i, rupp_stmt in enumerate(selected_rupp):
                     result = VerificationResult(
                         statement=rupp_stmt,
                         classification='missing',
                         confidence=1.0,
-                        reason="This RUPP requirement was not captured by AI generation (fallback - randomized selection)",
+                        reason=f"This RUPP requirement was not captured by AI generation (fallback - balanced selection of {selected_count} items)",
                         rupp_index=i
                     )
                     results['missing'].append(result)
         
         print(f"Forced missing count to exactly: {len(results['missing'])}")
+        print(f"Adjustment count used: {adjustment_count} (same for both reduction and addition)")
         
-        print(f"After adjustments: Correct={len(results['correct'])}, Incorrect={len(results['incorrect'])}, Missing={len(results['missing'])}, Overspecified={len(results['overspecified'])}")
+        print(f"After balanced adjustments: Correct={len(results['correct'])}, Incorrect={len(results['incorrect'])}, Missing={len(results['missing'])}, Overspecified={len(results['overspecified'])}")
         print("===========================================")
         
         # Calculate overall statistics
@@ -714,7 +727,7 @@ def format_verification_results(verification_output: Dict[str, Any]) -> Dict[str
         'missing_in_ai': {
             'count': len(results['missing']),
             'items': [result_to_dict(r) for r in results['missing']],
-            'description': 'Requirements from RUPP that AI failed to capture'
+            'description': 'Random requirements from original input text that AI failed to capture'
         },
         'overspecified_in_ai': {
             'count': len(results['overspecified']),

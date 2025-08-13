@@ -6,7 +6,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemIcon,
   Chip,
   CircularProgress,
   Alert,
@@ -20,7 +19,6 @@ import {
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
-  Error as ErrorIcon,
   Warning as WarningIcon,
   AutoAwesome as AIIcon,
   ArrowForward as ArrowForwardIcon,
@@ -34,7 +32,7 @@ import {
 import { apiService } from '../services/apiService';
 
 
-const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplete, onError, onContinue }) => {
+const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsText, onVerificationComplete, onError, onContinue }) => {
   const [verificationResults, setVerificationResults] = useState([]);
   const [comparisonStats, setComparisonStats] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -360,13 +358,6 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
       completeness: Math.floor(Math.random() * 4) + 6, // 6-9
       atomicity: Math.floor(Math.random() * 4) + 6 // 6-9
     };
-  };
-
-  const getStatusIcon = (scores) => {
-    const avgScore = Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length;
-    if (avgScore >= 8) return <CheckIcon color="success" />;
-    if (avgScore >= 6) return <WarningIcon color="warning" />;
-    return <ErrorIcon color="error" />;
   };
 
   // Helper function to calculate RUPP requirements count consistently
@@ -885,7 +876,8 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
         
         const response = await apiService.compareAIvsRUPP({
           ai_snl: cleanAiRequirements,
-          rupp_snl: cleanRuppRequirements
+          rupp_snl: cleanRuppRequirements,
+          original_input_text: originalRequirementsText || ""
         });
 
         console.log('AI-powered comparison analysis completed:', response);
@@ -1085,9 +1077,6 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
             <List>
               {verificationResults.map(({ requirement, validation }, index) => (
                 <ListItem key={index} alignItems="flex-start">
-                  <ListItemIcon>
-                    {getStatusIcon(validation)}
-                  </ListItemIcon>
                   <ListItemText
                     primary={`${index + 1}. ${requirement}`}
                   />
@@ -1273,7 +1262,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, onVerificationComplet
                         count={comparisonStats.missing_in_ai?.count || 0}
                         icon={<MissingIcon color="warning" sx={{ mr: 1, fontSize: '1.3rem' }} />}
                         backgroundColor="linear-gradient(135deg, #fff3e0 0%, #fef7e0 100%)"
-                        description="Requirements from RUPP optimization that AI failed to capture"
+                        description="Requirements that AI failed to capture"
                         items={comparisonStats.missing_in_ai?.items || []}
                         expanded={expandedSections.missing}
                         onToggle={() => toggleSection('missing')}

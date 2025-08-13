@@ -284,6 +284,7 @@ System -> User: profile updated
           <AIResultsVerifier
             aiSnlData={currentCaseStudy?.ai_snl}
             ruppOptimizedData={optimizationResults?.optimized_requirements || currentCaseStudy?.rupp_snl}
+            originalRequirementsText={currentCaseStudy?.original_text || currentCaseStudy?.text || ''}
             onVerificationComplete={handleVerificationComplete}
             onError={(error) => showNotification(error, 'error')}
             onContinue={handleNext}
