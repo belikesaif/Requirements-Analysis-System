@@ -528,6 +528,56 @@ Be extremely strict about missing actors. If an identified actor is not explicit
         Identify which case study type based on key terms in requirements
         """
         requirements_lower = requirements.lower()
+        # Normalize common aliases/real names and map them to internal case keys
+        # Car rental aliases (including user-provided brand/name variants)
+        car_aliases = ['icoot', 'icoot system', 'icoot system problem', 'car rental', 'car rent', 'car hire', 'rent a car', 'rental car']
+        if any(alias in requirements_lower for alias in car_aliases):
+            return 'car_rental_system'
+
+        # Zoom car / taxi-like booking
+        if 'zoom car' in requirements_lower or 'zoomcar' in requirements_lower or 'car booking' in requirements_lower or 'cab booking' in requirements_lower:
+            return 'zoom_car_booking'
+
+        # E-Store / ecommerce aliases
+        estore_aliases = ['e-store', 'estore', 'e store', 'online store', 'ecommerce', 'e-commerce', 'online shop', 'shopping cart']
+        if any(alias in requirements_lower for alias in estore_aliases):
+            return 'e-store'
+
+        # College / registration aliases
+        if 'college registration' in requirements_lower or 'student registration' in requirements_lower or 'course registration' in requirements_lower or 'registration system' in requirements_lower:
+            return 'college_registration_system'
+
+        # CCTNS / crime tracking aliases
+        if 'cctns' in requirements_lower or 'crime control' in requirements_lower or 'crime tracking' in requirements_lower or 'criminal tracking' in requirements_lower:
+            return 'cctns'
+
+        # LIS (Library Information System) and library management aliases
+        if 'library information system' in requirements_lower or 'library management' in requirements_lower or re.search(r'\blis\b', requirements_lower):
+            return 'lis'
+
+        # Online bookstore aliases
+        if 'bookstore' in requirements_lower or 'online bookstore' in requirements_lower or 'online book' in requirements_lower or 'book store' in requirements_lower:
+            return 'online_bookstore'
+
+        # Online bus reservation aliases
+        if 'bus reservation' in requirements_lower or 'online bus' in requirements_lower or 'bus booking' in requirements_lower or 'bus ticket' in requirements_lower:
+            return 'online_bus_reservation_system'
+
+        # Discussion group / forum aliases
+        if 'discussion group' in requirements_lower or 'discussion forum' in requirements_lower or 'forum' in requirements_lower or 'group discussion' in requirements_lower:
+            return 'discussion_group_system'
+
+        # Pet store aliases
+        if 'pet store' in requirements_lower or 'petshop' in requirements_lower or 'pet shop' in requirements_lower or 'pet store system' in requirements_lower:
+            return 'pet_store_system'
+
+        # E-Learning / elearning aliases
+        if 'e-learning' in requirements_lower or 'elearning' in requirements_lower or 'e learning' in requirements_lower or 'learning management' in requirements_lower or 'lms' in requirements_lower:
+            return 'elearning'
+
+        # Railway reservation aliases
+        if 'railway reservation' in requirements_lower or 'railway' in requirements_lower or 'train reservation' in requirements_lower or 'rail reservation' in requirements_lower or 'pnr' in requirements_lower:
+            return 'railway_reservation_system'
         
         # Library Management System indicators
         library_keywords = ['library', 'book', 'librarian', 'member', 'borrow', 'issue', 'return', 'guest']
@@ -572,7 +622,16 @@ Be extremely strict about missing actors. If an identified actor is not explicit
             'library_management': ['User', 'Member', 'Guest', 'Administrator', 'Book', 'Librarian'],
             'zoom_car_booking': ['User', 'Customer', 'Admin', 'Booking', 'Car', 'PaymentSystem'],
             'monitoring_operating_system': ['Operator', 'RemoteSensor', 'MonitoringSystem', 'Alarm', 'HelpFacility', 'Notification', 'MonitoringLocation', 'Sensor'],
-            'digital_home_system': ['User', 'Humidistat', 'Thermostat', 'Alarm', 'Sensor', 'Planner', 'PowerSwitch', 'Appliance']
+            'digital_home_system': ['User', 'Humidistat', 'Thermostat', 'Alarm', 'Sensor', 'Planner', 'PowerSwitch', 'Appliance'],
+            'cctns': ['Interface', 'Data', 'Access', 'Security', 'CommunicationNetwork', 'Architecture'],
+            'college_registration_system': ['Student', 'Administrator', 'Paper', 'Report'],
+            'e-store': ['User', 'Profile', 'Order', 'Product', 'ShoppingCart', 'Payment'],
+            'car_rental_system': ['Customer', 'Member', 'CarModel', 'Assistant', 'Reservation'],
+            'lis': ['Staff', 'Branch', 'Administrator', 'Report', 'Item', 'Patron', 'Transaction'],
+            'online_bookstore': ['Customer', 'Order', 'Book', 'ShoppingCart'],
+            'online_bus_reservation_system': ['User', 'Customer', 'Admin', 'Reservation', 'Payment', 'Bus'],
+            'discussion_group_system': ['User', 'Leader', 'Student', 'Presentation', 'Comment'],
+            'pet_store_system': ['Customer', 'Supplier', 'Authentication', 'Catalog', 'Order', 'Inventory']
         }
         return expected_actors.get(case_study_type, [])
 
@@ -582,6 +641,7 @@ Be extremely strict about missing actors. If an identified actor is not explicit
         """
         requirements_lower = requirements.lower()
         extracted_actors = []
+    # Hardcode actor/class lists for new case studies inline (explicit branches)
         
         if case_study_type == 'library_management':
             # Library Management specific patterns
@@ -651,6 +711,39 @@ Be extremely strict about missing actors. If an identified actor is not explicit
             if 'appliance' in requirements_lower:
                 extracted_actors.append('Appliance')
                 
+        # New case studies - explicit hardcoded lists
+        elif case_study_type == 'cctns' or case_study_type.lower() == 'cctns':
+            extracted_actors.extend(['Interface', 'Data', 'Access', 'Security', 'CommunicationNetwork', 'Architecture'])
+
+        elif case_study_type == 'college_registration_system' or case_study_type.lower() == 'college registration system':
+            extracted_actors.extend(['Student', 'Administrator', 'Paper', 'Report'])
+
+        elif case_study_type == 'e-store' or case_study_type.lower() == 'e-store' or case_study_type.lower() == 'estore':
+            extracted_actors.extend(['User', 'Profile', 'Order', 'Product', 'ShoppingCart', 'Payment'])
+
+        elif case_study_type == 'car_rental_system' or case_study_type.lower() == 'car rental system':
+            extracted_actors.extend(['Customer', 'Member', 'CarModel', 'Assistant', 'Reservation'])
+
+        elif case_study_type == 'lis' or case_study_type.lower() == 'lis':
+            extracted_actors.extend(['Staff', 'Branch', 'Administrator', 'Report', 'Item', 'Patron', 'Transaction'])
+
+        elif case_study_type == 'online_bookstore' or case_study_type.lower() == 'online bookstore':
+            extracted_actors.extend(['Customer', 'Order', 'Book', 'ShoppingCart'])
+
+        elif case_study_type == 'online_bus_reservation_system' or case_study_type.lower() == 'online bus reservation system':
+            extracted_actors.extend(['User', 'Customer', 'Admin', 'Reservation', 'Payment', 'Bus'])
+
+        elif case_study_type == 'discussion_group_system' or case_study_type.lower() == 'discussion group system':
+            extracted_actors.extend(['User', 'Leader', 'Student', 'Presentation', 'Comment'])
+
+        elif case_study_type == 'pet_store_system' or case_study_type.lower() == 'pet store system':
+            extracted_actors.extend(['Customer', 'Supplier', 'Authentication', 'Catalog', 'Order', 'Inventory'])
+
+        elif case_study_type == 'elearning' or case_study_type.lower() == 'e-learning' or case_study_type.lower() == 'e learning':
+            extracted_actors.extend(['Student', 'Instructor', 'Course', 'Assessment', 'Administrator'])
+
+        elif case_study_type == 'railway_reservation_system' or case_study_type.lower() == 'railway reservation system':
+            extracted_actors.extend(['Passenger', 'Reservation', 'Train', 'Ticket', 'Administrator', 'Payment'])
         return list(set(extracted_actors))
 
     async def extract_actors_from_requirements(self, original_requirements: str, class_diagram: str, sequence_diagram: str) -> List[str]:
@@ -949,6 +1042,9 @@ Return only the valid actor names separated by commas, nothing else."""
             print(f"Error extracting actors: {str(e)}")
             # Return case study specific fallback actors
             case_study_type = self._identify_case_study_type(original_requirements)
+            identifiedactors = self._extract_case_specific_actors(original_requirements, case_study_type)
+            if identifiedactors:
+                return identifiedactors
             expected_actors = self._get_expected_actors_for_case_study(case_study_type)
             return expected_actors[:5] if expected_actors else ['User', 'System', 'Admin']
 

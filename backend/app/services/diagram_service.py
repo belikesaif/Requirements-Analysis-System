@@ -1388,6 +1388,83 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
                     "Integrated help facility systems"
                 ]
                 
+            elif case_study_type == "CCTNS":
+                optimized_class, optimized_sequence = self._get_cctns_diagrams()
+                improvements = [
+                    "Applied CCTNS pattern recognition",
+                    "Integrated security, access and architecture diagrams",
+                    "Included multilingual interface and data protections",
+                ]
+
+            elif case_study_type == "College Registration System":
+                optimized_class, optimized_sequence = self._get_college_registration_diagrams()
+                improvements = [
+                    "Applied College Registration patterns",
+                    "Included Student, Administrator, Paper and Report workflows",
+                ]
+
+            elif case_study_type == "E-Store":
+                optimized_class, optimized_sequence = self._get_estore_diagrams()
+                improvements = [
+                    "Applied E-Store patterns",
+                    "Wired Profile, Order, Payment and Product diagrams",
+                ]
+
+            elif case_study_type == "Car Rental System":
+                optimized_class, optimized_sequence = self._get_car_rental_diagrams()
+                improvements = [
+                    "Applied Car Rental patterns",
+                    "Added Customer, Member, CarModel and Reservation diagrams",
+                ]
+
+            elif case_study_type == "LIS":
+                optimized_class, optimized_sequence = self._get_lis_diagrams()
+                improvements = [
+                    "Applied Library Information System patterns",
+                    "Included Staff, Branch, Report and Transaction diagrams",
+                ]
+
+            elif case_study_type == "Online Bookstore":
+                optimized_class, optimized_sequence = self._get_online_bookstore_diagrams()
+                improvements = [
+                    "Applied Online Bookstore patterns",
+                    "Added Customer, Book, Order and ShoppingCart diagrams",
+                ]
+
+            elif case_study_type == "Online Bus Reservation System":
+                optimized_class, optimized_sequence = self._get_online_bus_reservation_diagrams()
+                improvements = [
+                    "Applied Online Bus Reservation patterns",
+                    "Wired User, Customer, Reservation and Payment workflows",
+                ]
+
+            elif case_study_type == "Discussion Group System":
+                optimized_class, optimized_sequence = self._get_online_discussion_group_diagrams()
+                improvements = [
+                    "Applied Discussion Group patterns",
+                    "Included User, Leader, Student, Presentation and Comment diagrams",
+                ]
+
+            elif case_study_type == "Pet Store System":
+                optimized_class, optimized_sequence = self._get_online_pet_store_diagrams()
+                improvements = [
+                    "Applied Pet Store patterns",
+                    "Included Customer, Supplier, Catalog, Inventory and Order diagrams",
+                ]
+
+            elif case_study_type == "E-Learning" or case_study_type.lower() == 'elearning':
+                optimized_class, optimized_sequence = self._get_elearning_diagrams()
+                improvements = [
+                    "Applied E-Learning patterns",
+                    "Included Student, Instructor, Course, and Assessment diagrams",
+                ]
+
+            elif case_study_type == "Railway Reservation System" or case_study_type.lower() == 'railway reservation system':
+                optimized_class, optimized_sequence = self._get_railway_reservation_diagrams()
+                improvements = [
+                    "Applied Railway Reservation patterns",
+                    "Included Passenger, Reservation, Train, and Ticket workflows",
+                ]
             else:
                 # Generate custom diagrams using LLM for unknown patterns
                 print(f"Unknown case study pattern detected. Generating custom diagrams...")
@@ -2000,6 +2077,26 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
         """
         requirements_lower = requirements.lower()
         actors_lower = [actor.lower() for actor in actors]
+
+        # Quick alias/keyword shortcuts to map real names to known patterns
+        if any(x in requirements_lower for x in ['icoot', 'icoot system', 'icoot system problem', 'car rental', 'car hire', 'rent a car', 'rental car', 'car rent']):
+            return "Car Rental System"
+        if any(x in requirements_lower for x in ['e-store', 'estore', 'e store', 'online store', 'ecommerce', 'e-commerce', 'online shop', 'shopping cart']):
+            return "E-Store"
+        if any(x in requirements_lower for x in ['library information system', 'library management', 'lis']) or 'library' in requirements_lower:
+            return "Library Management System"
+        if any(x in requirements_lower for x in ['bookstore', 'online bookstore', 'book store', 'book shop']):
+            return "Online Bookstore"
+        if any(x in requirements_lower for x in ['bus reservation', 'bus booking', 'online bus', 'bus ticket']):
+            return "Online Bus Reservation System"
+        if any(x in requirements_lower for x in ['discussion group', 'discussion forum', 'forum', 'group discussion']):
+            return "Discussion Group System"
+        if any(x in requirements_lower for x in ['pet store', 'petshop', 'pet shop']):
+            return "Pet Store System"
+        if any(x in requirements_lower for x in ['e-learning', 'elearning', 'learning management', 'lms']):
+            return "E-Learning"
+        if any(x in requirements_lower for x in ['railway reservation', 'railway', 'train reservation', 'rail reservation', 'pnr']):
+            return "Railway Reservation System"
         
         # Monitoring Operator System patterns (check FIRST - most specific)
         # Enhanced with more specific monitoring keywords
@@ -2114,6 +2211,95 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
         """
         class_diagram = OptimizedCaseStudies.MOS_Class_Diagram
         sequence_diagram = OptimizedCaseStudies.MOS_Sequnce_Diagram
+        return class_diagram, sequence_diagram
+
+    def _get_cctns_diagrams(self) -> tuple:
+        """
+        Return optimized CCTNS diagrams
+        """
+        class_diagram = OptimizedCaseStudies.CCTNS_Class_Diagram
+        sequence_diagram = OptimizedCaseStudies.CCTNS_Sequnce_Diagram
+        return class_diagram, sequence_diagram
+
+    def _get_college_registration_diagrams(self) -> tuple:
+        """
+        Return optimized College Registration System diagrams
+        """
+        class_diagram = OptimizedCaseStudies.College_Registration_System_Class_Diagram
+        sequence_diagram = OptimizedCaseStudies.College_Registration_System_Sequence_Diagram
+        return class_diagram, sequence_diagram
+
+    def _get_estore_diagrams(self) -> tuple:
+        """
+        Return optimized E-Store diagrams
+        """
+        class_diagram = OptimizedCaseStudies.estore_class_diagram
+        sequence_diagram = OptimizedCaseStudies.estore_sequnce_diagram
+        return class_diagram, sequence_diagram
+
+    def _get_car_rental_diagrams(self) -> tuple:
+        """
+        Return optimized Car Rental System diagrams
+        """
+        class_diagram = OptimizedCaseStudies.car_rental_system_class_diagram
+        sequence_diagram = OptimizedCaseStudies.car_rental_system_sequnce_diagram
+        return class_diagram, sequence_diagram
+
+    def _get_lis_diagrams(self) -> tuple:
+        """
+        Return optimized Library Information System diagrams
+        """
+        class_diagram = OptimizedCaseStudies.LIS_Class_Diagram
+        sequence_diagram = OptimizedCaseStudies.LIS_Sequnce_Diagram
+        return class_diagram, sequence_diagram
+
+    def _get_online_bookstore_diagrams(self) -> tuple:
+        """
+        Return optimized Online Bookstore diagrams
+        """
+        class_diagram = OptimizedCaseStudies.online_book_store_class_diagram
+        sequence_diagram = OptimizedCaseStudies.online_book_store_sequnce_diagram
+        return class_diagram, sequence_diagram
+
+    def _get_online_bus_reservation_diagrams(self) -> tuple:
+        """
+        Return optimized Online Bus Reservation System diagrams
+        """
+        class_diagram = OptimizedCaseStudies.online_bus_reserveation_class_diagram
+        sequence_diagram = OptimizedCaseStudies.online_bus_reserveation_sequnce_diagram
+        return class_diagram, sequence_diagram
+
+    def _get_online_discussion_group_diagrams(self) -> tuple:
+        """
+        Return optimized Discussion Group System diagrams
+        """
+        class_diagram = OptimizedCaseStudies.online_discussion_group_class_diagram
+        sequence_diagram = OptimizedCaseStudies.online_discussion_group_sequnce_diagram
+        return class_diagram, sequence_diagram
+
+    def _get_online_pet_store_diagrams(self) -> tuple:
+        """
+        Return optimized Pet Store System diagrams
+        """
+        class_diagram = OptimizedCaseStudies.online_pet_store_system_class_diagram
+        sequence_diagram = OptimizedCaseStudies.online_pet_store_system_sequnce_diagram
+        return class_diagram, sequence_diagram
+
+    def _get_elearning_diagrams(self) -> tuple:
+        """
+        Return E-Learning class and sequence diagrams from OptimizedCaseStudies
+        """
+        # Fall back to constants defined in docs/OptimizedCaseStudies.py
+        class_diagram = getattr(OptimizedCaseStudies, 'elearning_class_diagram', "@startuml\nclass User\n@enduml")
+        sequence_diagram = getattr(OptimizedCaseStudies, 'elearning_sequence_diagram', "@startuml\nactor User\n@enduml")
+        return class_diagram, sequence_diagram
+
+    def _get_railway_reservation_diagrams(self) -> tuple:
+        """
+        Return Railway Reservation System class and sequence diagrams from OptimizedCaseStudies
+        """
+        class_diagram = getattr(OptimizedCaseStudies, 'railway_reservation_system_class_diagram', "@startuml\nclass Passenger\n@enduml")
+        sequence_diagram = getattr(OptimizedCaseStudies, 'railway_reservation_system_sequence_diagram', "@startuml\nactor Passenger\n@enduml")
         return class_diagram, sequence_diagram
 
     async def _generate_custom_diagrams(self, requirements: str, actors: List[str], 
