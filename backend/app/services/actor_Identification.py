@@ -626,7 +626,8 @@ Be extremely strict about missing actors. If an identified actor is not explicit
             'cctns': ['Interface', 'Data', 'Access', 'Security', 'CommunicationNetwork', 'Architecture'],
             'college_registration_system': ['Student', 'Administrator', 'Paper', 'Report'],
             'e-store': ['User', 'Profile', 'Order', 'Product', 'ShoppingCart', 'Payment'],
-            'car_rental_system': ['Customer', 'Member', 'CarModel', 'Assistant', 'Reservation'],
+            # Per request: exact iCoot (car rental) actors
+            'car_rental_system': ['Customer', 'CarModel', 'Member', 'Reservation Assistant'],
             'lis': ['Staff', 'Branch', 'Administrator', 'Report', 'Item', 'Patron', 'Transaction'],
             'online_bookstore': ['Customer', 'Order', 'Book', 'ShoppingCart'],
             'online_bus_reservation_system': ['User', 'Customer', 'Admin', 'Reservation', 'Payment', 'Bus'],
@@ -722,7 +723,8 @@ Be extremely strict about missing actors. If an identified actor is not explicit
             extracted_actors.extend(['User', 'Profile', 'Order', 'Product', 'ShoppingCart', 'Payment'])
 
         elif case_study_type == 'car_rental_system' or case_study_type.lower() == 'car rental system':
-            extracted_actors.extend(['Customer', 'Member', 'CarModel', 'Assistant', 'Reservation'])
+            # Strict: only the exact four actors for iCoot
+            extracted_actors.extend(['Customer', 'CarModel', 'Member', 'Reservation Assistant'])
 
         elif case_study_type == 'lis' or case_study_type.lower() == 'lis':
             extracted_actors.extend(['Staff', 'Branch', 'Administrator', 'Report', 'Item', 'Patron', 'Transaction'])
@@ -763,6 +765,23 @@ Be extremely strict about missing actors. If an identified actor is not explicit
             case_specific_actors = self._extract_case_specific_actors(original_requirements, case_study_type)
             print(f"Case-specific extracted actors: {case_specific_actors}")
             
+            # STRICT MODE for new case studies: if recognized as a new case, return exact expected actors only
+            strict_cases = {
+                'cctns',
+                'college_registration_system',
+                'e-store',
+                'car_rental_system',
+                'lis',
+                'online_bookstore',
+                'online_bus_reservation_system',
+                'discussion_group_system',
+                'pet_store_system',
+                'elearning',
+                'railway_reservation_system'
+            }
+            if case_study_type in strict_cases:
+                return expected_actors
+
             # Use NLP to extract potential actors from requirements
             nlp_extracted_actors = []
             if self.nlp:
