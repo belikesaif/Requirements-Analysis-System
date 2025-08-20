@@ -627,7 +627,7 @@ Be extremely strict about missing actors. If an identified actor is not explicit
             'college_registration_system': ['Student', 'Administrator', 'Paper', 'Report'],
             'e-store': ['User', 'Profile', 'Order', 'Product', 'ShoppingCart', 'Payment'],
             # Per request: exact iCoot (car rental) actors
-            'car_rental_system': ['Customer', 'CarModel', 'Member', 'Reservation Assistant'],
+            'car_rental_system': ['Customer', 'CarModel', 'Member', 'Reservation', 'Assistant'],
             'lis': ['Staff', 'Branch', 'Administrator', 'Report', 'Item', 'Patron', 'Transaction'],
             'online_bookstore': ['Customer', 'Order', 'Book', 'ShoppingCart'],
             'online_bus_reservation_system': ['User', 'Customer', 'Admin', 'Reservation', 'Payment', 'Bus'],
