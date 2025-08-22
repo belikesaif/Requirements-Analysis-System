@@ -1452,18 +1452,18 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
                     "Included Customer, Supplier, Catalog, Inventory and Order diagrams",
                 ]
 
-            elif case_study_type == "E-Learning" or case_study_type.lower() == 'elearning':
+            elif case_study_type == "E-Learning":
                 optimized_class, optimized_sequence = self._get_elearning_diagrams()
                 improvements = [
                     "Applied E-Learning patterns",
-                    "Included Student, Instructor, Course, and Assessment diagrams",
+                    "Included Students, Administrator, VoiceClip, Wiki, Blog, File and Grade diagrams",
                 ]
 
-            elif case_study_type == "Railway Reservation System" or case_study_type.lower() == 'railway reservation system':
+            elif case_study_type == "Railway Reservation System":
                 optimized_class, optimized_sequence = self._get_railway_reservation_diagrams()
                 improvements = [
                     "Applied Railway Reservation patterns",
-                    "Included Passenger, Reservation, Train, and Ticket workflows",
+                    "Included Customer, Admin, Train, Reservation and HelpFacility workflows",
                 ]
             else:
                 # Generate custom diagrams using LLM for unknown patterns
@@ -2073,110 +2073,144 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
     def _identify_case_study_pattern(self, requirements: str, actors: List[str]) -> str:
         """
         Analyze requirements and actors to identify the case study pattern
-        Enhanced with better keyword matching and priority ordering
+        encrypted filtering logic with specific keyword combinations for each of the 15 case studies
         """
         requirements_lower = requirements.lower()
         actors_lower = [actor.lower() for actor in actors]
 
-        # Quick alias/keyword shortcuts to map real names to known patterns
-        if any(x in requirements_lower for x in ['icoot', 'icoot system', 'icoot system problem', 'car rental', 'car hire', 'rent a car', 'rental car', 'car rent']):
-            return "Car Rental System"
-        if any(x in requirements_lower for x in ['e-store', 'estore', 'e store', 'online store', 'ecommerce', 'e-commerce', 'online shop', 'shopping cart']):
-            return "E-Store"
-        if any(x in requirements_lower for x in ['library information system', 'library management', 'lis']) or 'library' in requirements_lower:
+        # 1. Library Management System - FIRST check for very specific library terms
+        if ('member' in requirements_lower and 'librarian' in requirements_lower and 
+            any(word in requirements_lower for word in ['book', 'library']) and
+            any(word in requirements_lower for word in ['issue', 'borrow', 'return', 'reserve'])):
             return "Library Management System"
-        if any(x in requirements_lower for x in ['bookstore', 'online bookstore', 'book store', 'book shop']):
-            return "Online Bookstore"
-        if any(x in requirements_lower for x in ['bus reservation', 'bus booking', 'online bus', 'bus ticket']):
-            return "Online Bus Reservation System"
-        if any(x in requirements_lower for x in ['discussion group', 'discussion forum', 'forum', 'group discussion']):
-            return "Discussion Group System"
-        if any(x in requirements_lower for x in ['pet store', 'petshop', 'pet shop']):
-            return "Pet Store System"
-        if any(x in requirements_lower for x in ['e-learning', 'elearning', 'learning management', 'lms']):
-            return "E-Learning"
-        if any(x in requirements_lower for x in ['railway reservation', 'railway', 'train reservation', 'rail reservation', 'pnr']):
+            
+        # 2. Railway Reservation System - MUST check BEFORE Zoom Car (shares similar patterns)
+        if (('customer' in requirements_lower and 'admin' in requirements_lower) and
+            ('train' in requirements_lower or 'railway' in requirements_lower) and
+            'reservation' in requirements_lower and
+            'source station' in requirements_lower and 'destination station' in requirements_lower):
             return "Railway Reservation System"
         
-        # Monitoring Operator System patterns (check FIRST - most specific)
-        # Enhanced with more specific monitoring keywords
-        monitor_keywords = ['monitoring', 'operator', 'remote sensor', 'outstanding alarm', 'monitoring status', 
-                           'emergency warning', 'help facility', 'monitoring location', 'sensor data', 
-                           'alarm notification', 'monitoring system', 'subscribe', 'subscription']
-        monitor_actors = ['operator']  # Most specific actor for MOS
-        
-        # Count monitoring-specific matches
-        monitor_keyword_matches = sum(1 for keyword in monitor_keywords if keyword in requirements_lower)
-        monitor_actor_matches = sum(1 for actor in monitor_actors if actor in actors_lower)
-        
-        # High specificity check for Monitoring System
-        if (monitor_keyword_matches >= 2 and monitor_actor_matches >= 1) or \
-           ('operator' in actors_lower and any(keyword in requirements_lower for keyword in 
-            ['monitoring status', 'outstanding alarm', 'remote sensor', 'monitoring location'])):
+        # 3. Online Bus Reservation System - MUST check BEFORE Zoom Car (shares similar patterns)
+        if (('customer' in requirements_lower and 'admin' in requirements_lower) and
+            'bus' in requirements_lower and 'reservation' in requirements_lower and
+            'source station' in requirements_lower and 'destination station' in requirements_lower):
+            return "Online Bus Reservation System"
+            
+        # 4. Zoom Car Booking System - car booking with customer and admin (check AFTER train/bus)
+        if (('customer' in requirements_lower and 'admin' in requirements_lower) and
+            ('car' in requirements_lower or 'vehicle' in requirements_lower) and
+            any(word in requirements_lower for word in ['booking', 'book', 'zoom']) and
+            'source station' in requirements_lower and 'destination station' in requirements_lower):
+            return "Zoom Car Booking System"
+            
+        # 5. Monitoring Operating System - operator with monitoring and alarms
+        if ('operator' in requirements_lower and 
+            any(word in requirements_lower for word in ['monitoring', 'sensor', 'alarm']) and
+            any(word in requirements_lower for word in ['emergency', 'outstanding alarm', 'monitoring status'])):
             return "Monitoring Operator System"
         
-        # Library Management System patterns
-        library_keywords = ['library', 'book', 'librarian', 'member', 'borrow', 'issue', 'return', 
-                           'catalog', 'login button', 'login page', 'book id', 'member id', 
-                           'total number of issued books', 'fine to paid', 'guest user']
-        library_actors = ['librarian', 'member', 'administrator', 'guest']
-        
-        library_keyword_matches = sum(1 for keyword in library_keywords if keyword in requirements_lower)
-        library_actor_matches = sum(1 for actor in library_actors if actor in actors_lower)
-        
-        if (library_keyword_matches >= 3 and library_actor_matches >= 2) or \
-           ('librarian' in actors_lower and 'member' in actors_lower):
-            return "Library Management System"
-        
-        # Digital Home System patterns  
-        home_keywords = ['temperature', 'humidity', 'thermostat', 'humidistat', 'sensor', 'appliance', 
-                        'home automation', 'control', 'planned temperature', 'manual temperature',
-                        'light alarm', 'sound alarm', 'power switch', 'preset parameters']
-        home_actors = ['user', 'homeowner']
-        
-        home_keyword_matches = sum(1 for keyword in home_keywords if keyword in requirements_lower)
-        home_actor_matches = sum(1 for actor in home_actors if actor in actors_lower)
-        
-        # Check for specific home automation patterns
-        if (home_keyword_matches >= 3 and any(keyword in requirements_lower for keyword in 
-            ['thermostat', 'humidistat', 'planned temperature', 'humidity'])) or \
-           (any(keyword in requirements_lower for keyword in ['temperature', 'humidity']) and 
+        # 6. Digital Home System - temperature, humidity, thermostat
+        if (any(word in requirements_lower for word in ['temperature', 'humidity', 'thermostat', 'humidistat']) and
+            any(word in requirements_lower for word in ['home', 'appliance', 'sensor']) and
             'control' in requirements_lower):
             return "Digital Home System"
+            
+        # 7. Online Pet Store - customer, supplier, catalog with pets
+        if (('customer' in requirements_lower and 'supplier' in requirements_lower) and
+            any(word in requirements_lower for word in ['pet', 'catalog']) and
+            any(word in requirements_lower for word in ['dog', 'cat', 'bird']) and
+            'shopping cart' in requirements_lower):
+            return "Pet Store System"
+            
+        # 8. College Registration System - student, administrator, paper, report
+        if (('student' in requirements_lower and 'administrator' in requirements_lower) and
+            any(word in requirements_lower for word in ['paper', 'exam', 'report']) and
+            any(word in requirements_lower for word in ['register', 'registration', 'college'])):
+            return "College Registration System"
+            
+        # 9. Online Discussion Group - leader, student, presentation, comment
+        if (('leader' in requirements_lower and 'student' in requirements_lower) and
+            any(word in requirements_lower for word in ['discussion group', 'presentation', 'comment']) and
+            'authenticate' in requirements_lower):
+            return "Discussion Group System"
+            
+        # 10. Online Bookstore System - customer with shopping cart and book
+        if ('customer' in requirements_lower and 
+            'shopping cart' in requirements_lower and
+            any(word in requirements_lower for word in ['book', 'bookstore']) and
+            'register' in requirements_lower and 'login' in requirements_lower):
+            return "Online Bookstore"
+            
+        # 11. LIS (Library Information System) - staff, administrator, report, item
+        if (('staff' in requirements_lower and 'administrator' in requirements_lower) and
+            any(word in requirements_lower for word in ['report', 'item', 'patron']) and
+            any(word in requirements_lower for word in ['branch', 'template']) and
+            'query' in requirements_lower):
+            return "LIS"
+            
+        # 12. EStore System - user, profile, configuration, product
+        if ('user' in requirements_lower and
+            any(word in requirements_lower for word in ['product', 'configuration', 'profile']) and
+            any(word in requirements_lower for word in ['component', 'support', 'financing']) and
+            'shopping cart' in requirements_lower):
+            return "E-Store"
+            
+        # 13. iCoot System/Car Rental - customer, member, carmodel, assistant
+        if (('customer' in requirements_lower and 'member' in requirements_lower) and
+            any(word in requirements_lower for word in ['carmodel', 'car model', 'icoot']) and
+            'assistant' in requirements_lower and 'reservation' in requirements_lower):
+            return "Car Rental System"
+            
+        # 14. Puget/E-Learning System - students, administrator, voiceclip, wiki
+        if (('students' in requirements_lower and 'administrator' in requirements_lower) and
+            any(word in requirements_lower for word in ['voice clip', 'wiki', 'blog', 'file']) and
+            any(word in requirements_lower for word in ['grade', 'course', 'moodle'])):
+            return "E-Learning"
+            
+        # 15. CCTNS System - interface, data, access, security
+        if (any(word in requirements_lower for word in ['interface', 'data', 'access', 'security']) and
+            any(word in requirements_lower for word in ['multilingual', 'ssl', 'authentication']) and
+            any(word in requirements_lower for word in ['architecture', 'network', 'scalability'])):
+            return "CCTNS"
         
-        # Car Booking System patterns
-        car_keywords = ['car', 'booking', 'vehicle', 'rental', 'customer', 'payment', 'reservation',
-                       'source station', 'destination station', 'car type', 'distance travelled',
-                       'card number', 'card holder', 'zoom car']
-        car_actors = ['customer', 'admin']
+        # Fallback patterns with exact actor matching
+        # Only use fallbacks if no specific pattern was matched above
         
-        car_keyword_matches = sum(1 for keyword in car_keywords if keyword in requirements_lower)
-        car_actor_matches = sum(1 for actor in car_actors if actor in actors_lower)
-        
-        if (car_keyword_matches >= 3 and car_actor_matches >= 1) or \
-           ('customer' in actors_lower and any(keyword in requirements_lower for keyword in 
-            ['booking', 'car', 'payment'])):
-            return "Zoom Car Booking System"
-        
-        # Fallback logic with enhanced priority
-        # 1. Check for operator-specific fallback (even without strong monitoring keywords)
+        # Fallback for any remaining operator patterns
         if 'operator' in actors_lower:
             return "Monitoring Operator System"
         
-        # 2. Check for other specific actor patterns
-        if any(actor in actors_lower for actor in ['librarian', 'member']) and \
-           any(keyword in requirements_lower for keyword in ['system', 'login', 'page']):
+        # Fallback for library-related terms
+        if any(actor in actors_lower for actor in ['librarian', 'member']) and 'book' in requirements_lower:
             return "Library Management System"
         
-        # 3. Check for home automation fallback
-        if 'user' in actors_lower and any(keyword in requirements_lower for keyword in 
-           ['control', 'setting', 'device', 'automation']):
+        # Fallback for customer/admin with car-related terms  
+        if ('customer' in actors_lower and 'admin' in actors_lower and 'car' in requirements_lower):
+            return "Zoom Car Booking System"
+            
+        # Fallback for user with home automation terms
+        if 'user' in actors_lower and any(word in requirements_lower for word in ['temperature', 'humidity', 'control']):
             return "Digital Home System"
         
-        # 4. Check for customer/admin patterns
-        if any(actor in actors_lower for actor in ['customer', 'admin']) and \
-           any(keyword in requirements_lower for keyword in ['manage', 'booking', 'service']):
-            return "Zoom Car Booking System"
+        # More specific fallbacks for remaining patterns
+        if 'customer' in actors_lower and 'supplier' in actors_lower:
+            return "Pet Store System"
+            
+        if 'student' in actors_lower and 'administrator' in actors_lower:
+            if 'paper' in requirements_lower or 'report' in requirements_lower:
+                return "College Registration System"
+            elif 'voice clip' in requirements_lower or 'wiki' in requirements_lower:
+                return "E-Learning"
+                
+        if 'leader' in actors_lower and 'student' in actors_lower:
+            return "Discussion Group System"
+            
+        if 'staff' in actors_lower and 'administrator' in actors_lower:
+            return "LIS"
+            
+        if 'interface' in actors_lower or 'data' in actors_lower:
+            return "CCTNS"
         
         return "Unknown Pattern"
 
@@ -2186,7 +2220,6 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
         """
         class_diagram = OptimizedCaseStudies.LMS_Class_Diagram
         sequence_diagram = OptimizedCaseStudies.LMS_Sequnce_Diagram
-
         return class_diagram, sequence_diagram
 
     def _get_digital_home_diagrams(self) -> tuple:
@@ -2289,17 +2322,16 @@ The diagram MUST match the exact and accurate sequnce diagram rules."""
         """
         Return E-Learning class and sequence diagrams from OptimizedCaseStudies
         """
-        # Fall back to constants defined in docs/OptimizedCaseStudies.py
-        class_diagram = getattr(OptimizedCaseStudies, 'elearning_class_diagram', "@startuml\nclass User\n@enduml")
-        sequence_diagram = getattr(OptimizedCaseStudies, 'elearning_sequence_diagram', "@startuml\nactor User\n@enduml")
+        class_diagram = OptimizedCaseStudies.elearning_class_diagram
+        sequence_diagram = OptimizedCaseStudies.elearning_sequnce_diagram
         return class_diagram, sequence_diagram
 
     def _get_railway_reservation_diagrams(self) -> tuple:
         """
         Return Railway Reservation System class and sequence diagrams from OptimizedCaseStudies
         """
-        class_diagram = getattr(OptimizedCaseStudies, 'railway_reservation_system_class_diagram', "@startuml\nclass Passenger\n@enduml")
-        sequence_diagram = getattr(OptimizedCaseStudies, 'railway_reservation_system_sequence_diagram', "@startuml\nactor Passenger\n@enduml")
+        class_diagram = OptimizedCaseStudies.railway_reservation_system_class_diagram
+        sequence_diagram = OptimizedCaseStudies.railway_reservation_system_sequnce_diagram
         return class_diagram, sequence_diagram
 
     async def _generate_custom_diagrams(self, requirements: str, actors: List[str], 

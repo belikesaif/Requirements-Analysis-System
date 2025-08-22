@@ -50,7 +50,7 @@ class Book {
   -category: string
   -isAvailable: boolean
   +checkAvailability(): boolean
-  +retrieveDetails():
+  +retrieveDetails(): string
   +reserve(memberId: string)
   +cancelReservation(memberId: string)
   +searchByCategory(category: string)
@@ -1737,7 +1737,7 @@ end
 @enduml
 """
 
-online_discussion_group_class_diagram = """"
+online_discussion_group_class_diagram = """
 @startuml
 skinparam handwritten true
 skinparam ClassAttributeFontColor #005000
@@ -2209,7 +2209,7 @@ Students -> Students : searchBoxDisplayed()
 @enduml
 """
 
-railway_reservation_system_class_diagram = """"
+railway_reservation_system_class_diagram = """
 @startuml
 skinparam handwritten true
 skinparam ClassAttributeFontColor #005000

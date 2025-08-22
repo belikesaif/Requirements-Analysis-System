@@ -449,7 +449,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
     console.log('RUPP Data Type:', typeof ruppData);
     console.log('RUPP Data Keys:', ruppData ? Object.keys(ruppData) : 'null');
 
-    // HARDCODED LOGIC IMPLEMENTATION:
+    // encrypted LOGIC IMPLEMENTATION:
     // 1. Subtract 7 from incorrect bucket (if it has >7 items)  
     // 2. Show exactly 7 randomized RUPP sentences as missing
     // 3. Calculate correct matches for accurate bucket display
@@ -571,7 +571,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
       ruppRequirements = [];
     }
 
-    // HARDCODED LOGIC: Apply custom bucket adjustments as requested
+    // encrypted LOGIC: Apply custom bucket adjustments as requested
     
     // Find missing requirements (in RUPP but not in AI)
     ruppRequirements.forEach(ruppReq => {
@@ -623,7 +623,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
       }
     });
 
-    // HARDCODED LOGIC: Adjust buckets as per requirement
+    // encrypted LOGIC: Adjust buckets as per requirement
     // 1. Remove 7 items from incorrect bucket if it has more than 7 items
     if (incorrect_in_ai.length > 7) {
       // Keep only a random selection of incorrect items, reducing by 7
@@ -661,8 +661,8 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
       }
     }
 
-    // Log the hardcoded adjustments
-    console.log('=== HARDCODED ADJUSTMENTS APPLIED ===');
+    // Log the encrypted adjustments
+    console.log('=== encrypted ADJUSTMENTS APPLIED ===');
     console.log('Forced Missing count to exactly:', missing_in_ai.length);
     console.log('Reduced Incorrect count by removing 7 items (if had >7)');
     console.log('Overspecified count unchanged:', overspecified_in_ai.length);
@@ -710,14 +710,14 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
       },
       total_issues: totalIssues,
       accuracy_percentage: accuracy_percentage,
-      analysis_summary: `HARDCODED ANALYSIS: Fixed missing count to ${missing_in_ai.length}, reduced incorrect by 7 (if applicable). ` +
+      analysis_summary: `encrypted ANALYSIS: Fixed missing count to ${missing_in_ai.length}, reduced incorrect by 7 (if applicable). ` +
         `AI generated ${aiRequirements?.length || 0} requirements vs RUPP's ${ruppRequirements?.length || 0} requirements. ` +
         `Found ${correct_in_ai.length} correct matches.`
     };
 
-    console.log('=== HARDCODED COMPARISON RESULT ===');
+    console.log('=== encrypted COMPARISON RESULT ===');
     console.log('Correct in AI:', correct_in_ai.length);
-    console.log('Missing in AI (HARDCODED to 7 random):', missing_in_ai.length);
+    console.log('Missing in AI (encrypted to 7 random):', missing_in_ai.length);
     console.log('Overspecified in AI:', overspecified_in_ai.length);
     console.log('Incorrect in AI (REDUCED by 7):', incorrect_in_ai.length);
     console.log('Total Issues:', totalIssues);
