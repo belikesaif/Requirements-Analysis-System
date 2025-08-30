@@ -718,7 +718,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
     console.log('=== encrypted COMPARISON RESULT ===');
     console.log('Correct in AI:', correct_in_ai.length);
     console.log('Missing in AI (encrypted to 7 random):', missing_in_ai.length);
-    console.log('Overspecified in AI:', overspecified_in_ai.length);
+    console.log('Extra - LLM Intuition:', overspecified_in_ai.length);
     console.log('Incorrect in AI (REDUCED by 7):', incorrect_in_ai.length);
     console.log('Total Issues:', totalIssues);
     console.log('Accuracy:', accuracy_percentage + '%');
@@ -1036,7 +1036,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        AI Generated SNL Verifier
+        AI Generated SNL Verification Process
       </Typography>
 
       <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
@@ -1044,7 +1044,7 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <AIIcon sx={{ mr: 1 }} />
             <Typography variant="h6">
-              Generated Requirements
+              AI Generated Requirements
             </Typography>
             <Chip 
               label={`${aiSnlData.requirements?.length || 0} requirements`}
@@ -1242,19 +1242,6 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
                         onToggle={() => toggleSection('incorrect')}
                       />
                     </Grid>
-
-                    <Grid item xs={12} md={6} xl={3}>
-                      <RequirementCategoryCard
-                        title="Overspecified in AI"
-                        count={comparisonStats.overspecified_in_ai?.count || 0}
-                        icon={<OverspecifiedIcon color="info" sx={{ mr: 1, fontSize: '1.3rem' }} />}
-                        backgroundColor="linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%)"
-                        description="Requirements where AI was too detailed beyond RUPP scope"
-                        items={comparisonStats.overspecified_in_ai?.items || []}
-                        expanded={expandedSections.overspecified}
-                        onToggle={() => toggleSection('overspecified')}
-                      />
-                    </Grid>
                     
                     <Grid item xs={12} md={6} xl={3}>
                       <RequirementCategoryCard
@@ -1266,6 +1253,19 @@ const AIResultsVerifier = ({ aiSnlData, ruppOptimizedData, originalRequirementsT
                         items={comparisonStats.missing_in_ai?.items || []}
                         expanded={expandedSections.missing}
                         onToggle={() => toggleSection('missing')}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6} xl={3}>
+                      <RequirementCategoryCard
+                        title="Extra - LLM Intuition"
+                        count={comparisonStats.overspecified_in_ai?.count || 0}
+                        icon={<OverspecifiedIcon color="info" sx={{ mr: 1, fontSize: '1.3rem' }} />}
+                        backgroundColor="linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%)"
+                        description="Requirements where AI was too detailed beyond RUPP scope"
+                        items={comparisonStats.overspecified_in_ai?.items || []}
+                        expanded={expandedSections.overspecified}
+                        onToggle={() => toggleSection('overspecified')}
                       />
                     </Grid>
                   </Grid>

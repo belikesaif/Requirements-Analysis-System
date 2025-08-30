@@ -377,12 +377,6 @@ System -> User: profile updated
           </Typography>
           {/* Debug Info */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" sx={{ opacity: 0.7 }}>
-              Case: {currentCaseStudy ? '✓' : '✗'} | 
-              Diagrams: {initialDiagrams ? '✓' : '✗'} | 
-              Instances: {identifiedActors.length} |
-              Code: {generatedCode ? '✓' : '✗'}
-            </Typography>
             <Button 
               size="small" 
               variant="outlined" 

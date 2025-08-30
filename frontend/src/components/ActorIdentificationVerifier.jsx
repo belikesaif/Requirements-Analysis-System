@@ -139,63 +139,6 @@ const ActorIdentificationVerifier = ({
 
     return (
       <Grid container spacing={3}>
-        {/* Overall Score */}
-        <Grid item xs={12} md={3}>
-          <Card elevation={1}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h6" gutterBottom>
-                Verification Score
-              </Typography>
-              <Box sx={{ position: 'relative', display: 'inline-flex', mb: 2 }}>
-                <CircularProgress
-                  variant="determinate"
-                  value={score}
-                  size={80}
-                  thickness={4}
-                  color={scoreColor}
-                />
-                <Box sx={{
-                  top: 0,
-                  left: 0,
-                  bottom: 0,
-                  right: 0,
-                  position: 'absolute',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Typography variant="h6" component="div" color={`${scoreColor}.main`}>
-                    {score}%
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography variant="body2" color="textSecondary">
-                Overall diagram-actor alignment
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Statistics Summary */}
-        <Grid item xs={12} md={3}>
-          <Card elevation={1}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h6" gutterBottom>
-                Coverage Statistics
-              </Typography>
-              <Typography variant="h4" color="primary.main" gutterBottom>
-                {verificationResults.statistics?.coverage_percentage?.toFixed(1) || 0}%
-              </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                Actor Coverage
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                {verificationResults.statistics?.present_count || 0} of {verificationResults.statistics?.total_identified_actors || 0} actors present
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
         {/* Missing Instances */}
         <Grid item xs={12} md={3}>
           <Card elevation={1}>
@@ -224,13 +167,13 @@ const ActorIdentificationVerifier = ({
           </Card>
         </Grid>
 
-        {/* Overspecified Classes */}
+        {/* Overspecified Instances */}
         <Grid item xs={12} md={3}>
           <Card elevation={1}>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <InfoIcon sx={{ mr: 1, color: 'info.main' }} />
-                Overspecified Classes ({verificationResults.overspecified_classes?.length || 0})
+                Overspecified Instances ({verificationResults.overspecified_classes?.length || 0})
               </Typography>
               {verificationResults.overspecified_classes?.length > 0 ? (
                 <List dense>
@@ -366,7 +309,7 @@ const ActorIdentificationVerifier = ({
                   <Grid item xs={6} sm={3}>
                     <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.light', color: 'info.contrastText' }}>
                       <Typography variant="h4">{verificationResults.statistics.overspecified_count}</Typography>
-                      <Typography variant="body2">Overspecified Classes</Typography>
+                      <Typography variant="body2">Overspecified Instances</Typography>
                     </Paper>
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -432,7 +375,7 @@ const ActorIdentificationVerifier = ({
         {verificationResults.overspecified_classes?.length > 0 && (
           <Grid item xs={12}>
             <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="h6" gutterBottom>Overspecified Classes Detected:</Typography>
+              <Typography variant="h6" gutterBottom>Overspecified Instances Detected:</Typography>
               <Typography variant="body2" gutterBottom>
                 The following classes appear in your diagrams but were not identified from the requirements. 
                 Consider if they are necessary or if they add unnecessary complexity:
